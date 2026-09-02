@@ -15,6 +15,7 @@ import { MemorySearch } from "@/components/MemorySearch";
 import { ReflectionView } from "@/components/ReflectionView";
 import { BottomNavigation, NavTab } from "@/components/BottomNavigation";
 import { DesktopSidebar } from "@/components/DesktopSidebar";
+import { BrandStoryBanner } from "@/components/BrandStoryBanner";
 import { 
   Search as SearchIcon, 
   User as UserIcon, 
@@ -419,14 +420,17 @@ export default function Page() {
             {/* HOME TAB VIEW */}
             {activeTab === "home" && (
               <div className="space-y-10 pb-24">
+                {/* Brand Story & Philosophy Banner */}
+                <BrandStoryBanner />
+
                 {/* Hero Section */}
-                <div className="text-center space-y-6 pt-4">
+                <div className="text-center space-y-6 pt-2">
                   <div className="space-y-2">
                     <h2 className="font-serif-editorial text-3xl sm:text-4xl font-medium text-stone-900 tracking-tight">
                       {getGreeting()}
                     </h2>
                     <p className="font-serif-editorial text-xl italic text-stone-600">
-                      What&apos;s on your mind?
+                      What&apos;s on your mind today?
                     </p>
                   </div>
 
@@ -434,13 +438,13 @@ export default function Page() {
                   <div className="py-4 flex flex-col items-center justify-center space-y-3">
                     <button
                       onClick={() => setIsVoiceOpen(true)}
-                      className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-[#C86D51] hover:bg-[#B85C42] text-white flex items-center justify-center shadow-md hover:shadow-lg transition-all active:scale-95 cursor-pointer group"
+                      className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-[#E09885] hover:bg-[#D48875] text-white flex items-center justify-center shadow-md hover:shadow-lg transition-all active:scale-95 cursor-pointer group"
                     >
                       <span className="text-4xl font-bold select-none group-hover:scale-110 transition-transform">
                         ◉
                       </span>
                     </button>
-                    <span className="text-xs uppercase tracking-widest text-[#C86D51] font-semibold font-sans-clean">
+                    <span className="text-xs uppercase tracking-widest text-[#E09885] font-semibold font-sans-clean">
                       TAP TO TALK
                     </span>
                   </div>
@@ -453,7 +457,7 @@ export default function Page() {
                     <div className="flex items-center justify-center gap-4 pt-1">
                       <button
                         onClick={() => handleOpenSecondaryCapture("photo")}
-                        className="p-3 bg-white hover:bg-[#FDF6F0] border border-[#E8E2D9] rounded-full text-stone-700 hover:text-[#C86D51] transition-colors cursor-pointer shadow-2xs"
+                        className="p-3 bg-white hover:bg-[#FAF0EB] border border-[#E8E2D9] rounded-full text-stone-700 hover:text-[#E09885] transition-colors cursor-pointer shadow-2xs"
                         title="Photo"
                       >
                         <Camera className="w-4 h-4" />
@@ -461,7 +465,7 @@ export default function Page() {
 
                       <button
                         onClick={() => handleOpenSecondaryCapture("video")}
-                        className="p-3 bg-white hover:bg-[#FDF6F0] border border-[#E8E2D9] rounded-full text-stone-700 hover:text-[#C86D51] transition-colors cursor-pointer shadow-2xs"
+                        className="p-3 bg-white hover:bg-[#FAF0EB] border border-[#E8E2D9] rounded-full text-stone-700 hover:text-[#E09885] transition-colors cursor-pointer shadow-2xs"
                         title="Video"
                       >
                         <Video className="w-4 h-4" />
@@ -469,7 +473,7 @@ export default function Page() {
 
                       <button
                         onClick={() => handleOpenSecondaryCapture("attach")}
-                        className="p-3 bg-white hover:bg-[#FDF6F0] border border-[#E8E2D9] rounded-full text-stone-700 hover:text-[#C86D51] transition-colors cursor-pointer shadow-2xs"
+                        className="p-3 bg-white hover:bg-[#FAF0EB] border border-[#E8E2D9] rounded-full text-stone-700 hover:text-[#E09885] transition-colors cursor-pointer shadow-2xs"
                         title="Attach"
                       >
                         <Paperclip className="w-4 h-4" />
@@ -477,7 +481,7 @@ export default function Page() {
 
                       <button
                         onClick={() => handleOpenSecondaryCapture("text")}
-                        className="p-3 bg-white hover:bg-[#FDF6F0] border border-[#E8E2D9] rounded-full text-stone-700 hover:text-[#C86D51] transition-colors cursor-pointer shadow-2xs"
+                        className="p-3 bg-white hover:bg-[#FAF0EB] border border-[#E8E2D9] rounded-full text-stone-700 hover:text-[#E09885] transition-colors cursor-pointer shadow-2xs"
                         title="Type"
                       >
                         <Edit3 className="w-4 h-4" />
@@ -507,7 +511,7 @@ export default function Page() {
                     </h3>
                     <button
                       onClick={() => setActiveTab("timeline")}
-                      className="text-xs text-[#C86D51] hover:underline font-sans-clean font-medium flex items-center gap-1 cursor-pointer"
+                      className="text-xs text-[#E09885] hover:underline font-sans-clean font-medium flex items-center gap-1 cursor-pointer"
                     >
                       <span>View timeline</span>
                       <ArrowRight className="w-3.5 h-3.5" />
@@ -529,7 +533,7 @@ export default function Page() {
                             hasAudio: item.hasAudio,
                           })
                         }
-                        className="bg-white border border-[#E8E2D9] rounded-2xl p-5 hover:border-[#C86D51]/50 transition-all cursor-pointer shadow-2xs space-y-1.5"
+                        className="bg-white border border-[#E8E2D9] rounded-2xl p-5 hover:border-[#E09885]/50 transition-all cursor-pointer shadow-2xs space-y-1.5"
                       >
                         <span className="text-xs font-sans-clean text-stone-400 font-medium">
                           {item.time}
@@ -555,7 +559,7 @@ export default function Page() {
                     onClick={() => setMemoriesSubTab("people")}
                     className={`flex-1 py-1.5 text-xs font-medium rounded-full transition-all cursor-pointer ${
                       memoriesSubTab === "people"
-                        ? "bg-[#C86D51] text-white shadow-2xs"
+                        ? "bg-[#E09885] text-white shadow-2xs"
                         : "text-stone-600 hover:text-stone-900"
                     }`}
                   >
@@ -565,7 +569,7 @@ export default function Page() {
                     onClick={() => setMemoriesSubTab("places")}
                     className={`flex-1 py-1.5 text-xs font-medium rounded-full transition-all cursor-pointer ${
                       memoriesSubTab === "places"
-                        ? "bg-[#C86D51] text-white shadow-2xs"
+                        ? "bg-[#E09885] text-white shadow-2xs"
                         : "text-stone-600 hover:text-stone-900"
                     }`}
                   >

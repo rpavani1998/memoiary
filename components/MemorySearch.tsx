@@ -54,7 +54,7 @@ export function MemorySearch({ memories }: Props) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search your memories..."
-          className="w-full pl-12 pr-4 py-3.5 bg-white border border-[#E8E2D9] rounded-2xl text-base text-stone-800 placeholder-stone-400 outline-none focus:border-[#C86D51] transition-colors shadow-2xs font-serif-editorial"
+          className="w-full pl-12 pr-4 py-3.5 bg-white border border-[#E8E2D9] rounded-2xl text-base text-stone-800 placeholder-stone-400 outline-none focus:border-[#E09885] transition-colors shadow-2xs font-serif-editorial"
         />
         {query && (
           <button
@@ -77,10 +77,10 @@ export function MemorySearch({ memories }: Props) {
               <button
                 key={idx}
                 onClick={() => setQuery(q)}
-                className="text-left px-4 py-3 bg-white border border-[#E8E2D9] rounded-2xl text-sm font-serif-editorial text-stone-700 hover:border-[#C86D51] hover:text-[#C86D51] transition-all cursor-pointer flex items-center justify-between group shadow-2xs"
+                className="text-left px-4 py-3 bg-white border border-[#E8E2D9] rounded-2xl text-sm font-serif-editorial text-stone-700 hover:border-[#E09885] hover:text-[#E09885] transition-all cursor-pointer flex items-center justify-between group shadow-2xs"
               >
                 <span>&ldquo;{q}&rdquo;</span>
-                <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity text-[#C86D51]" />
+                <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity text-[#E09885]" />
               </button>
             ))}
           </div>
@@ -92,7 +92,7 @@ export function MemorySearch({ memories }: Props) {
         <div className="space-y-4 pt-2">
           {/* Conversational answer synthesis summary */}
           <div className="bg-[#FAF7F2] border border-[#E8E2D9] rounded-2xl p-5 space-y-2">
-            <div className="flex items-center gap-2 text-[#C86D51] text-xs font-semibold uppercase tracking-wider">
+            <div className="flex items-center gap-2 text-[#E09885] text-xs font-semibold uppercase tracking-wider">
               <HandDrawnIllustration type="search" size={20} />
               <span>Memory Recall</span>
             </div>
@@ -111,10 +111,10 @@ export function MemorySearch({ memories }: Props) {
               <div
                 key={mem.id}
                 onClick={() => setActiveMemory(mem)}
-                className="bg-white border border-[#E8E2D9] rounded-2xl p-5 hover:border-[#C86D51]/60 transition-all cursor-pointer shadow-2xs space-y-2"
+                className="bg-white border border-[#E8E2D9] rounded-2xl p-5 hover:border-[#E09885]/60 transition-all cursor-pointer shadow-2xs space-y-2"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs uppercase tracking-widest text-[#C86D51] font-semibold">
+                  <span className="text-xs uppercase tracking-widest text-[#E09885] font-semibold">
                     {mem.date}
                   </span>
                   {mem.place && (

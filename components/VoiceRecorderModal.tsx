@@ -181,7 +181,7 @@ export function VoiceRecorderModal({ isOpen, onClose, onSaveVoice }: VoiceRecord
               onClick={toggleRecording}
               className={`w-20 h-20 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-md ${
                 isRecording
-                  ? "bg-[#C86D51] text-white animate-pulse"
+                  ? "bg-[#E09885] text-white animate-pulse"
                   : "bg-stone-200 text-stone-700 hover:bg-stone-300"
               }`}
               title={isRecording ? "Tap to pause" : "Tap to resume listening"}
@@ -193,13 +193,13 @@ export function VoiceRecorderModal({ isOpen, onClose, onSaveVoice }: VoiceRecord
           {/* Waveform graphic */}
           {isRecording && (
             <div className="flex items-center justify-center gap-1.5 h-8">
-              <div className="w-1 bg-[#C86D51] rounded-full h-4 animate-waveform-1" />
-              <div className="w-1 bg-[#C86D51] rounded-full h-7 animate-waveform-2" />
-              <div className="w-1 bg-[#C86D51] rounded-full h-5 animate-waveform-3" />
-              <div className="w-1 bg-[#C86D51] rounded-full h-8 animate-waveform-4" />
-              <div className="w-1 bg-[#C86D51] rounded-full h-6 animate-waveform-5" />
-              <div className="w-1 bg-[#C86D51] rounded-full h-4 animate-waveform-1" />
-              <div className="w-1 bg-[#C86D51] rounded-full h-7 animate-waveform-3" />
+              <div className="w-1 bg-[#E09885] rounded-full h-4 animate-waveform-1" />
+              <div className="w-1 bg-[#E09885] rounded-full h-7 animate-waveform-2" />
+              <div className="w-1 bg-[#E09885] rounded-full h-5 animate-waveform-3" />
+              <div className="w-1 bg-[#E09885] rounded-full h-8 animate-waveform-4" />
+              <div className="w-1 bg-[#E09885] rounded-full h-6 animate-waveform-5" />
+              <div className="w-1 bg-[#E09885] rounded-full h-4 animate-waveform-1" />
+              <div className="w-1 bg-[#E09885] rounded-full h-7 animate-waveform-3" />
             </div>
           )}
 
@@ -217,7 +217,7 @@ export function VoiceRecorderModal({ isOpen, onClose, onSaveVoice }: VoiceRecord
               value={transcript}
               onChange={(e) => setTranscript(e.target.value)}
               placeholder="Speak now... your words will appear here live."
-              className="w-full text-sm font-serif-editorial text-stone-800 bg-white border border-[#E8E2D9] rounded-2xl p-4 outline-none resize-none h-28 focus:border-[#C86D51] leading-relaxed shadow-2xs"
+              className="w-full text-sm font-serif-editorial text-stone-800 bg-white border border-[#E8E2D9] rounded-2xl p-4 outline-none resize-none h-28 focus:border-[#E09885] leading-relaxed shadow-2xs"
             />
           </div>
 
@@ -232,7 +232,7 @@ export function VoiceRecorderModal({ isOpen, onClose, onSaveVoice }: VoiceRecord
             <button
               onClick={handleDone}
               disabled={isSaving || !transcript.trim()}
-              className="px-6 py-2.5 bg-[#C86D51] hover:bg-[#B85C42] text-white text-sm font-medium rounded-full shadow-sm transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-2"
+              className="px-6 py-2.5 bg-[#E09885] hover:bg-[#D48875] text-white text-sm font-medium rounded-full shadow-sm transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-2"
             >
               <Check className="w-4 h-4" />
               {isSaving ? "Remembering..." : "Done"}

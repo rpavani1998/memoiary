@@ -13,15 +13,30 @@ const config: Config = {
         warm: {
           bg: "#FAF7F2",
           surface: "#FFFFFF",
-          subtle: "#F3EFEA",
+          subtle: "#FAF0EB",
           border: "#E8E2D9",
-          ink: "#2B2824",
-          muted: "#78736B",
+          ink: "#1A1D20",
+          muted: "#656C75",
+        },
+        rose: {
+          DEFAULT: "#E09885",
+          hover: "#D48875",
+          light: "#FAF0EB",
+          dark: "#B86854",
+        },
+        charcoal: {
+          DEFAULT: "#1A1D20",
+          light: "#2D3136",
+          muted: "#4A5056",
+        },
+        sage: {
+          DEFAULT: "#7C8B7B",
+          light: "#F2F5F2",
         },
         clay: {
-          DEFAULT: "#C86D51",
-          hover: "#B85C42",
-          light: "#FDF6F0",
+          DEFAULT: "#E09885",
+          hover: "#D48875",
+          light: "#FAF0EB",
         },
       },
       fontFamily: {

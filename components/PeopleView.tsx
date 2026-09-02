@@ -42,7 +42,7 @@ export function PeopleView({ people }: Props) {
               className="w-20 h-20 rounded-full object-cover border-2 border-[#E8E2D9]"
             />
           ) : (
-            <div className="p-3 bg-[#FDF6F0] rounded-full border border-[#E8E2D9]">
+            <div className="p-3 bg-[#FAF0EB] rounded-full border border-[#E8E2D9]">
               <HandDrawnIllustration type="person_abstract" size={48} />
             </div>
           )}
@@ -71,9 +71,9 @@ export function PeopleView({ people }: Props) {
             <div
               key={mem.id}
               onClick={() => setActiveMemory(mem)}
-              className="bg-white border border-[#E8E2D9] rounded-2xl p-5 hover:border-[#C86D51]/50 transition-all cursor-pointer shadow-2xs space-y-2"
+              className="bg-white border border-[#E8E2D9] rounded-2xl p-5 hover:border-[#E09885]/50 transition-all cursor-pointer shadow-2xs space-y-2"
             >
-              <span className="text-xs uppercase tracking-widest text-[#C86D51] font-semibold">
+              <span className="text-xs uppercase tracking-widest text-[#E09885] font-semibold">
                 {mem.date}
               </span>
               <h4 className="font-serif-editorial text-lg text-stone-900 font-medium">
@@ -113,7 +113,7 @@ export function PeopleView({ people }: Props) {
           <div
             key={person.id}
             onClick={() => setSelectedPerson(person)}
-            className="bg-white border border-[#E8E2D9] rounded-2xl p-5 flex items-center justify-between hover:border-[#C86D51]/60 transition-all cursor-pointer shadow-2xs"
+            className="bg-white border border-[#E8E2D9] rounded-2xl p-5 flex items-center justify-between hover:border-[#E09885]/60 transition-all cursor-pointer shadow-2xs"
           >
             <div className="flex items-center gap-3.5">
               {person.photoUrl ? (
@@ -123,7 +123,7 @@ export function PeopleView({ people }: Props) {
                   className="w-12 h-12 rounded-full object-cover border border-[#E8E2D9]"
                 />
               ) : (
-                <div className="p-2 bg-[#FDF6F0] rounded-full border border-[#E8E2D9]">
+                <div className="p-2 bg-[#FAF0EB] rounded-full border border-[#E8E2D9]">
                   <HandDrawnIllustration type="person_abstract" size={28} />
                 </div>
               )}

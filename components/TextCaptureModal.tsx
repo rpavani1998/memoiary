@@ -71,14 +71,14 @@ export function TextCaptureModal({
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder="What's on your mind? Tell your memory naturally..."
-              className="w-full h-36 font-sans-clean text-base text-stone-800 bg-white border border-[#E8E2D9] rounded-2xl p-4 outline-none resize-none focus:border-[#C86D51] transition-colors leading-relaxed"
+              className="w-full h-36 font-sans-clean text-base text-stone-800 bg-white border border-[#E8E2D9] rounded-2xl p-4 outline-none resize-none focus:border-[#E09885] transition-colors leading-relaxed"
               autoFocus
             />
 
             {/* Media Attachment Indicators */}
             {mediaType && (
-              <div className="flex items-center justify-between px-3 py-2 bg-[#FDF6F0] border border-[#E8E2D9] rounded-xl text-xs text-stone-700">
-                <span className="capitalize font-medium text-[#C86D51]">
+              <div className="flex items-center justify-between px-3 py-2 bg-[#FAF0EB] border border-[#E8E2D9] rounded-xl text-xs text-stone-700">
+                <span className="capitalize font-medium text-[#E09885]">
                   {mediaType} Attached
                 </span>
                 <button
@@ -98,7 +98,7 @@ export function TextCaptureModal({
                   type="button"
                   onClick={() => setMediaType("photo")}
                   className={`p-2 rounded-xl text-stone-600 hover:bg-white transition-colors cursor-pointer ${
-                    mediaType === "photo" ? "bg-white text-[#C86D51]" : ""
+                    mediaType === "photo" ? "bg-white text-[#E09885]" : ""
                   }`}
                   title="Attach photo"
                 >
@@ -108,7 +108,7 @@ export function TextCaptureModal({
                   type="button"
                   onClick={() => setMediaType("video")}
                   className={`p-2 rounded-xl text-stone-600 hover:bg-white transition-colors cursor-pointer ${
-                    mediaType === "video" ? "bg-white text-[#C86D51]" : ""
+                    mediaType === "video" ? "bg-white text-[#E09885]" : ""
                   }`}
                   title="Attach video"
                 >
@@ -118,7 +118,7 @@ export function TextCaptureModal({
                   type="button"
                   onClick={() => setMediaType("file")}
                   className={`p-2 rounded-xl text-stone-600 hover:bg-white transition-colors cursor-pointer ${
-                    mediaType === "file" ? "bg-white text-[#C86D51]" : ""
+                    mediaType === "file" ? "bg-white text-[#E09885]" : ""
                   }`}
                   title="Attach note or document"
                 >
@@ -129,7 +129,7 @@ export function TextCaptureModal({
               <button
                 type="submit"
                 disabled={isSaving || !text.trim()}
-                className="px-6 py-2.5 bg-[#C86D51] hover:bg-[#B85C42] text-white text-xs font-medium rounded-full shadow-sm transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                className="px-6 py-2.5 bg-[#E09885] hover:bg-[#D48875] text-white text-xs font-medium rounded-full shadow-sm transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
               >
                 <Send className="w-3.5 h-3.5" />
                 {isSaving ? "Saving..." : "Remember"}

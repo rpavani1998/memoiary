@@ -12,21 +12,21 @@ interface Props {
 
 export function EmptyState({
   illustration = "empty",
-  title = "Nothing here yet.",
-  subtitle = "Start talking. Your memories will grow with you.",
+  title = "Your canvas is quiet.",
+  subtitle = "Start expressing your thoughts. Memoiary will weave them into connected meaning over time.",
   actionButton,
 }: Props) {
   return (
     <div className="flex flex-col items-center justify-center p-10 text-center max-w-sm mx-auto space-y-4 my-8">
-      <div className="p-4 bg-[#FDF6F0] rounded-full border border-[#E8E2D9]">
+      <div className="p-4 bg-[#FAF0EB] rounded-full border border-[#F2D5CB]">
         <HandDrawnIllustration type={illustration} size={52} />
       </div>
 
       <div className="space-y-2">
-        <h3 className="font-serif-editorial text-xl font-medium text-stone-800">
+        <h3 className="font-serif-editorial text-xl font-medium text-[#1A1D20]">
           {title}
         </h3>
-        <p className="text-sm text-stone-600 leading-relaxed font-sans-clean">
+        <p className="text-sm text-[#656C75] leading-relaxed font-sans-clean">
           {subtitle}
         </p>
       </div>

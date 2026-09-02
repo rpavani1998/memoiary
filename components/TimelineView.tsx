@@ -70,14 +70,14 @@ export function TimelineView({ entries }: Props) {
                       hasAudio: item.hasAudio,
                     })
                   }
-                  className="bg-white border border-[#E8E2D9] rounded-2xl p-5 hover:border-[#C86D51]/60 transition-all cursor-pointer shadow-2xs space-y-2 relative"
+                  className="bg-white border border-[#E8E2D9] rounded-2xl p-5 hover:border-[#E09885]/60 transition-all cursor-pointer shadow-2xs space-y-2 relative"
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-sans-clean text-stone-400 font-medium">
                       {item.time}
                     </span>
                     {item.place && (
-                      <span className="text-xs text-[#C86D51] font-sans-clean font-medium">
+                      <span className="text-xs text-[#E09885] font-sans-clean font-medium">
                         {item.place}
                       </span>
                     )}

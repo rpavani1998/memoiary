@@ -60,7 +60,7 @@ export function ClarificationCard({
       {/* Top row with hand-drawn question illustration */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3.5">
-          <div className="p-1 bg-[#FDF6F0] rounded-full border border-[#E8E2D9] shrink-0 mt-0.5">
+          <div className="p-1 bg-[#FAF0EB] rounded-full border border-[#E8E2D9] shrink-0 mt-0.5">
             <HandDrawnIllustration type="question" size={32} />
           </div>
 
@@ -93,7 +93,7 @@ export function ClarificationCard({
           <button
             onClick={handleConfirm}
             disabled={isSubmitting}
-            className="px-4 py-1.5 bg-[#C86D51] hover:bg-[#B85C42] text-white text-xs font-medium rounded-full shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
+            className="px-4 py-1.5 bg-[#E09885] hover:bg-[#D48875] text-white text-xs font-medium rounded-full shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
           >
             Yes
           </button>
@@ -125,13 +125,13 @@ export function ClarificationCard({
               value={customText}
               onChange={(e) => setCustomText(e.target.value)}
               placeholder="Tell me what you meant..."
-              className="flex-1 text-xs px-3.5 py-2 bg-white border border-[#E8E2D9] rounded-xl outline-none focus:border-[#C86D51] text-stone-800 font-sans-clean"
+              className="flex-1 text-xs px-3.5 py-2 bg-white border border-[#E8E2D9] rounded-xl outline-none focus:border-[#E09885] text-stone-800 font-sans-clean"
               autoFocus
             />
             <button
               type="submit"
               disabled={isSubmitting || !customText.trim()}
-              className="px-3.5 py-2 bg-[#C86D51] hover:bg-[#B85C42] text-white text-xs font-medium rounded-xl flex items-center gap-1 cursor-pointer disabled:opacity-50"
+              className="px-3.5 py-2 bg-[#E09885] hover:bg-[#D48875] text-white text-xs font-medium rounded-xl flex items-center gap-1 cursor-pointer disabled:opacity-50"
             >
               <Send className="w-3.5 h-3.5" />
             </button>

@@ -57,13 +57,13 @@ export function ReflectionView() {
       {/* Calm Header */}
       <div className="text-center space-y-3 pt-2">
         <div className="flex justify-center">
-          <HandDrawnIllustration type="thinking" size={48} />
+          <img src="/logo.png" alt="Memoiary Logo" className="h-14 w-auto object-contain" />
         </div>
         <h2 className="font-serif-editorial text-2xl font-medium text-stone-900">
-          Talk to Your Memory
+          Reflect with Memoiary
         </h2>
         <p className="text-xs text-stone-500 font-sans-clean">
-          A quiet surface to explore your thoughts and memories.
+          A quiet sounding board weaving your scattered thoughts into interconnected clarity.
         </p>
       </div>
 
@@ -74,13 +74,13 @@ export function ReflectionView() {
         {messages.map((msg) => (
           <div key={msg.id} className="space-y-1.5">
             <span className="text-xs uppercase tracking-wider text-stone-400 font-semibold font-sans-clean">
-              {msg.sender === "you" ? "You" : "Assistant"}
+              {msg.sender === "you" ? "You" : "Memoiary"}
             </span>
             <p
               className={`font-serif-editorial text-base leading-relaxed ${
                 msg.sender === "you"
                   ? "text-stone-900 font-medium"
-                  : "text-stone-700 italic border-l-2 border-[#C86D51]/40 pl-4 py-1"
+                  : "text-stone-700 italic border-l-2 border-[#E09885]/60 pl-4 py-1"
               }`}
             >
               {msg.text}
@@ -91,10 +91,10 @@ export function ReflectionView() {
         {isReplying && (
           <div className="space-y-1 py-2">
             <span className="text-xs uppercase tracking-wider text-stone-400 font-semibold font-sans-clean">
-              Assistant
+              Memoiary
             </span>
-            <p className="font-serif-editorial italic text-stone-500 text-sm animate-pulse">
-              Listening to your memory...
+            <p className="font-serif-editorial italic text-[#E09885] text-sm animate-pulse">
+              Weaving your thoughts into memory...
             </p>
           </div>
         )}
@@ -116,7 +116,7 @@ export function ReflectionView() {
           <button
             type="submit"
             disabled={!inputText.trim()}
-            className="p-2.5 bg-[#C86D51] hover:bg-[#B85C42] text-white rounded-xl cursor-pointer disabled:opacity-40 transition-colors"
+            className="p-2.5 bg-[#E09885] hover:bg-[#D48875] text-white rounded-xl cursor-pointer disabled:opacity-40 transition-colors"
           >
             <Send className="w-4 h-4" />
           </button>

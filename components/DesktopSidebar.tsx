@@ -48,11 +48,11 @@ export function DesktopSidebar({ activeTab, onSelectTab, onOpenCapture }: Props)
                 onClick={() => onSelectTab(link.id)}
                 className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${
                   isActive
-                    ? "bg-[#FDF6F0] text-[#C86D51] border border-[#E8E2D9]"
+                    ? "bg-[#FAF0EB] text-[#E09885] border border-[#F2D5CB]"
                     : "text-stone-600 hover:text-stone-900 hover:bg-white/60"
                 }`}
               >
-                <span className={isActive ? "text-[#C86D51]" : "text-stone-400"}>
+                <span className={isActive ? "text-[#E09885]" : "text-stone-400"}>
                   {link.icon}
                 </span>
                 <span>{link.label}</span>
@@ -66,7 +66,7 @@ export function DesktopSidebar({ activeTab, onSelectTab, onOpenCapture }: Props)
       <div className="pt-4">
         <button
           onClick={onOpenCapture}
-          className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-[#C86D51] hover:bg-[#B85C42] text-white rounded-2xl text-sm font-medium shadow-sm transition-colors cursor-pointer"
+          className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-[#E09885] hover:bg-[#D48875] text-white rounded-2xl text-sm font-medium shadow-sm transition-colors cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           <span>Capture Memory</span>

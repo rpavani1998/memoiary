@@ -86,7 +86,7 @@ export function MemoryDetailModal({ memory, onClose }: Props) {
             {memory.place && (
               <div className="flex items-center gap-2">
                 <span className="text-stone-400 font-medium w-14">Place</span>
-                <span className="px-2.5 py-1 bg-[#FDF6F0] border border-[#E8E2D9] rounded-full text-[#C86D51] font-medium flex items-center gap-1">
+                <span className="px-2.5 py-1 bg-[#FAF0EB] border border-[#E8E2D9] rounded-full text-[#E09885] font-medium flex items-center gap-1">
                   <HandDrawnIllustration type="place" size={16} />
                   {memory.place}
                 </span>
@@ -119,14 +119,14 @@ export function MemoryDetailModal({ memory, onClose }: Props) {
               {memory.hasAudio && (
                 <div className="flex items-center justify-between p-3.5 bg-white border border-[#E8E2D9] rounded-2xl">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-[#FDF6F0] flex items-center justify-center text-[#C86D51]">
+                    <div className="w-8 h-8 rounded-full bg-[#FAF0EB] flex items-center justify-center text-[#E09885]">
                       <Volume2 className="w-4 h-4" />
                     </div>
                     <span className="text-xs font-medium text-stone-700">
                       Voice Recording attached
                     </span>
                   </div>
-                  <button className="px-3 py-1 bg-[#C86D51] text-white text-xs font-medium rounded-full hover:bg-[#B85C42] cursor-pointer">
+                  <button className="px-3 py-1 bg-[#E09885] text-white text-xs font-medium rounded-full hover:bg-[#D48875] cursor-pointer">
                     Play
                   </button>
                 </div>

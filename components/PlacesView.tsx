@@ -33,7 +33,7 @@ export function PlacesView({ places }: Props) {
 
         {/* Place Header */}
         <div className="flex flex-col items-center justify-center text-center space-y-3 py-4">
-          <div className="p-3 bg-[#FDF6F0] rounded-full border border-[#E8E2D9]">
+          <div className="p-3 bg-[#FAF0EB] rounded-full border border-[#E8E2D9]">
             <HandDrawnIllustration type="place" size={54} />
           </div>
 
@@ -48,7 +48,7 @@ export function PlacesView({ places }: Props) {
             )}
           </div>
 
-          <span className="px-3.5 py-1 bg-white border border-[#E8E2D9] rounded-full text-xs text-[#C86D51] font-medium">
+          <span className="px-3.5 py-1 bg-white border border-[#E8E2D9] rounded-full text-xs text-[#E09885] font-medium">
             {selectedPlace.memoriesCount} memories
           </span>
         </div>
@@ -61,9 +61,9 @@ export function PlacesView({ places }: Props) {
             <div
               key={mem.id}
               onClick={() => setActiveMemory(mem)}
-              className="bg-white border border-[#E8E2D9] rounded-2xl p-5 hover:border-[#C86D51]/50 transition-all cursor-pointer shadow-2xs space-y-2"
+              className="bg-white border border-[#E8E2D9] rounded-2xl p-5 hover:border-[#E09885]/50 transition-all cursor-pointer shadow-2xs space-y-2"
             >
-              <span className="text-xs uppercase tracking-widest text-[#C86D51] font-semibold">
+              <span className="text-xs uppercase tracking-widest text-[#E09885] font-semibold">
                 {mem.date}
               </span>
               <h4 className="font-serif-editorial text-lg text-stone-900 font-medium">
@@ -97,10 +97,10 @@ export function PlacesView({ places }: Props) {
           <div
             key={place.id}
             onClick={() => setSelectedPlace(place)}
-            className="bg-white border border-[#E8E2D9] rounded-2xl p-5 flex items-center justify-between hover:border-[#C86D51]/60 transition-all cursor-pointer shadow-2xs"
+            className="bg-white border border-[#E8E2D9] rounded-2xl p-5 flex items-center justify-between hover:border-[#E09885]/60 transition-all cursor-pointer shadow-2xs"
           >
             <div className="flex items-center gap-3.5">
-              <div className="p-2.5 bg-[#FDF6F0] rounded-2xl border border-[#E8E2D9]">
+              <div className="p-2.5 bg-[#FAF0EB] rounded-2xl border border-[#E8E2D9]">
                 <HandDrawnIllustration type="place" size={32} />
               </div>
 

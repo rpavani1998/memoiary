@@ -3,14 +3,25 @@
 @theme {
   --color-warm-bg: #FAF7F2;
   --color-warm-surface: #FFFFFF;
-  --color-warm-subtle: #F3EFEA;
+  --color-warm-subtle: #FAF0EB;
   --color-warm-border: #E8E2D9;
-  --color-warm-ink: #2B2824;
-  --color-warm-muted: #78736B;
+  --color-warm-ink: #1A1D20;
+  --color-warm-muted: #656C75;
 
-  --color-clay-default: #C86D51;
-  --color-clay-hover: #B85C42;
-  --color-clay-light: #FDF6F0;
+  --color-memoiary-rose: #E09885;
+  --color-memoiary-rose-hover: #D48875;
+  --color-memoiary-rose-light: #FAF0EB;
+  --color-memoiary-rose-dark: #B86854;
+
+  --color-memoiary-charcoal: #1A1D20;
+  --color-memoiary-charcoal-light: #2D3136;
+
+  --color-memoiary-sage: #7C8B7B;
+  --color-memoiary-sage-light: #F2F5F2;
+
+  --color-clay-default: #E09885;
+  --color-clay-hover: #D48875;
+  --color-clay-light: #FAF0EB;
 
   --font-serif: "Georgia", "Cambria", "Times New Roman", Times, serif;
   --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
@@ -19,15 +30,19 @@
 :root {
   --bg-warm: #FAF7F2;
   --bg-surface: #FFFFFF;
-  --bg-subtle: #F3EFEA;
+  --bg-subtle: #FAF0EB;
   --border-warm: #E8E2D9;
-  --border-subtle: #F0ECE6;
-  --text-main: #2B2824;
-  --text-muted: #78736B;
-  --text-soft: #A39E95;
-  --accent-clay: #C86D51;
-  --accent-warm: #D98268;
-  --accent-light: #FDF6F0;
+  --border-rose: #F2D5CB;
+  --text-main: #1A1D20;
+  --text-muted: #656C75;
+  --text-soft: #9BA2AB;
+  --accent-rose: #E09885;
+  --accent-rose-hover: #D48875;
+  --accent-sage: #7C8B7B;
+  --accent-charcoal: #1A1D20;
+  --accent-clay: #E09885;
+  --accent-warm: #E09885;
+  --accent-light: #FAF0EB;
 }
 
 body {
