@@ -47,7 +47,7 @@ export function TextCaptureModal({
           initial={{ opacity: 0, scale: 0.95, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
-          className="w-full max-w-lg bg-[#FAF7F2] border border-[#E8E2D9] rounded-3xl p-6 shadow-xl relative space-y-4"
+          className="w-full max-w-lg bg-[#FAF7F2] border border-[#E8E2D9] rounded-3xl p-5 sm:p-6 shadow-xl relative space-y-4 max-h-[92vh] overflow-y-auto"
         >
           {/* Header */}
           <div className="flex items-center justify-between pb-2 border-b border-[#E8E2D9]">

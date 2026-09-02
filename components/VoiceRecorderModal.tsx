@@ -151,7 +151,7 @@ export function VoiceRecorderModal({ isOpen, onClose, onSaveVoice }: VoiceRecord
           initial={{ opacity: 0, scale: 0.95, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
-          className="w-full max-w-md bg-[#FAF7F2] border border-[#E8E2D9] rounded-3xl p-8 shadow-xl text-center space-y-6 relative overflow-hidden"
+          className="w-full max-w-md bg-[#FAF7F2] border border-[#E8E2D9] rounded-3xl p-5 sm:p-8 shadow-xl text-center space-y-4 sm:space-y-6 relative max-h-[92vh] overflow-y-auto"
         >
           {/* Header close button */}
           <button

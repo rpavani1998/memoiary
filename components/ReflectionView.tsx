@@ -100,23 +100,23 @@ export function ReflectionView() {
         )}
       </div>
 
-      {/* Input area */}
-      <div className="fixed bottom-20 left-0 right-0 max-w-xl mx-auto px-4 z-20">
+      {/* Responsive Input Area */}
+      <div className="sticky bottom-20 md:bottom-6 left-0 right-0 z-20 pt-4">
         <form
           onSubmit={handleSend}
-          className="bg-white border border-[#E8E2D9] rounded-2xl p-2 shadow-md flex items-center gap-2"
+          className="bg-white/95 backdrop-blur-md border border-[#E8E2D9] rounded-2xl p-2 shadow-lg flex items-center gap-2"
         >
           <input
             type="text"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             placeholder="Share what's on your mind..."
-            className="flex-1 px-4 py-2.5 text-sm font-serif-editorial text-stone-800 placeholder-stone-400 outline-none"
+            className="flex-1 px-4 py-2.5 text-sm font-serif-editorial text-stone-800 placeholder-stone-400 outline-none bg-transparent"
           />
           <button
             type="submit"
             disabled={!inputText.trim()}
-            className="p-2.5 bg-[#E09885] hover:bg-[#D48875] text-white rounded-xl cursor-pointer disabled:opacity-40 transition-colors"
+            className="p-2.5 bg-[#E09885] hover:bg-[#D48875] text-white rounded-xl cursor-pointer disabled:opacity-40 transition-colors shadow-2xs"
           >
             <Send className="w-4 h-4" />
           </button>
