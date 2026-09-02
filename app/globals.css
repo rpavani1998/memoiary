@@ -1,0 +1,98 @@
+@import "tailwindcss";
+
+@theme {
+  --color-warm-bg: #FAF7F2;
+  --color-warm-surface: #FFFFFF;
+  --color-warm-subtle: #F3EFEA;
+  --color-warm-border: #E8E2D9;
+  --color-warm-ink: #2B2824;
+  --color-warm-muted: #78736B;
+
+  --color-clay-default: #C86D51;
+  --color-clay-hover: #B85C42;
+  --color-clay-light: #FDF6F0;
+
+  --font-serif: "Georgia", "Cambria", "Times New Roman", Times, serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+}
+
+:root {
+  --bg-warm: #FAF7F2;
+  --bg-surface: #FFFFFF;
+  --bg-subtle: #F3EFEA;
+  --border-warm: #E8E2D9;
+  --border-subtle: #F0ECE6;
+  --text-main: #2B2824;
+  --text-muted: #78736B;
+  --text-soft: #A39E95;
+  --accent-clay: #C86D51;
+  --accent-warm: #D98268;
+  --accent-light: #FDF6F0;
+}
+
+body {
+  background-color: #FAF7F2;
+  color: #2B2824;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Editorial typography classes */
+.font-serif-editorial {
+  font-family: "Georgia", "Cambria", "Times New Roman", Times, serif;
+}
+
+.font-sans-clean {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+}
+
+/* Subtle hand-drawn texture overlay */
+.paper-texture {
+  background-image: radial-gradient(#E8E2D9 0.75px, transparent 0.75px);
+  background-size: 24px 24px;
+}
+
+/* Soft custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #E0DAD0;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #C5BEB4;
+}
+
+/* Waveform pulse animation */
+@keyframes waveform-pulse {
+  0%, 100% {
+    transform: scaleY(0.3);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+.animate-waveform-1 {
+  animation: waveform-pulse 1.2s ease-in-out infinite;
+}
+.animate-waveform-2 {
+  animation: waveform-pulse 1.2s ease-in-out infinite 0.2s;
+}
+.animate-waveform-3 {
+  animation: waveform-pulse 1.2s ease-in-out infinite 0.4s;
+}
+.animate-waveform-4 {
+  animation: waveform-pulse 1.2s ease-in-out infinite 0.1s;
+}
+.animate-waveform-5 {
+  animation: waveform-pulse 1.2s ease-in-out infinite 0.3s;
+}

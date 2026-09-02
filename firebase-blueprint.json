@@ -1,0 +1,108 @@
+{
+  "entities": {
+    "Clarification": {
+      "title": "Clarification",
+      "description": "Represents an ambiguity, entity mismatch, or consistency clarification candidate needing user confirmation",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "captureId": { "type": "string" },
+        "type": { "type": "string", "enum": ["ambiguity", "entity_mismatch", "world_knowledge_conflict", "temporal_inconsistency", "contradiction", "user_correction"] },
+        "question": { "type": "string" },
+        "context": { "type": "string" },
+        "originalClaim": { "type": "string" },
+        "epistemicStatus": { "type": "string", "enum": ["USER_SAID", "SYSTEM_KNOWS", "SYSTEM_INFERRED", "SYSTEM_SUSPECTS", "USER_CONFIRMED", "USER_CORRECTED"] },
+        "confidence": { "type": "number" },
+        "significance": { "type": "string", "enum": ["high", "medium", "low"] },
+        "status": { "type": "string", "enum": ["pending", "confirmed", "rejected", "corrected", "dismissed"] },
+        "userResponse": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "resolvedAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "type", "question", "epistemicStatus", "status", "createdAt"]
+    },
+    "CaptureSession": {
+      "title": "CaptureSession",
+      "description": "A raw multi-modal autobiographical capture from the user",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "content": { "type": "string" },
+        "source": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "content", "createdAt"]
+    },
+    "Episode": {
+      "title": "Episode",
+      "description": "An autobiographical event or episode",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "summary": { "type": "string" },
+        "date": { "type": "string" },
+        "entitiesInvolved": { "type": "string" },
+        "epistemicStatus": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "title", "createdAt"]
+    },
+    "Entity": {
+      "title": "Entity",
+      "description": "A person, organization, place, media, or concept in the user's autobiographical graph",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "aliases": { "type": "string" },
+        "epistemicStatus": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "name", "category"]
+    },
+    "Relationship": {
+      "title": "Relationship",
+      "description": "A relationship between entities or between the user and an entity",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "sourceId": { "type": "string" },
+        "targetId": { "type": "string" },
+        "predicate": { "type": "string" },
+        "status": { "type": "string" },
+        "validFrom": { "type": "string" },
+        "validTo": { "type": "string" }
+      },
+      "required": ["id", "userId", "sourceId", "targetId", "predicate"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/captures/{captureId}": {
+      "schema": { "$ref": "#/entities/CaptureSession" },
+      "description": "Raw user capture sessions"
+    },
+    "/users/{userId}/clarifications/{clarificationId}": {
+      "schema": { "$ref": "#/entities/Clarification" },
+      "description": "Consistency clarifications and user confirmations"
+    },
+    "/users/{userId}/episodes/{episodeId}": {
+      "schema": { "$ref": "#/entities/Episode" },
+      "description": "Autobiographical episodic memory records"
+    },
+    "/users/{userId}/entities/{entityId}": {
+      "schema": { "$ref": "#/entities/Entity" },
+      "description": "Known entity records in the user's graph"
+    },
+    "/users/{userId}/relationships/{relId}": {
+      "schema": { "$ref": "#/entities/Relationship" },
+      "description": "Entity relationship links with temporal validity"
+    }
+  }
+}
