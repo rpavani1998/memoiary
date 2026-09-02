@@ -30,31 +30,27 @@ export function BrandStoryBanner() {
         {/* 3-Step Visual Weave Story */}
         <div className="grid grid-cols-3 gap-2 sm:gap-3 w-full md:w-auto shrink-0 pt-2 md:pt-0">
           <div className="bg-white/80 backdrop-blur-xs border border-[#E8E2D9] rounded-xl p-3 text-center space-y-1.5 flex flex-col items-center">
-            <div className="w-8 h-8 rounded-full bg-[#FAF0EB] flex items-center justify-center text-[#E09885]">
-              <div className="flex gap-1 items-center">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#E09885] animate-pulse"></span>
-                <span className="w-1 h-1 rounded-full bg-[#7C8B7B]"></span>
-                <span className="w-1.5 h-1.5 rounded-full bg-[#1A1D20]"></span>
-              </div>
+            <div className="w-10 h-10 rounded-full bg-[#FAF0EB] flex items-center justify-center p-1 border border-[#F2D5CB]">
+              <img src="/scattered-thoughts.png" alt="Scattered Thoughts" className="w-full h-full object-contain" />
             </div>
-            <span className="text-[11px] font-medium text-[#1A1D20] block">Scattered Dots</span>
+            <span className="text-[11px] font-medium text-[#1A1D20] block">Scattered Thoughts</span>
             <span className="text-[9px] text-[#656C75] block leading-tight">Fleeting thoughts</span>
           </div>
 
           <div className="bg-white/80 backdrop-blur-xs border border-[#E8E2D9] rounded-xl p-3 text-center space-y-1.5 flex flex-col items-center">
-            <div className="w-8 h-8 rounded-full bg-[#FAF0EB] flex items-center justify-center text-[#E09885]">
-              <PenTool className="w-4 h-4 text-[#E09885]" />
+            <div className="w-10 h-10 rounded-full bg-[#FAF0EB] flex items-center justify-center p-1 border border-[#F2D5CB]">
+              <img src="/weaving-connections.png" alt="Weaving Connections" className="w-full h-full object-contain" />
             </div>
-            <span className="text-[11px] font-medium text-[#1A1D20] block">Gathered by Pen</span>
-            <span className="text-[9px] text-[#656C75] block leading-tight">Captured & linked</span>
+            <span className="text-[11px] font-medium text-[#1A1D20] block">Weaving Connections</span>
+            <span className="text-[9px] text-[#656C75] block leading-tight">Gathered by Pen</span>
           </div>
 
           <div className="bg-white/80 backdrop-blur-xs border border-[#E09885]/30 rounded-xl p-3 text-center space-y-1.5 flex flex-col items-center">
-            <div className="w-8 h-8 rounded-full bg-[#E09885]/20 flex items-center justify-center text-[#B86854]">
-              <Heart className="w-4 h-4 fill-[#E09885] text-[#E09885]" />
+            <div className="w-10 h-10 rounded-full bg-[#E09885]/20 flex items-center justify-center p-1 border border-[#E09885]/40">
+              <img src="/woven-story.png" alt="Woven Life Story" className="w-full h-full object-contain" />
             </div>
-            <span className="text-[11px] font-medium text-[#1A1D20] block">Woven Meaning</span>
-            <span className="text-[9px] text-[#656C75] block leading-tight">Your story</span>
+            <span className="text-[11px] font-medium text-[#1A1D20] block">Woven Life Story</span>
+            <span className="text-[9px] text-[#656C75] block leading-tight">Integrated meaning</span>
           </div>
         </div>
       </div>

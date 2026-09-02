@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
-import { motion } from "motion/react";
+import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "motion/react";
 
 interface Props {
   isRecording: boolean;
@@ -9,126 +9,113 @@ interface Props {
 }
 
 export function VoiceWeaveAnimation({ isRecording, audioLevel = 0.5 }: Props) {
-  const pulseScale = 1 + audioLevel * 0.35;
+  const [stageIndex, setStageIndex] = useState<number>(0);
+
+  // Cycle through the 3 artwork stages when recording is active
+  useEffect(() => {
+    if (!isRecording) {
+      setStageIndex(0);
+      return;
+    }
+    const interval = setInterval(() => {
+      setStageIndex((prev) => (prev + 1) % 3);
+    }, 3200);
+    return () => clearInterval(interval);
+  }, [isRecording]);
+
+  const stageImages = [
+    "/scattered-thoughts.png",
+    "/weaving-connections.png",
+    "/woven-story.png",
+  ];
+
+  const stageLabels = [
+    "Gathering Scattered Thoughts...",
+    "Weaving Connections...",
+    "Shaping Your Life Story...",
+  ];
+
+  const pulseScale = 1 + audioLevel * 0.25;
 
   return (
-    <div className="relative w-64 h-64 mx-auto flex items-center justify-center pointer-events-none select-none">
-      {/* Outer Rotating Weave Ring */}
+    <div className="relative w-72 h-72 mx-auto flex flex-col items-center justify-center select-none">
+      {/* Outer Rotating Weave Rings */}
       <motion.div
         className="absolute inset-0 rounded-full border border-dashed border-[#E09885]/40"
         animate={{ rotate: isRecording ? 360 : 0 }}
-        transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+        transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
       />
-
       <motion.div
-        className="absolute inset-4 rounded-full border border-[#7C8B7B]/30"
+        className="absolute inset-3 rounded-full border border-[#7C8B7B]/30"
         animate={{ rotate: isRecording ? -360 : 0 }}
-        transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+        transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
       />
 
       {/* Pulsing Ambient Rose Glow */}
       <motion.div
-        className="absolute w-40 h-40 rounded-full bg-[#E09885]/20 blur-xl"
+        className="absolute w-48 h-48 rounded-full bg-[#E09885]/20 blur-xl"
         animate={{
           scale: isRecording ? [1, pulseScale, 1] : 1,
           opacity: isRecording ? [0.4, 0.8, 0.4] : 0.2,
         }}
-        transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+        transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
       />
 
-      {/* Orbiting Scattered Dots Connecting to Center */}
-      <svg viewBox="0 0 200 200" className="absolute inset-0 w-full h-full">
-        {/* Animated Bezier Threads linking scattered dots */}
+      {/* Animated Image Canvas displaying Category Artwork Transition */}
+      <div className="relative w-48 h-48 flex items-center justify-center overflow-hidden rounded-full bg-white/75 backdrop-blur-md border border-[#F2D5CB] shadow-sm">
+        <AnimatePresence mode="wait">
+          <motion.img
+            key={stageIndex}
+            src={stageImages[stageIndex]}
+            alt="Memoiary Weaving"
+            className="w-40 h-40 object-contain drop-shadow-sm"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.05 }}
+            transition={{ duration: 0.5 }}
+          />
+        </AnimatePresence>
+
+        {/* Drawn SVG connecting lines over the image when recording */}
         {isRecording && (
-          <g>
+          <svg viewBox="0 0 160 160" className="absolute inset-0 w-full h-full pointer-events-none">
             <motion.path
-              d="M 30 50 Q 70 80, 100 100"
+              d="M 20 40 Q 60 70, 80 80"
               stroke="#E09885"
-              strokeWidth="1.5"
+              strokeWidth="2"
               strokeDasharray="4 3"
               animate={{ opacity: [0.3, 0.9, 0.3], pathOffset: [0, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
+              transition={{ duration: 1.8, repeat: Infinity }}
             />
             <motion.path
-              d="M 170 40 Q 130 70, 100 100"
+              d="M 140 30 Q 100 60, 80 80"
               stroke="#7C8B7B"
-              strokeWidth="1.5"
+              strokeWidth="2"
               strokeDasharray="4 3"
               animate={{ opacity: [0.4, 1, 0.4], pathOffset: [0, 1] }}
-              transition={{ duration: 2.4, repeat: Infinity, delay: 0.3 }}
+              transition={{ duration: 2.2, repeat: Infinity, delay: 0.3 }}
             />
-            <motion.path
-              d="M 40 160 Q 80 130, 100 100"
-              stroke="#1A1D20"
-              strokeWidth="1.5"
-              animate={{ opacity: [0.2, 0.7, 0.2] }}
-              transition={{ duration: 1.8, repeat: Infinity, delay: 0.6 }}
-            />
-            <motion.path
-              d="M 160 170 Q 130 130, 100 100"
-              stroke="#E09885"
-              strokeWidth="1.5"
-              animate={{ opacity: [0.4, 0.9, 0.4] }}
-              transition={{ duration: 2.2, repeat: Infinity, delay: 0.9 }}
-            />
-          </g>
+            <motion.circle cx="20" cy="40" r="3.5" fill="#E09885" animate={{ scale: [1, 1.4, 1] }} transition={{ duration: 1.2, repeat: Infinity }} />
+            <motion.circle cx="140" cy="30" r="3" fill="#7C8B7B" animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 1.5, repeat: Infinity, delay: 0.3 }} />
+          </svg>
         )}
 
-        {/* Orbiting Dots */}
-        <motion.circle
-          cx="30"
-          cy="50"
-          r="4"
-          fill="#E09885"
-          animate={{ scale: isRecording ? [1, 1.4, 1] : 1 }}
-          transition={{ duration: 1.5, repeat: Infinity }}
-        />
-        <motion.circle
-          cx="170"
-          cy="40"
-          r="3.5"
-          fill="#7C8B7B"
-          animate={{ scale: isRecording ? [1, 1.3, 1] : 1 }}
-          transition={{ duration: 1.8, repeat: Infinity, delay: 0.2 }}
-        />
-        <motion.circle
-          cx="40"
-          cy="160"
-          r="4.5"
-          fill="#1A1D20"
-          animate={{ scale: isRecording ? [1, 1.35, 1] : 1 }}
-          transition={{ duration: 2.1, repeat: Infinity, delay: 0.4 }}
-        />
-        <motion.circle
-          cx="160"
-          cy="170"
-          r="4"
-          fill="#D48875"
-          animate={{ scale: isRecording ? [1, 1.4, 1] : 1 }}
-          transition={{ duration: 1.6, repeat: Infinity, delay: 0.6 }}
-        />
-      </svg>
-
-      {/* Central Core Recording Node */}
-      <motion.div
-        className="relative z-10 w-24 h-24 rounded-full bg-gradient-to-tr from-[#D48875] via-[#E09885] to-[#F7C5B8] p-0.5 shadow-lg flex items-center justify-center"
-        animate={{
-          scale: isRecording ? pulseScale : 1,
-        }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
-      >
-        <div className="w-full h-full rounded-full bg-[#FAF0EB] flex flex-col items-center justify-center p-2 text-center">
+        {/* Central Micro Record Indicator Overlay */}
+        <div className="absolute bottom-2 right-2 bg-white/90 backdrop-blur-xs p-1.5 rounded-full border border-[#E8E2D9] shadow-2xs">
           <motion.div
-            className="w-10 h-10 rounded-full bg-[#E09885] flex items-center justify-center text-white shadow-xs"
-            animate={{
-              scale: isRecording ? [1, 1.1, 1] : 1,
-            }}
+            className="w-3.5 h-3.5 rounded-full bg-[#E09885]"
+            animate={{ scale: isRecording ? [1, 1.3, 1] : 1 }}
             transition={{ duration: 1, repeat: Infinity }}
-          >
-            <span className="text-xl font-bold select-none">◉</span>
-          </motion.div>
+          />
         </div>
-      </motion.div>
+      </div>
+
+      {/* Stage Status Text Indicator */}
+      <div className="mt-3 text-center">
+        <span className="text-[11px] font-medium text-[#E09885] font-sans-clean uppercase tracking-wider block">
+          {isRecording ? stageLabels[stageIndex] : "Tap to start recording"}
+        </span>
+      </div>
     </div>
   );
 }
