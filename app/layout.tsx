@@ -3,17 +3,23 @@ import './globals.css'; // Global styles
 import { JournalProvider } from '@/lib/context/JournalContext';
 
 export const metadata: Metadata = {
-  title: 'Memoiary — Your Memory & Story Witness',
-  description: 'A private, beautiful personal journal and witness companion that helps you see, structure, connect, and discover your own life story.',
+  title: 'Memoiary — Your Memories, Beautifully Connected',
+  description: 'A private, beautiful personal journal and memory engine. Your memories, beautifully connected.',
+  icons: {
+    icon: '/logo.png',
+    apple: '/logo.png',
+  },
   openGraph: {
-    title: 'Memoiary — Your Memory & Story Witness',
-    description: 'A private, beautiful personal journal and witness companion that helps you see, structure, connect, and discover your own life story.',
+    title: 'Memoiary — Your Memories, Beautifully Connected',
+    description: 'A private, beautiful personal journal and memory engine. Your memories, beautifully connected.',
     type: 'website',
+    images: [{ url: '/logo.png' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Memoiary — Your Memory & Story Witness',
-    description: 'A private, beautiful personal journal and witness companion that helps you see, structure, connect, and discover your own life story.',
+    title: 'Memoiary — Your Memories, Beautifully Connected',
+    description: 'A private, beautiful personal journal and memory engine. Your memories, beautifully connected.',
+    images: ['/logo.png'],
   },
 };
 

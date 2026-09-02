@@ -358,8 +358,8 @@ export default function Page() {
       <main className="flex-1 min-h-screen flex flex-col max-w-4xl mx-auto px-4 sm:px-8 py-6">
         {/* Top Header */}
         <header className="flex items-center justify-between py-4 border-b border-[#E8E2D9] mb-8">
-          <div className="flex items-center gap-3.5 md:hidden">
-            <HandDrawnIllustration type="notebook" size={28} />
+          <div className="flex items-center gap-3 md:hidden">
+            <img src="/logo.png" alt="Memoiary Logo" className="h-8 w-auto object-contain rounded-md" />
             <span className="font-serif-editorial text-lg font-medium text-stone-900">
               Memoiary
             </span>
@@ -367,7 +367,7 @@ export default function Page() {
 
           <div className="hidden md:block">
             <span className="text-xs uppercase tracking-wider text-stone-400 font-sans-clean font-medium">
-              Private Memory Companion
+              Your Memories, Beautifully Connected
             </span>
           </div>
 

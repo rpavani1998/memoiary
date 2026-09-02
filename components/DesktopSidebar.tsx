@@ -27,13 +27,13 @@ export function DesktopSidebar({ activeTab, onSelectTab, onOpenCapture }: Props)
       <div className="space-y-8">
         {/* Brand Header */}
         <div className="flex items-center gap-3">
-          <HandDrawnIllustration type="notebook" size={32} />
+          <img src="/logo.png" alt="Memoiary Logo" className="h-10 w-auto object-contain rounded-md" />
           <div>
             <h1 className="font-serif-editorial text-xl font-medium text-stone-900 leading-none">
               Memoiary
             </h1>
-            <p className="text-[10px] text-stone-500 font-sans-clean mt-0.5 tracking-wider uppercase">
-              Personal Journal
+            <p className="text-[9px] text-stone-500 font-sans-clean mt-0.5 tracking-wider uppercase">
+              Memories Beautifully Connected
             </p>
           </div>
         </div>
