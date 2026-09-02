@@ -79,24 +79,32 @@ export function VoiceWeaveAnimation({ isRecording, audioLevel = 0.5 }: Props) {
         {/* Drawn SVG connecting lines over the image when recording */}
         {isRecording && (
           <svg viewBox="0 0 160 160" className="absolute inset-0 w-full h-full pointer-events-none">
+            {/* Top-left to bottom-right organic sweeping curve */}
             <motion.path
-              d="M 20 40 Q 60 70, 80 80"
+              d="M 15 35 C 45 15, 60 75, 90 60 C 115 50, 135 110, 105 135"
               stroke="#E09885"
               strokeWidth="2"
-              strokeDasharray="4 3"
-              animate={{ opacity: [0.3, 0.9, 0.3], pathOffset: [0, 1] }}
-              transition={{ duration: 1.8, repeat: Infinity }}
+              strokeLinecap="round"
+              strokeDasharray="5 3"
+              animate={{ opacity: [0.35, 0.95, 0.35], pathOffset: [0, 1] }}
+              transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
             />
+
+            {/* Top-right to bottom-left organic curve */}
             <motion.path
-              d="M 140 30 Q 100 60, 80 80"
+              d="M 145 25 C 115 55, 125 105, 85 95 C 55 85, 35 135, 65 145"
               stroke="#7C8B7B"
               strokeWidth="2"
-              strokeDasharray="4 3"
-              animate={{ opacity: [0.4, 1, 0.4], pathOffset: [0, 1] }}
-              transition={{ duration: 2.2, repeat: Infinity, delay: 0.3 }}
+              strokeLinecap="round"
+              strokeDasharray="5 3"
+              animate={{ opacity: [0.4, 0.95, 0.4], pathOffset: [0, 1] }}
+              transition={{ duration: 2.6, repeat: Infinity, delay: 0.4, ease: "easeInOut" }}
             />
-            <motion.circle cx="20" cy="40" r="3.5" fill="#E09885" animate={{ scale: [1, 1.4, 1] }} transition={{ duration: 1.2, repeat: Infinity }} />
-            <motion.circle cx="140" cy="30" r="3" fill="#7C8B7B" animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 1.5, repeat: Infinity, delay: 0.3 }} />
+
+            {/* Floating connecting node dots */}
+            <motion.circle cx="15" cy="35" r="3.5" fill="#E09885" animate={{ scale: [1, 1.4, 1] }} transition={{ duration: 1.4, repeat: Infinity }} />
+            <motion.circle cx="145" cy="25" r="3" fill="#7C8B7B" animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 1.6, repeat: Infinity, delay: 0.3 }} />
+            <motion.circle cx="65" cy="145" r="3.5" fill="#1A1D20" animate={{ scale: [1, 1.35, 1] }} transition={{ duration: 1.8, repeat: Infinity, delay: 0.6 }} />
           </svg>
         )}
 

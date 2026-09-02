@@ -111,24 +111,48 @@ export function WeavingStoryAnimation() {
 
               {activeStep === 1 && (
                 <g>
-                  {/* Weaving Threads animation */}
+                  {/* Organic Flowing Curved Weaving Threads */}
                   <motion.path
-                    d="M 50 60 Q 120 100, 180 150"
+                    d="M 30 70 C 80 30, 130 130, 190 110 C 230 100, 260 160, 210 210"
                     stroke="#E09885"
-                    strokeWidth="2"
-                    strokeDasharray="4 3"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeDasharray="5 4"
                     initial={{ pathLength: 0 }}
-                    animate={{ pathLength: 1, opacity: [0.4, 0.9, 0.4] }}
-                    transition={{ duration: 2, repeat: Infinity }}
+                    animate={{ pathLength: 1, opacity: [0.4, 0.95, 0.4] }}
+                    transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
                   />
+
                   <motion.path
-                    d="M 240 220 Q 180 170, 120 120"
+                    d="M 270 60 C 210 90, 220 180, 150 160 C 110 150, 80 210, 130 250"
                     stroke="#7C8B7B"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeDasharray="5 4"
+                    initial={{ pathLength: 0 }}
+                    animate={{ pathLength: 1, opacity: [0.4, 0.95, 0.4] }}
+                    transition={{ duration: 2.5, repeat: Infinity, delay: 0.4, ease: "easeInOut" }}
+                  />
+
+                  <motion.path
+                    d="M 60 250 C 110 220, 100 150, 170 160 C 220 170, 250 120, 210 80"
+                    stroke="#1A1D20"
                     strokeWidth="2"
+                    strokeLinecap="round"
+                    initial={{ pathLength: 0 }}
+                    animate={{ pathLength: 1, opacity: [0.3, 0.8, 0.3] }}
+                    transition={{ duration: 2.8, repeat: Infinity, delay: 0.7, ease: "easeInOut" }}
+                  />
+
+                  <motion.path
+                    d="M 250 260 C 190 270, 160 200, 200 140 C 230 100, 170 60, 130 90"
+                    stroke="#D48875"
+                    strokeWidth="2"
+                    strokeLinecap="round"
                     strokeDasharray="4 3"
                     initial={{ pathLength: 0 }}
-                    animate={{ pathLength: 1, opacity: [0.4, 0.9, 0.4] }}
-                    transition={{ duration: 2.2, repeat: Infinity, delay: 0.4 }}
+                    animate={{ pathLength: 1, opacity: [0.3, 0.9, 0.3] }}
+                    transition={{ duration: 2.3, repeat: Infinity, delay: 1, ease: "easeInOut" }}
                   />
                 </g>
               )}
