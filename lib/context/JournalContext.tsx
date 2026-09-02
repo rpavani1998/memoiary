@@ -28,7 +28,7 @@ export function sanitizePayload<T>(obj: T): T {
   }));
 }
 
-export interface SanjayaCard {
+export interface MemoiaryCard {
   id: string;
   type: "Thought" | "Idea" | "Question" | "Decision" | "Goal" | "Moment" | "Person" | "Pattern";
   title: string;
@@ -44,7 +44,7 @@ export interface JournalEntry {
   summary?: {
     title: string;
     witnessReflection: string;
-    cards: SanjayaCard[];
+    cards: MemoiaryCard[];
     suggestedMemory?: string | null;
     connections?: Array<{ id: string; reason: string }>;
   };

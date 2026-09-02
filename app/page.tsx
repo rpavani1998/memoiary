@@ -361,7 +361,7 @@ export default function Page() {
           <div className="flex items-center gap-3.5 md:hidden">
             <HandDrawnIllustration type="notebook" size={28} />
             <span className="font-serif-editorial text-lg font-medium text-stone-900">
-              Sanjaya
+              Memoiary
             </span>
           </div>
 

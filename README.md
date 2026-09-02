@@ -1,4 +1,4 @@
-# Personal Memory Engine & Sanjaya Journal
+# Personal Memory Engine & Memoiary Journal
 
 A private autobiographical thinking space and memory engine powered by Google Cloud, Firebase Firestore, Firebase Authentication, and Gemini resilient fallback ladders. The system understands deeply, remembers accurately, and acts as a quiet sounding board adhering to the cardinal principle: **The system remembers more than it says**.
 

@@ -30,7 +30,7 @@ export function DesktopSidebar({ activeTab, onSelectTab, onOpenCapture }: Props)
           <HandDrawnIllustration type="notebook" size={32} />
           <div>
             <h1 className="font-serif-editorial text-xl font-medium text-stone-900 leading-none">
-              Sanjaya
+              Memoiary
             </h1>
             <p className="text-[10px] text-stone-500 font-sans-clean mt-0.5 tracking-wider uppercase">
               Personal Journal

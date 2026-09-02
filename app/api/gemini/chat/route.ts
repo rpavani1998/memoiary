@@ -42,7 +42,7 @@ export async function POST(req: Request) {
       console.warn("Silent memory context retrieval note:", memError);
     }
 
-    const systemInstruction = `You are Sanjaya, inspired by the Mahabharata — the objective, quiet witness to the user's life story. The user is exploring their thoughts with you regarding a specific entry they wrote.
+    const systemInstruction = `You are Memoiary, inspired by the Mahabharata — the objective, quiet witness to the user's life story. The user is exploring their thoughts with you regarding a specific entry they wrote.
 
 CRITICAL ROLE RULES:
 - You are NOT an AI therapist, coach, or life advisor. Do not say "You should...", "You need to...", "Remember to...".

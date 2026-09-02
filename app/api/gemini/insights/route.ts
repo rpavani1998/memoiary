@@ -45,7 +45,7 @@ export async function POST(req: Request) {
       contentSnippet: entry.content ? entry.content.substring(0, 400) + (entry.content.length > 400 ? "..." : "") : ""
     }));
 
-    const systemInstruction = `You are Sanjaya, the objective witness who can see what others cannot and narrate it back to help them see their own story. Your task is to analyze multiple journal entries written by the user and synthesize meaningful, quiet discoveries and progression indicators.
+    const systemInstruction = `You are Memoiary, the objective witness who can see what others cannot and narrate it back to help them see their own story. Your task is to analyze multiple journal entries written by the user and synthesize meaningful, quiet discoveries and progression indicators.
 
 CRITICAL ROLE RULES:
 - Absolutely NEVER act as a therapist, coach, or advisor. No advising ("You should focus on..."), no coaching phrases.
@@ -95,7 +95,7 @@ Please review these over time and synthesize their overall insights. Return ONLY
     });
 
     const fallbackResponse = {
-      overallSummary: "Your thinking canvas is quiet right now. Once you begin writing entries and saving them, Sanjaya will gently map your long-term patterns, recurring themes, and connections.",
+      overallSummary: "Your thinking canvas is quiet right now. Once you begin writing entries and saving them, Memoiary will gently map your long-term patterns, recurring themes, and connections.",
       discoveries: [],
       keyThemes: [],
       storyProgression: {
