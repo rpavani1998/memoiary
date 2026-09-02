@@ -2,20 +2,47 @@
 
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Sparkles, RefreshCw, CheckCircle2 } from "lucide-react";
+import { Sparkles, RefreshCw, CheckCircle2, X } from "lucide-react";
 
-export function WeavingStoryAnimation() {
+interface Props {
+  onClose?: () => void;
+}
+
+export function WeavingStoryAnimation({ onClose }: Props) {
   const [activeStep, setActiveStep] = useState<number>(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState<boolean>(true);
+  const [isDismissed, setIsDismissed] = useState<boolean>(false);
+
+  // Check localStorage on mount
+  useEffect(() => {
+    try {
+      const dismissed = localStorage.getItem("memoiary_dismissed_story_animation");
+      if (dismissed === "true") {
+        setIsDismissed(true);
+      }
+    } catch (e) {
+      // Ignore storage error
+    }
+  }, []);
+
+  const handleDismiss = () => {
+    setIsDismissed(true);
+    try {
+      localStorage.setItem("memoiary_dismissed_story_animation", "true");
+    } catch (e) {
+      // Ignore storage error
+    }
+    if (onClose) onClose();
+  };
 
   // Auto-advance steps every 4.5 seconds unless paused
   useEffect(() => {
-    if (!isAutoPlaying) return;
+    if (!isAutoPlaying || isDismissed) return;
     const interval = setInterval(() => {
       setActiveStep((prev) => (prev + 1) % 3);
     }, 4500);
     return () => clearInterval(interval);
-  }, [isAutoPlaying]);
+  }, [isAutoPlaying, isDismissed]);
 
   const steps = [
     {
@@ -44,8 +71,21 @@ export function WeavingStoryAnimation() {
     },
   ];
 
+  if (isDismissed) {
+    return null;
+  }
+
   return (
     <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#FFF9F6] via-[#FAF3ED] to-[#F5EBE4] border border-[#F2D5CB]/80 p-6 sm:p-8 shadow-[0_12px_35px_-10px_rgba(224,152,133,0.18)] my-8">
+      {/* Close / Dismiss Button */}
+      <button
+        onClick={handleDismiss}
+        className="absolute top-4 right-4 z-20 p-2 text-stone-400 hover:text-stone-700 bg-white/60 hover:bg-white rounded-full transition-all cursor-pointer shadow-2xs"
+        title="Close animation (will not show again)"
+      >
+        <X className="w-4 h-4" />
+      </button>
+
       {/* Background Soft Glow Orbs */}
       <div className="absolute -top-16 -left-16 w-56 h-56 rounded-full bg-[#E09885]/15 blur-3xl pointer-events-none" />
       <div className="absolute -bottom-16 -right-16 w-64 h-64 rounded-full bg-[#7C8B7B]/15 blur-3xl pointer-events-none" />
