@@ -81,97 +81,68 @@ export function WeavingStoryAnimation() {
             >
               {activeStep === 0 && (
                 <g>
-                  {/* Scattered Thoughts Floating Dots */}
-                  <motion.circle cx="45" cy="65" r="7" fill="#E09885" animate={{ y: [0, -8, 0], scale: [1, 1.25, 1] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }} />
-                  <motion.circle cx="120" cy="45" r="5.5" fill="#7C8B7B" animate={{ y: [0, 6, 0], scale: [1, 1.2, 1] }} transition={{ duration: 3.4, repeat: Infinity, delay: 0.3 }} />
-                  <motion.circle cx="65" cy="130" r="8" fill="#1A1D20" animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 3.8, repeat: Infinity, delay: 0.6 }} />
-                  <motion.circle cx="40" cy="200" r="6" fill="#D48875" animate={{ y: [0, -6, 0] }} transition={{ duration: 2.8, repeat: Infinity, delay: 0.9 }} />
-                  <motion.circle cx="85" cy="250" r="7.5" fill="#E09885" animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 3.2, repeat: Infinity, delay: 1.2 }} />
-                  <motion.circle cx="150" cy="100" r="5" fill="#7C8B7B" animate={{ y: [0, 5, 0] }} transition={{ duration: 2.5, repeat: Infinity, delay: 1.5 }} />
-                  <motion.circle cx="180" cy="220" r="6.5" fill="#1A1D20" animate={{ scale: [1, 1.18, 1] }} transition={{ duration: 3.6, repeat: Infinity, delay: 1.8 }} />
+                  {/* Exactly 3 Scattered Thoughts Floating Dots */}
+                  <motion.circle cx="105" cy="55" r="6" fill="#7C8B7B" animate={{ y: [0, -6, 0], scale: [1, 1.2, 1] }} transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }} />
+                  <motion.circle cx="50" cy="110" r="7" fill="#E09885" animate={{ y: [0, 6, 0], scale: [1, 1.25, 1] }} transition={{ duration: 3, repeat: Infinity, delay: 0.3 }} />
+                  <motion.circle cx="65" cy="195" r="7.5" fill="#1A1D20" animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 3.6, repeat: Infinity, delay: 0.6 }} />
                 </g>
               )}
 
               {activeStep === 1 && (
                 <g>
-                  {/* Originating Scattered Dots */}
-                  <motion.circle cx="45" cy="65" r="6.5" fill="#E09885" animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 2, repeat: Infinity }} />
-                  <motion.circle cx="120" cy="45" r="5" fill="#7C8B7B" animate={{ scale: [1, 1.25, 1] }} transition={{ duration: 2.2, repeat: Infinity, delay: 0.3 }} />
-                  <motion.circle cx="65" cy="130" r="7" fill="#1A1D20" animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 2.4, repeat: Infinity, delay: 0.5 }} />
-                  <motion.circle cx="40" cy="200" r="5.5" fill="#D48875" animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 2.1, repeat: Infinity, delay: 0.7 }} />
-                  <motion.circle cx="85" cy="250" r="7" fill="#E09885" animate={{ scale: [1, 1.25, 1] }} transition={{ duration: 2.5, repeat: Infinity, delay: 0.9 }} />
+                  {/* Exactly 3 Originating Dots (Green, Red, Black) */}
+                  <motion.circle cx="105" cy="55" r="6" fill="#7C8B7B" animate={{ scale: [1, 1.25, 1] }} transition={{ duration: 2.2, repeat: Infinity }} />
+                  <motion.circle cx="50" cy="110" r="7" fill="#E09885" animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 2, repeat: Infinity, delay: 0.3 }} />
+                  <motion.circle cx="65" cy="195" r="7.5" fill="#1A1D20" animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 2.4, repeat: Infinity, delay: 0.5 }} />
 
-                  {/* Organic Flowing Curved Lines Converging Exactly at Pen Tip (222, 225) */}
-                  {/* Thread 1 from Top Left Dot (45, 65) */}
+                  {/* Organic Flowing Curved Lines Converging Exactly at Pen Tip (224, 204) */}
+                  {/* Thread 1 from Top Green Dot (105, 55) */}
                   <motion.path
-                    d="M 45 65 C 90 35, 150 70, 160 140 C 170 190, 200 215, 222 225"
-                    stroke="#E09885"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeDasharray="5 4"
-                    initial={{ pathLength: 0 }}
-                    animate={{ pathLength: 1, opacity: [0.4, 0.95, 0.4] }}
-                    transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
-                  />
-
-                  {/* Thread 2 from Top Dot (120, 45) */}
-                  <motion.path
-                    d="M 120 45 C 160 70, 180 110, 190 150 C 200 180, 215 210, 222 225"
+                    d="M 105 55 C 145 75, 175 110, 190 145 C 202 170, 215 190, 224 204"
                     stroke="#7C8B7B"
                     strokeWidth="2.5"
                     strokeLinecap="round"
                     strokeDasharray="5 4"
                     initial={{ pathLength: 0 }}
-                    animate={{ pathLength: 1, opacity: [0.4, 0.95, 0.4] }}
-                    transition={{ duration: 2.5, repeat: Infinity, delay: 0.3, ease: "easeInOut" }}
+                    animate={{ pathLength: 1, opacity: [0.45, 0.95, 0.45] }}
+                    transition={{ duration: 2.3, repeat: Infinity, ease: "easeInOut" }}
                   />
 
-                  {/* Thread 3 from Mid Left Dot (65, 130) */}
+                  {/* Thread 2 from Red Dot (50, 110) */}
                   <motion.path
-                    d="M 65 130 C 100 100, 140 160, 180 180 C 200 195, 215 210, 222 225"
+                    d="M 50 110 C 95 80, 140 140, 175 160 C 195 175, 212 192, 224 204"
+                    stroke="#E09885"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeDasharray="5 4"
+                    initial={{ pathLength: 0 }}
+                    animate={{ pathLength: 1, opacity: [0.45, 0.95, 0.45] }}
+                    transition={{ duration: 2.1, repeat: Infinity, delay: 0.3, ease: "easeInOut" }}
+                  />
+
+                  {/* Thread 3 from Black Dot (65, 195) */}
+                  <motion.path
+                    d="M 65 195 C 110 220, 155 200, 180 205 C 198 208, 214 206, 224 204"
                     stroke="#1A1D20"
                     strokeWidth="2.5"
                     strokeLinecap="round"
                     initial={{ pathLength: 0 }}
                     animate={{ pathLength: 1, opacity: [0.4, 0.9, 0.4] }}
-                    transition={{ duration: 2.3, repeat: Infinity, delay: 0.6, ease: "easeInOut" }}
+                    transition={{ duration: 2.5, repeat: Infinity, delay: 0.6, ease: "easeInOut" }}
                   />
 
-                  {/* Thread 4 from Lower Left Dot (40, 200) */}
-                  <motion.path
-                    d="M 40 200 C 80 230, 140 210, 170 230 C 190 240, 210 235, 222 225"
-                    stroke="#D48875"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeDasharray="4 3"
-                    initial={{ pathLength: 0 }}
-                    animate={{ pathLength: 1, opacity: [0.4, 0.95, 0.4] }}
-                    transition={{ duration: 2.6, repeat: Infinity, delay: 0.8, ease: "easeInOut" }}
-                  />
-
-                  {/* Thread 5 from Bottom Dot (85, 250) */}
-                  <motion.path
-                    d="M 85 250 C 120 270, 170 250, 195 240 C 210 235, 218 230, 222 225"
-                    stroke="#E09885"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    initial={{ pathLength: 0 }}
-                    animate={{ pathLength: 1, opacity: [0.3, 0.9, 0.3] }}
-                    transition={{ duration: 2.4, repeat: Infinity, delay: 1, ease: "easeInOut" }}
-                  />
-
-                  {/* Pen Tip Convergence Focal Sparkle at (222, 225) */}
+                  {/* Pen Tip Convergence Focal Sparkle at (224, 204) */}
                   <motion.circle
-                    cx="222"
-                    cy="225"
+                    cx="224"
+                    cy="204"
                     r="4.5"
                     fill="#E09885"
                     animate={{ scale: [1, 1.6, 1], opacity: [0.6, 1, 0.6] }}
                     transition={{ duration: 1.5, repeat: Infinity }}
                   />
                   <motion.circle
-                    cx="222"
-                    cy="225"
+                    cx="224"
+                    cy="204"
                     r="9"
                     stroke="#E09885"
                     strokeWidth="1"
