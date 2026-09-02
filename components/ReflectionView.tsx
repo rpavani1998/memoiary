@@ -57,7 +57,7 @@ export function ReflectionView() {
       {/* Calm Header */}
       <div className="text-center space-y-3 pt-2">
         <div className="flex justify-center">
-          <img src="/logo.png" alt="Memoiary Logo" className="h-14 w-auto object-contain" />
+          <img src="/logo-mark.png" alt="Memoiary Icon" className="h-16 w-auto object-contain" />
         </div>
         <h2 className="font-serif-editorial text-2xl font-medium text-stone-900">
           Reflect with Memoiary

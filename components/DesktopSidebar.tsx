@@ -27,7 +27,7 @@ export function DesktopSidebar({ activeTab, onSelectTab, onOpenCapture }: Props)
       <div className="space-y-8">
         {/* Brand Header */}
         <div className="flex items-center gap-3">
-          <img src="/logo.png" alt="Memoiary Logo" className="h-10 w-auto object-contain rounded-md" />
+          <img src="/logo-mark.png" alt="Memoiary Icon" className="h-10 w-auto object-contain" />
           <div>
             <h1 className="font-serif-editorial text-xl font-medium text-stone-900 leading-none">
               Memoiary

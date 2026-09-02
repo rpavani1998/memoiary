@@ -6,20 +6,20 @@ export const metadata: Metadata = {
   title: 'Memoiary — Your Memories, Beautifully Connected',
   description: 'A private, beautiful personal journal and memory engine. Your memories, beautifully connected.',
   icons: {
-    icon: '/logo.png',
-    apple: '/logo.png',
+    icon: '/logo-mark.png',
+    apple: '/logo-mark.png',
   },
   openGraph: {
     title: 'Memoiary — Your Memories, Beautifully Connected',
     description: 'A private, beautiful personal journal and memory engine. Your memories, beautifully connected.',
     type: 'website',
-    images: [{ url: '/logo.png' }],
+    images: [{ url: '/logo-mark.png' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Memoiary — Your Memories, Beautifully Connected',
     description: 'A private, beautiful personal journal and memory engine. Your memories, beautifully connected.',
-    images: ['/logo.png'],
+    images: ['/logo-mark.png'],
   },
 };
 

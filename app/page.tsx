@@ -360,7 +360,7 @@ export default function Page() {
         {/* Top Header */}
         <header className="flex items-center justify-between py-4 border-b border-[#E8E2D9] mb-8">
           <div className="flex items-center gap-3 md:hidden">
-            <img src="/logo.png" alt="Memoiary Logo" className="h-8 w-auto object-contain rounded-md" />
+            <img src="/logo-mark.png" alt="Memoiary Icon" className="h-8 w-auto object-contain" />
             <span className="font-serif-editorial text-lg font-medium text-stone-900">
               Memoiary
             </span>

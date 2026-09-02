@@ -7,8 +7,8 @@ export function BrandStoryBanner() {
   return (
     <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#FAF0EB] via-[#FAF7F2] to-[#F2F5F2] border border-[#F2D5CB] p-6 sm:p-7 shadow-xs my-6">
       {/* Decorative subtle background weave element */}
-      <div className="absolute -right-8 -bottom-8 opacity-15 pointer-events-none">
-        <img src="/logo.png" alt="" className="w-56 h-56 object-contain" />
+      <div className="absolute -right-8 -bottom-8 opacity-20 pointer-events-none">
+        <img src="/logo-mark.png" alt="" className="w-56 h-56 object-contain" />
       </div>
 
       <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
