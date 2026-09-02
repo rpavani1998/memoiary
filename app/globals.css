@@ -111,3 +111,11 @@ body {
 .animate-waveform-5 {
   animation: waveform-pulse 1.2s ease-in-out infinite 0.3s;
 }
+
+/* Glassmorphism & Soft Ambient Glow Utilities */
+.card-rose-glow {
+  box-shadow: 0 10px 30px -10px rgba(224, 152, 133, 0.22);
+}
+.card-rose-glow:hover {
+  box-shadow: 0 15px 40px -10px rgba(224, 152, 133, 0.35);
+}

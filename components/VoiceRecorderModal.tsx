@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, Check, Mic, AlertCircle } from "lucide-react";
 import { HandDrawnIllustration } from "./HandDrawnIllustration";
+import { VoiceWeaveAnimation } from "./VoiceWeaveAnimation";
 
 interface VoiceRecorderModalProps {
   isOpen: boolean;
@@ -175,33 +176,10 @@ export function VoiceRecorderModal({ isOpen, onClose, onSaveVoice }: VoiceRecord
             </p>
           </div>
 
-          {/* Central Capture Recording Pulse ◉ */}
-          <div className="py-2 flex justify-center items-center">
-            <button
-              onClick={toggleRecording}
-              className={`w-20 h-20 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-md ${
-                isRecording
-                  ? "bg-[#E09885] text-white animate-pulse"
-                  : "bg-stone-200 text-stone-700 hover:bg-stone-300"
-              }`}
-              title={isRecording ? "Tap to pause" : "Tap to resume listening"}
-            >
-              <span className="text-3xl font-bold select-none">◉</span>
-            </button>
+          {/* Central Animated Voice Weave ◉ */}
+          <div className="py-2 flex justify-center items-center cursor-pointer" onClick={toggleRecording} title={isRecording ? "Tap to pause" : "Tap to resume"}>
+            <VoiceWeaveAnimation isRecording={isRecording} audioLevel={isRecording ? 0.6 : 0} />
           </div>
-
-          {/* Waveform graphic */}
-          {isRecording && (
-            <div className="flex items-center justify-center gap-1.5 h-8">
-              <div className="w-1 bg-[#E09885] rounded-full h-4 animate-waveform-1" />
-              <div className="w-1 bg-[#E09885] rounded-full h-7 animate-waveform-2" />
-              <div className="w-1 bg-[#E09885] rounded-full h-5 animate-waveform-3" />
-              <div className="w-1 bg-[#E09885] rounded-full h-8 animate-waveform-4" />
-              <div className="w-1 bg-[#E09885] rounded-full h-6 animate-waveform-5" />
-              <div className="w-1 bg-[#E09885] rounded-full h-4 animate-waveform-1" />
-              <div className="w-1 bg-[#E09885] rounded-full h-7 animate-waveform-3" />
-            </div>
-          )}
 
           {/* Microphone permission / browser warning */}
           {speechError && (

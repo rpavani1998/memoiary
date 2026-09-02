@@ -16,6 +16,7 @@ import { ReflectionView } from "@/components/ReflectionView";
 import { BottomNavigation, NavTab } from "@/components/BottomNavigation";
 import { DesktopSidebar } from "@/components/DesktopSidebar";
 import { BrandStoryBanner } from "@/components/BrandStoryBanner";
+import { WeavingStoryAnimation } from "@/components/WeavingStoryAnimation";
 import { 
   Search as SearchIcon, 
   User as UserIcon, 
@@ -420,8 +421,8 @@ export default function Page() {
             {/* HOME TAB VIEW */}
             {activeTab === "home" && (
               <div className="space-y-10 pb-24">
-                {/* Brand Story & Philosophy Banner */}
-                <BrandStoryBanner />
+                {/* Brand Story Animation (Dots -> Lines -> Meaningful Shape) */}
+                <WeavingStoryAnimation />
 
                 {/* Hero Section */}
                 <div className="text-center space-y-6 pt-2">
