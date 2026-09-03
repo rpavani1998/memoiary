@@ -1564,10 +1564,21 @@ function CaptureOverlay({
   const voiceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [captureSubMode, setCaptureSubMode] = useState<"photo" | "video">("photo");
 
-  // Set initial prompt when opening
+  // Set active tab based on mode prop
   useEffect(() => {
-    if (mode && initialPrompt) {
+    if (!mode) return;
+    if (mode === "voice") {
+      setActiveTab("speak");
+    } else if (mode === "photo") {
+      setActiveTab("capture");
+      setCaptureSubMode("photo");
+    } else if (mode === "video") {
+      setActiveTab("capture");
+      setCaptureSubMode("video");
+    } else if (initialPrompt) {
       setTextInput(initialPrompt);
+      setActiveTab("write");
+    } else {
       setActiveTab("write");
     }
   }, [mode, initialPrompt]);
@@ -2246,7 +2257,7 @@ export function MemoiaryAppShell() {
           onSelectMode={(mode) => handleOpenCapture(mode)}
         />
       )}
-      <CaptureOverlay mode={captureMode} setMode={setCaptureMode} onSaved={onSaved} initialPrompt={capturePrompt} selectedDate={selectedDate} />
+      <CaptureOverlay mode={captureMode} setMode={setCaptureMode} onSaved={onSaved} initialPrompt={capturePrompt} />
       <AuthLoginModal
         isOpen={showLoginModal}
         onClose={() => setShowLoginModal(false)}
