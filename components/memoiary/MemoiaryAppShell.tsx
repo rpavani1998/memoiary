@@ -45,11 +45,15 @@ import { useArtStyle, ART_STYLES, ArtStyle } from "@/lib/context/ArtStyleContext
 import { getPersonVisualIdentity } from "@/lib/memory-engine/person-graph";
 import { TimelineViewSwitcher, TimelineMode } from "@/components/TimelineViewSwitcher";
 import { MonthlyCollageGrid } from "@/components/MonthlyCollageGrid";
-import { ApplePhotosGallery } from "@/components/ApplePhotosGallery";
+import { UnifiedCollectionsGraphView } from "@/components/UnifiedCollectionsGraphView";
+import { ReflectionChatboard } from "@/components/ReflectionChatboard";
+import { EntitiesViewSection } from "@/components/EntitiesViewSection";
 
 export type View =
   | "life"
+  | "entities"
   | "collections"
+  | "reflect"
   | "people"
   | "person"
   | "explore"
@@ -118,6 +122,76 @@ function IconButton({
   );
 }
 
+function GlobalAppHeader({
+  activeView,
+  go,
+  streak,
+  user,
+  onBack
+}: {
+  activeView: View;
+  go: (view: View) => void;
+  streak: number;
+  user: any;
+  onBack?: () => void;
+}) {
+  const getSubTitle = () => {
+    switch (activeView) {
+      case "life": return "Timeline & Daily Moments";
+      case "entities": return "People, Places & Projects";
+      case "collections": return "Memory Graph & Topics";
+      case "reflect": return "Talk With Your Diary";
+      case "search": return "Semantic Memory Search";
+      case "person": return "Person Deep Dive";
+      case "place": return "Place Memories";
+      case "profile": return "Your Profile & Settings";
+      default: return "Memories Connected";
+    }
+  };
+
+  return (
+    <header className="sticky top-0 z-40 bg-[#FAF7F0]/95 backdrop-blur-md border-b border-[#1C1917]/15 px-4 sm:px-8 py-3 flex items-center justify-between shadow-xs mb-3">
+      <div className="flex items-center gap-3 min-w-0">
+        {onBack && (
+          <IconButton label="Go back" onClick={onBack} className="mr-1">
+            <ArrowLeft size={19} />
+          </IconButton>
+        )}
+        <Brand compact />
+        <div className="hidden sm:block h-6 w-px bg-stone-300" />
+        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#DE5239] bg-[#F5E5DC] px-2.5 py-0.5 rounded-full border border-[#DE5239]/20 hidden xs:inline-block truncate">
+          {getSubTitle()}
+        </span>
+      </div>
+
+      <div className="flex items-center gap-2 shrink-0">
+        <button
+          onClick={() => go("search")}
+          className="p-2 rounded-xl bg-white border border-[#1C1917]/20 text-[#1C1917] hover:bg-[#F5E5DC] transition-colors cursor-pointer"
+          title="Search Memories"
+        >
+          <Search size={16} />
+        </button>
+
+        {streak > 0 && (
+          <div className="flex items-center gap-1 bg-[#F5E5DC] border border-[#DE5239]/20 px-2.5 py-1 rounded-full text-xs font-mono font-bold text-[#DE5239]">
+            <Flame size={14} className="fill-[#DE5239]" />
+            <span>{streak}d</span>
+          </div>
+        )}
+
+        <button
+          onClick={() => go("profile")}
+          className="w-8 h-8 rounded-full border border-[#1C1917] overflow-hidden bg-stone-200 cursor-pointer"
+          title="Your Profile"
+        >
+          <img src={user?.photoURL || "/logo-mark.png"} alt="User avatar" className="w-full h-full object-cover" />
+        </button>
+      </div>
+    </header>
+  );
+}
+
 function PageHeader({
   title,
   eyebrow,
@@ -130,22 +204,13 @@ function PageHeader({
   action?: React.ReactNode;
 }) {
   return (
-    <header className="page-header">
-      <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3">
-        {onBack ? (
-          <IconButton label="Go back" onClick={onBack}>
-            <ArrowLeft size={19} />
-          </IconButton>
-        ) : (
-          <Brand compact />
-        )}
-        <div className="min-w-0">
-          {eyebrow && <p className="eyebrow">{eyebrow}</p>}
-          <h1 className="truncate font-serif text-xl font-medium text-stone-900">{title}</h1>
-        </div>
-        <div className="shrink-0">{action}</div>
+    <div className="flex items-center justify-between border-b border-[#1C1917]/10 pb-2 mb-3">
+      <div>
+        {eyebrow && <p className="text-[10px] uppercase tracking-wider text-[#DE5239] font-bold font-sans">{eyebrow}</p>}
+        <h2 className="font-serif text-xl font-medium text-[#1C1917]">{title}</h2>
       </div>
-    </header>
+      {action}
+    </div>
   );
 }
 
@@ -1123,38 +1188,10 @@ function SearchViewSection({ go, onSelectCapture }: { go: (view: View) => void; 
           <div className="space-y-6 mt-4">
             {/* Weekly Visual Recap Board */}
             <WeeklyRecapBoard
-              weekLabel="Aug 28 – Sep 3, 2026"
-              weeklyPeople={["Maya", "Kabir", "Ananya", "Priya", "Rohan", "Sanya"]}
-              weeklyInsight="Your week shifted from intense early-week sprint stress into celebratory team milestones and deep restorative time with friends around a Saturday campfire."
-              highlights={[
-                {
-                  id: "hl_1",
-                  dayLabel: "Wednesday",
-                  title: "Product v2.0 Release",
-                  summary: "Engineering team cheered at 11 AM when the build passed live.",
-                  imageUrl: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&auto=format&fit=crop&q=80",
-                  people: ["Kabir", "Ananya"],
-                  mood: "Proud"
-                },
-                {
-                  id: "hl_2",
-                  dayLabel: "Wednesday",
-                  title: "Rooftop Lunch at Olive Bistro",
-                  summary: "Celebratory wood-fired pizza lunch under the sun in Jubilee Hills.",
-                  imageUrl: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&auto=format&fit=crop&q=80",
-                  people: ["Kabir", "Ananya"],
-                  mood: "Joyful"
-                },
-                {
-                  id: "hl_3",
-                  dayLabel: "Saturday",
-                  title: "Ananthagiri Hills Campfire",
-                  summary: "Campfire under starry sky with acoustic guitar until 2 AM.",
-                  imageUrl: "https://images.unsplash.com/photo-1510312305653-8ed496efae75?w=600&auto=format&fit=crop&q=80",
-                  people: ["Rohan", "Sanya"],
-                  mood: "Rejuvenated"
-                }
-              ]}
+              weekLabel={user ? "This Week" : "Aug 28 – Sep 3, 2026"}
+              weeklyPeople={Array.from(new Set(user ? [] : ["Maya", "Kabir", "Ananya"]))}
+              weeklyInsight={user ? "Your weekly reflection will summarize as you capture moments throughout the week." : "Start capturing to see your weekly visual synthesis."}
+              highlights={user ? [] : []}
               onSelectHighlight={() => go("life")}
             />
 
@@ -1469,7 +1506,7 @@ function MemoryDetailSection({ go, capture }: { go: (view: View) => void; captur
   );
 }
 
-function ApplePhotosGallerySection({
+function CollectionsSection({
   go,
   onSelectPerson,
   onSelectCapture
@@ -1480,15 +1517,13 @@ function ApplePhotosGallerySection({
 }) {
   const { captures } = useJournal();
   return (
-    <div className="pb-32 font-sans">
-      <PageHeader title="Collections &amp; Memories" eyebrow="Apple Photos Style Gallery" onBack={() => go("life")} />
-      <main className="px-5 sm:px-8 mt-4">
-        <ApplePhotosGallery
-          captures={captures}
-          onSelectPerson={onSelectPerson}
-          onSelectCapture={onSelectCapture}
-        />
-      </main>
+    <div className="pb-32 font-sans px-5 sm:px-8 mt-4">
+      <UnifiedCollectionsGraphView
+        captures={captures}
+        onSelectPerson={onSelectPerson}
+        onSelectCapture={onSelectCapture}
+        onSearchQuery={() => go("search")}
+      />
     </div>
   );
 }
@@ -2158,11 +2193,11 @@ function BottomNav({
         <span>Life</span>
       </button>
       <button
-        className={`cursor-pointer ${active === "people" || active === "person" ? "active" : ""}`}
-        onClick={() => go("people")}
+        className={`cursor-pointer ${active === "entities" || active === "people" || active === "places" ? "active" : ""}`}
+        onClick={() => go("entities")}
       >
         <Users />
-        <span>People</span>
+        <span>Entities</span>
       </button>
 
       {/* Floating Capture Button Container */}
@@ -2223,16 +2258,17 @@ function BottomNav({
         <ImageIcon size={20} />
         <span>Collections</span>
       </button>
-      <button className={`cursor-pointer ${active === "explore" ? "active" : ""}`} onClick={() => go("explore")}>
-        <Compass />
-        <span>Explore</span>
+
+      <button className={`cursor-pointer ${active === "reflect" ? "active" : ""}`} onClick={() => go("reflect")}>
+        <Sparkles size={20} />
+        <span>Reflect</span>
       </button>
     </nav>
   );
 }
 
 export function MemoiaryAppShell() {
-  const { user } = useJournal();
+  const { user, captures } = useJournal();
   const [view, setView] = useState<View>("life");
   const [isSplash, setIsSplash] = useState(true);
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -2298,8 +2334,24 @@ export function MemoiaryAppShell() {
     switch (view) {
       case "life":
         return <LifeHome go={go} openCapture={(prompt) => handleOpenCapture(prompt || "menu")} newMemory={newMemory} onSelectCapture={(c) => { setSelectedCapture(c); go("memory"); }} />;
+      case "entities":
+        return (
+          <div className="px-5 sm:px-8 mt-2">
+            <EntitiesViewSection
+              captures={captures}
+              onSelectPerson={(name) => { setSelectedPersonName(name); go("person"); }}
+              onSelectCapture={(c) => { setSelectedCapture(c); go("memory"); }}
+            />
+          </div>
+        );
       case "collections":
-        return <ApplePhotosGallerySection go={go} onSelectPerson={(name) => { setSelectedPersonName(name); go("person"); }} onSelectCapture={(c) => { setSelectedCapture(c); go("memory"); }} />;
+        return <CollectionsSection go={go} onSelectPerson={(name) => { setSelectedPersonName(name); go("person"); }} onSelectCapture={(c) => { setSelectedCapture(c); go("memory"); }} />;
+      case "reflect":
+        return (
+          <div className="px-5 sm:px-8 mt-2">
+            <ReflectionChatboard captures={captures} />
+          </div>
+        );
       case "people":
         return <PeopleViewSection go={go} onSelectPerson={(name) => setSelectedPersonName(name)} />;
       case "person":
@@ -2333,14 +2385,23 @@ export function MemoiaryAppShell() {
       case "onboarding":
         return <LifeHome go={go} openCapture={(prompt) => handleOpenCapture(prompt || "menu")} newMemory={newMemory} onSelectCapture={(c) => { setSelectedCapture(c); go("memory"); }} />;
     }
-  }, [view, newMemory, user, selectedCapture]);
+  }, [view, newMemory, user, selectedCapture, captures, selectedPersonName, handleOpenCapture]);
 
   const hideNav = ["story", "empty", "connections"].includes(view);
 
   return (
     <div className="app-shell">
       {isSplash && <SplashScreen />}
-      <div className="app-frame">{content}</div>
+      <div className="app-frame">
+        <GlobalAppHeader
+          activeView={view}
+          go={go}
+          streak={streak}
+          user={user}
+          onBack={["person", "place", "search", "thought", "story", "memory"].includes(view) ? () => go("life") : undefined}
+        />
+        {content}
+      </div>
       {!hideNav && (
         <BottomNav
           active={view}
