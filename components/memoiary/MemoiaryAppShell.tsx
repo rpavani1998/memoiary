@@ -2268,7 +2268,7 @@ function BottomNav({
 }
 
 export function MemoiaryAppShell() {
-  const { user, captures } = useJournal();
+  const { user, captures, streak = 0 } = useJournal();
   const [view, setView] = useState<View>("life");
   const [isSplash, setIsSplash] = useState(true);
   const [showLoginModal, setShowLoginModal] = useState(false);
