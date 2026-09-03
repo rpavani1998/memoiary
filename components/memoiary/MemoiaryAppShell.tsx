@@ -834,36 +834,74 @@ function StoryViewSection({ go }: { go: (view: View) => void }) {
 }
 
 function SearchViewSection({ go }: { go: (view: View) => void }) {
+  const { user } = useJournal();
   const [query, setQuery] = useState("");
+  const [results, setResults] = useState<any[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [searchMessage, setSearchMessage] = useState("");
+
   const suggestions = [
-    "When did I first think about Memoiary?",
-    "Photos from Goa",
-    "Memories with Mom from 2025",
+    "When did I first think about starting something?",
+    "People I've been thinking about",
+    "Moments that made me smile",
   ];
+
+  const handleSearch = async () => {
+    if (!query.trim() || !user) return;
+    setSearching(true);
+    setSearchMessage("");
+    try {
+      const idToken = typeof user.getIdToken === "function" ? await user.getIdToken() : "demo_guest_token";
+      const res = await fetch("/api/v1/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
+        body: JSON.stringify({ query: query.trim() })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setResults(data.results || []);
+        if (data.message) setSearchMessage(data.message);
+      }
+    } catch {
+      setSearchMessage("Search failed. Try again.");
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const getSourceIcon = (source?: string) => {
+    switch (source) {
+      case "voice": return <Mic size={14} />;
+      case "image": return <Camera size={14} />;
+      case "video": return <Video size={14} />;
+      default: return <PenLine size={14} />;
+    }
+  };
+
   return (
     <div className="pb-24">
       <PageHeader title="Search your life" eyebrow="Remember with help" onBack={() => go("life")} />
       <main className="px-5 sm:px-8">
-        <label className="search-box">
+        <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }} className="search-box">
           <Search size={19} className="text-stone-400" />
           <input
             autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="That café Sarah and I went to…"
+            placeholder="That cafe you went to with Sarah..."
           />
           {query && (
-            <IconButton label="Clear" onClick={() => setQuery("")}>
+            <IconButton label="Clear" onClick={() => { setQuery(""); setResults([]); setSearchMessage(""); }}>
               <X size={15} />
             </IconButton>
           )}
-        </label>
-        {!query ? (
+        </form>
+        {!query && results.length === 0 ? (
           <>
             <p className="eyebrow mt-8">Try remembering</p>
             <div className="search-suggestions">
               {suggestions.map((q) => (
-                <button key={q} onClick={() => setQuery(q)} className="cursor-pointer">
+                <button key={q} onClick={() => { setQuery(q); }} className="cursor-pointer">
                   {q}
                   <ChevronRight size={15} className="text-stone-400" />
                 </button>
@@ -872,34 +910,37 @@ function SearchViewSection({ go }: { go: (view: View) => void }) {
           </>
         ) : (
           <div className="search-results">
-            <p className="eyebrow">Across words, places, people and time</p>
-            <button onClick={() => go("thought")} className="cursor-pointer">
-              <span className="result-icon">
-                <PenLine />
-              </span>
-              <span>
-                <strong>Starting my own company</strong>
-                <small>6 connected thoughts · April—December</small>
-                <em>“Maybe I’m finally ready to build this.”</em>
-              </span>
-            </button>
-            <button onClick={() => go("place")} className="cursor-pointer">
-              <img src={imageAssets.cafeNotes} alt="Cafe notebook" />
-              <span>
-                <strong>Third Wave Coffee</strong>
-                <small>Sarah · September 2 · Hyderabad</small>
-              </span>
-            </button>
-            <button onClick={() => go("memory")} className="cursor-pointer">
-              <span className="result-icon">
-                <Mic />
-              </span>
-              <span>
-                <strong>Voice memory</strong>
-                <small>42 seconds · August 18</small>
-                <em>“…we could actually make this work.”</em>
-              </span>
-            </button>
+            {searching ? (
+              <p className="text-sm text-stone-400 mt-4 text-center">Searching your memories...</p>
+            ) : searchMessage ? (
+              <p className="text-sm text-stone-500 mt-4 text-center">{searchMessage}</p>
+            ) : results.length > 0 ? (
+              <>
+                <p className="eyebrow">{results.length} result{results.length !== 1 ? "s" : ""}</p>
+                {results.map((r: any, i: number) => {
+                  const c = r.capture;
+                  const dims = c.dimensions;
+                  return (
+                    <button key={c.id || i} onClick={() => go("memory")} className="cursor-pointer">
+                      <span className="result-icon">
+                        {getSourceIcon(c.source)}
+                      </span>
+                      <span>
+                        <strong>{dims?.summary || c.content.substring(0, 60)}</strong>
+                        <small>
+                          {dims?.mood && `${dims.mood} · `}
+                          {new Date(c.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                          {dims?.people?.length > 0 && ` · ${dims.people.join(", ")}`}
+                        </small>
+                        {r.reason && <em>{r.reason}</em>}
+                      </span>
+                    </button>
+                  );
+                })}
+              </>
+            ) : query && !searching ? (
+              <p className="text-sm text-stone-500 mt-4 text-center">No memories found for &ldquo;{query}&rdquo;</p>
+            ) : null}
           </div>
         )}
       </main>
