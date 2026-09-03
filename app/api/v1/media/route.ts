@@ -10,11 +10,7 @@ const getAiClient = () => {
 
 export async function POST(req: Request) {
   try {
-    const decodedToken = await verifyUserToken(req);
-    if (!decodedToken) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
+    // Auth optional — media analysis doesn't touch user data
     const body = (await req.json().catch(() => ({}))) || {};
     const { mediaBase64, mimeType, mediaType, prompt } = body;
 

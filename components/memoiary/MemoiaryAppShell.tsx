@@ -1114,7 +1114,6 @@ function CaptureOverlay({
 }) {
   const { submitCapture } = useJournal();
   const media = useMediaCapture();
-  const [quickText, setQuickText] = useState("");
   const [text, setText] = useState("");
   const [location, setLocation] = useState<string>();
   const [locationInput, setLocationInput] = useState("");
@@ -1126,34 +1125,28 @@ function CaptureOverlay({
   const videoElRef = useRef<HTMLVideoElement>(null);
   const prevModeRef = useRef<CaptureMode>(null);
 
+  // Accumulated attachments for this memory
+  const [attachments, setAttachments] = useState<{ type: string; content: string; label: string; mediaCtx?: string }[]>([]);
+
   // Start/stop camera when entering/leaving photo or video mode
   useEffect(() => {
     const entering = mode === "photo" || mode === "video";
     const wasActive = prevModeRef.current === "photo" || prevModeRef.current === "video";
-
     if (entering && !wasActive) {
       setCameraReady(false);
       const el = videoElRef.current;
       if (el) {
-        if (mode === "video") {
-          media.startVideoRecording(el).then(() => setCameraReady(true)).catch(() => {});
-        } else {
-          media.startCamera(el).then(() => setCameraReady(true)).catch(() => {});
-        }
+        if (mode === "video") { media.startVideoRecording(el).then(() => setCameraReady(true)).catch(() => {}); }
+        else { media.startCamera(el).then(() => setCameraReady(true)).catch(() => {}); }
       }
     } else if (!entering && wasActive) {
-      if (prevModeRef.current === "video" && media.isRecording) {
-        media.stopVideoRecording().catch(() => {});
-      } else {
-        media.stopCamera();
-      }
+      if (prevModeRef.current === "video" && media.isRecording) { media.stopVideoRecording().catch(() => {}); }
+      else { media.stopCamera(); }
       setCameraReady(false);
     }
     prevModeRef.current = mode;
-
     return () => { if (!entering) media.cleanup(); };
   }, [mode]); // eslint-disable-line
-
   useEffect(() => () => media.cleanup(), []); // eslint-disable-line
 
   if (!mode) return null;
@@ -1166,10 +1159,7 @@ function CaptureOverlay({
     if (!navigator.geolocation) { setLocation("Unknown location"); return; }
     setLocation("Getting location...");
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude, longitude } = pos.coords;
-        setLocation(`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
-      },
+      (pos) => { setLocation(`${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`); },
       () => { setLocation("Location unavailable"); },
       { enableHighAccuracy: true, timeout: 8000 }
     );
@@ -1178,95 +1168,69 @@ function CaptureOverlay({
     if (locationInput.trim()) setLocation(locationInput.trim());
     setShowLocationInput(false);
   };
-  const memLoc = (kind: CapturedMemory["kind"], t: string): CapturedMemory =>
-    location ? { kind, text: t, location } : { kind, text: t };
 
-  const persistCapture = async (kind: CapturedMemory["kind"], content: string, mediaCtx?: string) => {
-    setSaving(true);
-    try {
-      const src = kind === "voice" ? "voice" : kind === "photo" ? "image" : kind === "video" ? "video" : "text";
-      await submitCapture(content, src, mediaCtx);
-    } catch {} finally { setSaving(false); }
-  };
-
-  const handleQuickTextSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (quickText.trim()) {
-      await persistCapture("written", quickText.trim());
-      onSaved(memLoc("written", quickText.trim()));
-      setQuickText("");
+  const addTextAttachment = () => {
+    if (text.trim()) {
+      setAttachments((prev) => [...prev, { type: "text", content: text.trim(), label: text.trim().substring(0, 40) }]);
+      setText("");
     }
   };
 
-  const handleVoiceSave = async () => {
+  const addVoiceAttachment = async () => {
     setSaving(true);
-    setAnalysisText("Recording audio...");
+    setAnalysisText("Recording...");
     try {
       const result = await media.stopAudioRecording();
-      setAnalysisText("Transcribing with Gemini Flash...");
-      const analysis = await media.analyzeMedia(result.base64, result.mimeType, "audio");
-      const transcript = analysis.transcription || analysis.summary || "Voice memory captured";
-      const ctx = [
-        analysis.speakerEmotion && `Emotion: ${analysis.speakerEmotion}`,
-        analysis.tone && `Tone: ${analysis.tone}`,
-        analysis.people?.length && `People: ${analysis.people.join(", ")}`,
-        analysis.summary && `Summary: ${analysis.summary}`
-      ].filter(Boolean).join(" | ");
-      await persistCapture("voice", transcript, ctx);
-      onSaved(memLoc("voice", transcript));
-    } catch (err) {
-      console.error("Voice capture failed:", err);
-      setAnalysisText("Failed. Try again.");
-      setTimeout(() => setAnalysisText(""), 2000);
-    } finally { setSaving(false); }
+      setAnalysisText("Transcribing...");
+      const res = await fetch("/api/v1/media", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${await (window as any).__memoiary_getIdToken?.() || ""}` },
+        body: JSON.stringify({ mediaBase64: result.base64, mimeType: result.mimeType, mediaType: "audio" })
+      });
+      const data = await res.json();
+      const transcript = data.result?.transcription || data.result?.summary || "Voice captured";
+      const ctx = [data.result?.speakerEmotion, data.result?.tone, data.result?.summary].filter(Boolean).join(" | ");
+      setAttachments((prev) => [...prev, { type: "voice", content: transcript, label: `Voice: ${transcript.substring(0, 30)}`, mediaCtx: ctx }]);
+    } catch { setAnalysisText("Failed to process audio."); setTimeout(() => setAnalysisText(""), 2000); }
+    finally { setSaving(false); setAnalysisText(""); }
   };
 
-  const handlePhotoCapture = async () => {
+  const addPhotoAttachment = async () => {
     setSaving(true);
-    setAnalysisText("Capturing photo...");
+    setAnalysisText("Analyzing photo...");
     try {
       const result = media.capturePhoto();
       if (!result) throw new Error("Camera not ready");
-      setAnalysisText("Analyzing with Gemini Flash...");
-      const analysis = await media.analyzeMedia(result.base64, result.mimeType, "image");
-      const desc = analysis.sceneDescription || analysis.summary || "Photo captured";
-      const ctx = [
-        analysis.mood && `Mood: ${analysis.mood}`,
-        analysis.people?.length && `People: ${analysis.people.join(", ")}`,
-        analysis.locationHints?.length && `Location: ${analysis.locationHints.join(", ")}`,
-        analysis.objects?.length && `Objects: ${analysis.objects.slice(0, 5).join(", ")}`,
-        analysis.textInImage?.length && `Text: ${analysis.textInImage.join(", ")}`
-      ].filter(Boolean).join(" | ");
-      await persistCapture("photo", desc, ctx);
-      onSaved(memLoc("photo", desc));
-    } catch (err) {
-      console.error("Photo capture failed:", err);
-      setAnalysisText("Failed. Try again.");
-      setTimeout(() => setAnalysisText(""), 2000);
-    } finally { setSaving(false); }
+      const res = await fetch("/api/v1/media", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${await (window as any).__memoiary_getIdToken?.() || ""}` },
+        body: JSON.stringify({ mediaBase64: result.base64, mimeType: result.mimeType, mediaType: "image" })
+      });
+      const data = await res.json();
+      const desc = data.result?.sceneDescription || data.result?.summary || "Photo captured";
+      const ctx = [data.result?.mood, data.result?.people?.join(", "), data.result?.locationHints?.join(", ")].filter(Boolean).join(" | ");
+      setAttachments((prev) => [...prev, { type: "photo", content: desc, label: `Photo: ${desc.substring(0, 30)}`, mediaCtx: ctx }]);
+    } catch { setAnalysisText("Failed to process photo."); setTimeout(() => setAnalysisText(""), 2000); }
+    finally { setSaving(false); setAnalysisText(""); }
   };
 
-  const handleVideoSave = async () => {
+  const addVideoAttachment = async () => {
     setSaving(true);
     setAnalysisText("Processing video...");
     try {
       const result = await media.stopVideoRecording();
-      setAnalysisText("Analyzing with Gemini Flash...");
-      const analysis = await media.analyzeMedia(result.base64, result.mimeType, "video");
-      const desc = analysis.summary || analysis.sceneDescription || "Video captured";
-      const ctx = [
-        analysis.transcription && `Transcript: ${analysis.transcription}`,
-        analysis.mood && `Mood: ${analysis.mood}`,
-        analysis.people?.length && `People: ${analysis.people.join(", ")}`,
-        analysis.keyMoments?.length && `Moments: ${analysis.keyMoments.slice(0, 3).join("; ")}`
-      ].filter(Boolean).join(" | ");
-      await persistCapture("video", desc, ctx);
-      onSaved(memLoc("video", desc));
-    } catch (err) {
-      console.error("Video capture failed:", err);
-      setAnalysisText("Failed. Try again.");
-      setTimeout(() => setAnalysisText(""), 2000);
-    } finally { setSaving(false); }
+      setAnalysisText("Analyzing video...");
+      const res = await fetch("/api/v1/media", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${await (window as any).__memoiary_getIdToken?.() || ""}` },
+        body: JSON.stringify({ mediaBase64: result.base64, mimeType: result.mimeType, mediaType: "video" })
+      });
+      const data = await res.json();
+      const desc = data.result?.summary || data.result?.sceneDescription || "Video captured";
+      const ctx = [data.result?.transcription, data.result?.mood, data.result?.keyMoments?.slice(0, 2).join("; ")].filter(Boolean).join(" | ");
+      setAttachments((prev) => [...prev, { type: "video", content: desc, label: `Video: ${desc.substring(0, 30)}`, mediaCtx: ctx }]);
+    } catch { setAnalysisText("Failed to process video."); setTimeout(() => setAnalysisText(""), 2000); }
+    finally { setSaving(false); setAnalysisText(""); }
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1281,19 +1245,34 @@ function CaptureOverlay({
         reader.readAsDataURL(file);
       });
       const mt = file.type.startsWith("video") ? "video" : file.type.startsWith("audio") ? "audio" : "image";
-      setAnalysisText("Analyzing with Gemini Flash...");
-      const analysis = await media.analyzeMedia(base64, file.type, mt);
-      const desc = analysis.transcription || analysis.sceneDescription || analysis.summary || `${mt} captured`;
-      const ctx = [
-        analysis.mood && `Mood: ${analysis.mood}`,
-        analysis.people?.length && `People: ${analysis.people.join(", ")}`
-      ].filter(Boolean).join(" | ");
-      const src = mt === "audio" ? "voice" : mt === "video" ? "video" : "image";
-      await persistCapture(src as any, desc, ctx);
-      onSaved(memLoc(src === "voice" ? "voice" : src === "video" ? "video" : "photo", desc));
+      const res = await fetch("/api/v1/media", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${await (window as any).__memoiary_getIdToken?.() || ""}` },
+        body: JSON.stringify({ mediaBase64: base64, mimeType: file.type, mediaType: mt })
+      });
+      const data = await res.json();
+      const desc = data.result?.transcription || data.result?.sceneDescription || data.result?.summary || `${file.name}`;
+      const ctx = [data.result?.mood, data.result?.people?.join(", ")].filter(Boolean).join(" | ");
+      setAttachments((prev) => [...prev, { type: mt, content: desc, label: `${file.name}: ${desc.substring(0, 30)}`, mediaCtx: ctx }]);
     } catch { setAnalysisText("Failed."); setTimeout(() => setAnalysisText(""), 2000); }
-    finally { setSaving(false); }
+    finally { setSaving(false); setAnalysisText(""); e.target.value = ""; }
   };
+
+  const saveMemory = async () => {
+    // Combine text input + all attachments
+    const allParts: string[] = [];
+    const allCtx: string[] = [];
+    if (text.trim()) allParts.push(text.trim());
+    attachments.forEach((a) => { allParts.push(a.content); if (a.mediaCtx) allCtx.push(a.mediaCtx); });
+    if (allParts.length === 0) return;
+    setSaving(true);
+    try {
+      await submitCapture(allParts.join("\n\n"), "mixed", allCtx.join(" | ") || undefined);
+      onSaved({ kind: "written", text: allParts.join(" "), location });
+    } catch {} finally { setSaving(false); }
+  };
+
+  const hasContent = text.trim() || attachments.length > 0;
 
   return (
     <div className="capture-backdrop" role="dialog" aria-modal="true" aria-label="Capture a memory"
@@ -1305,231 +1284,141 @@ function CaptureOverlay({
           <IconButton label="Close capture" onClick={() => setMode(null)}><X size={18} /></IconButton>
         </div>
 
-        {mode === "menu" && (
-          <div className="space-y-5 pt-2">
-            <div className="capture-intro">
-              <span className="memory-kicker">A new memory</span>
-              <h2 className="font-serif font-medium text-stone-900 text-2xl mt-1">What do you want to keep?</h2>
-              <p className="text-stone-500 text-xs mt-1">No organizing. Start wherever the moment is.</p>
-            </div>
-            <button className="voice-invitation cursor-pointer hover:scale-[1.01] transition-transform shadow-sm" onClick={() => setMode("voice")}>
-              <span className="voice-spark" aria-hidden="true">
-                {Array.from({ length: 10 }).map((_, i) => (<i key={i} style={{ "--i": i } as React.CSSProperties} />))}
-              </span>
-              <span>
-                <small className="text-amber-700 font-semibold tracking-wider">Memoiary is listening</small>
-                <strong className="font-serif text-base text-stone-900 font-medium">Tell me what happened...</strong>
-              </span>
-              <div className="w-10 h-10 rounded-full bg-amber-100/80 flex items-center justify-center text-amber-700"><Mic size={20} /></div>
+        {/* Combined capture mode — always show the full interface */}
+        <div className="space-y-3 pt-2">
+          <span className="memory-kicker">Capture a memory</span>
+          <h2 className="font-serif font-medium text-stone-900 text-xl">What do you want to remember?</h2>
+
+          {/* Text input area */}
+          <textarea value={text} onChange={(e) => setText(e.target.value)}
+            placeholder="Write your thoughts..."
+            className="w-full min-h-[5rem] p-3 border border-stone-200 rounded-2xl text-stone-800 placeholder-stone-400 text-sm focus:outline-none focus:border-amber-500 resize-none font-sans" />
+
+          {/* Add text to attachments */}
+          {text.trim() && (
+            <button onClick={addTextAttachment} className="text-xs px-3 py-1.5 bg-amber-50 text-amber-700 rounded-xl cursor-pointer hover:bg-amber-100 transition-colors">
+              + Add text to memory
             </button>
-            <form onSubmit={handleQuickTextSubmit} className="relative flex items-center mt-2">
-              <input type="text" value={quickText} onChange={(e) => setQuickText(e.target.value)} placeholder="What's on your mind?"
-                className="w-full py-3.5 pl-4 pr-24 bg-white border border-stone-200 rounded-2xl text-stone-800 placeholder-stone-400 text-sm focus:outline-none focus:border-amber-500 shadow-2xs font-sans transition-all" />
-              <div className="absolute right-2 flex items-center gap-1.5">
-                <button type="button" onClick={() => setMode("voice")} className="p-2 text-stone-500 hover:text-amber-600 hover:bg-amber-50 rounded-xl transition-colors cursor-pointer" title="Voice record">
-                  <Mic size={18} />
-                </button>
-                {quickText.trim() && (<button type="submit" className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-medium cursor-pointer shadow-2xs transition-colors">Save</button>)}
-              </div>
-            </form>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-              <button onClick={() => setMode("write")} className="flex flex-col items-center justify-center p-4 bg-white hover:bg-stone-50 border border-stone-200/80 rounded-2xl gap-2 transition-all hover:border-amber-400/60 shadow-2xs group cursor-pointer">
-                <div className="p-2.5 rounded-xl bg-amber-50 text-amber-700 group-hover:scale-110 transition-transform"><PenLine size={20} /></div>
-                <span className="text-sm font-semibold text-stone-800">Write</span>
-                <span className="text-xs text-stone-500 font-sans">Draft a thought</span>
-              </button>
-              <button onClick={() => setMode("voice")} className="flex flex-col items-center justify-center p-4 bg-white hover:bg-stone-50 border border-stone-200/80 rounded-2xl gap-2 transition-all hover:border-amber-400/60 shadow-2xs group cursor-pointer">
-                <div className="p-2.5 rounded-xl bg-amber-50 text-amber-700 group-hover:scale-110 transition-transform"><Mic size={20} /></div>
-                <span className="text-sm font-semibold text-stone-800">Speak</span>
-                <span className="text-xs text-stone-500 font-sans">Record voice</span>
-              </button>
-              <button onClick={() => setMode("photo")} className="flex flex-col items-center justify-center p-4 bg-white hover:bg-stone-50 border border-stone-200/80 rounded-2xl gap-2 transition-all hover:border-amber-400/60 shadow-2xs group cursor-pointer">
-                <div className="p-2.5 rounded-xl bg-amber-50 text-amber-700 group-hover:scale-110 transition-transform"><Camera size={20} /></div>
-                <span className="text-sm font-semibold text-stone-800">Photo</span>
-                <span className="text-xs text-stone-500 font-sans">Visual keepsake</span>
-              </button>
-              <button onClick={() => setMode("video")} className="flex flex-col items-center justify-center p-4 bg-white hover:bg-stone-50 border border-stone-200/80 rounded-2xl gap-2 transition-all hover:border-amber-400/60 shadow-2xs group cursor-pointer">
-                <div className="p-2.5 rounded-xl bg-amber-50 text-amber-700 group-hover:scale-110 transition-transform"><Video size={20} /></div>
-                <span className="text-sm font-semibold text-stone-800">Video</span>
-                <span className="text-xs text-stone-500 font-sans">Live moment</span>
-              </button>
+          )}
+
+          {/* Attachments list */}
+          {attachments.length > 0 && (
+            <div className="space-y-1.5">
+              {attachments.map((a, i) => (
+                <div key={i} className="flex items-center gap-2 px-3 py-2 bg-stone-50 rounded-xl text-xs">
+                  <span className="font-medium text-stone-700">{a.type === "text" ? "\u270D" : a.type === "voice" ? "\uD83C\uDF99" : a.type === "photo" ? "\uD83D\uDCF7" : a.type === "video" ? "\uD83C\uDFA5" : "\uD83D\uDCC4"}</span>
+                  <span className="flex-1 truncate text-stone-600">{a.label}</span>
+                  <button onClick={() => setAttachments((prev) => prev.filter((_, j) => j !== i))} className="text-stone-400 hover:text-red-500 cursor-pointer">x</button>
+                </div>
+              ))}
             </div>
-            <label className="flex items-center justify-center gap-2 py-2.5 border border-dashed border-stone-300 rounded-2xl text-stone-500 text-xs cursor-pointer hover:bg-stone-50 hover:border-stone-400 transition-colors">
-              <Plus size={14} /> Upload photo, video, audio, or document
+          )}
+
+          {/* Media capture buttons */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <button onClick={() => setMode("voice")} className="flex flex-col items-center gap-1 p-3 bg-white border border-stone-200/80 rounded-xl hover:border-amber-400/60 cursor-pointer transition-all text-xs">
+              <Mic size={18} className="text-amber-700" /> Record voice
+            </button>
+            <button onClick={() => setMode("photo")} className="flex flex-col items-center gap-1 p-3 bg-white border border-stone-200/80 rounded-xl hover:border-amber-400/60 cursor-pointer transition-all text-xs">
+              <Camera size={18} className="text-amber-700" /> Take photo
+            </button>
+            <button onClick={() => setMode("video")} className="flex flex-col items-center gap-1 p-3 bg-white border border-stone-200/80 rounded-xl hover:border-amber-400/60 cursor-pointer transition-colors text-xs">
+              <Video size={18} className="text-amber-700" /> Record video
+            </button>
+            <label className="flex flex-col items-center gap-1 p-3 bg-white border border-dashed border-stone-300 rounded-xl hover:border-amber-400/60 cursor-pointer transition-colors text-xs text-stone-500">
+              <Plus size={18} /> Upload file
               <input type="file" accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.txt" className="hidden" onChange={handleFileUpload} />
             </label>
           </div>
-        )}
 
-        {mode === "write" && (
-          <>
-            <span className="memory-kicker">A thought, exactly as it is</span>
-            <textarea autoFocus value={text} onChange={(e) => setText(e.target.value)} placeholder="What's on your mind?" />
-            <div className="flex items-center gap-2 mt-2">
-              <button className={`location-capture cursor-pointer flex-1 ${location ? "active" : ""}`} onClick={toggleLocation}>
-                <MapPin size={15} /> {location ?? "Add a place"} {location && <span>Added</span>}
-              </button>
-              {!location && showLocationInput && (
-                <div className="flex gap-1.5 flex-1">
-                  <input type="text" value={locationInput} onChange={(e) => setLocationInput(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") applyLocationInput(); }}
-                    placeholder="Type a place name..." autoFocus
-                    className="flex-1 px-3 py-1.5 text-xs border border-stone-200 rounded-xl focus:outline-none focus:border-amber-500" />
-                  <button onClick={applyLocationInput} className="px-2 py-1 text-xs bg-amber-100 text-amber-700 rounded-xl cursor-pointer">OK</button>
-                  <button onClick={detectLocation} className="px-2 py-1 text-xs bg-stone-100 text-stone-600 rounded-xl cursor-pointer" title="Use GPS"><MapPin size={12} /></button>
-                </div>
+          {/* Voice mode inline */}
+          {mode === "voice" && (
+            <div className="border border-amber-200 bg-amber-50/50 rounded-2xl p-4 text-center">
+              {media.isRecording ? (
+                <>
+                  <span className="recording-dot" />
+                  <p className="text-stone-700 text-sm font-medium mt-2">Recording... {media.duration}s</p>
+                </>
+              ) : analysisText ? (
+                <p className="text-amber-700 text-sm animate-pulse">{analysisText}</p>
+              ) : (
+                <p className="text-stone-500 text-sm">Tap the mic to start</p>
               )}
+              {media.error && <p className="text-rose-600 text-xs mt-1">{media.error}</p>}
+              <div className="flex justify-center mt-3">
+                <button className="record-button" style={{width:"3.5rem",height:"3.5rem",margin:0,boxShadow:"0 0 0 6px rgba(217,119,6,0.15)"}}
+                  onClick={() => {
+                    if (media.isRecording) addVoiceAttachment();
+                    else { setStartingMedia(true); media.startAudioRecording().catch(() => {}).finally(() => setStartingMedia(false)); }
+                  }} disabled={saving || startingMedia}>
+                  {media.isRecording ? <Pause size={20} /> : <Mic size={20} />}
+                </button>
+              </div>
+              <button onClick={() => setMode("menu")} className="text-xs text-stone-400 mt-2 cursor-pointer">Back</button>
             </div>
-            <p className="capture-reassurance text-xs text-muted-foreground mt-2">No title. No tags. Just this moment.</p>
-            <button className="primary-action cursor-pointer mt-4" disabled={!text.trim() || saving}
-              onClick={async () => { await persistCapture("written", text.trim()); onSaved(memLoc("written", text.trim())); }}>
-              {saving ? "Saving..." : "Keep this memory"}
+          )}
+
+          {/* Photo mode inline */}
+          {mode === "photo" && (
+            <div className="border border-amber-200 bg-amber-50/50 rounded-2xl p-4 text-center">
+              <video ref={videoElRef} autoPlay playsInline muted className={`w-full max-h-48 rounded-xl object-cover ${cameraReady ? "block" : "hidden"}`} />
+              {!cameraReady && !analysisText && <p className="text-stone-500 text-sm">Starting camera...</p>}
+              {analysisText && <p className="text-amber-700 text-sm animate-pulse">{analysisText}</p>}
+              <div className="flex justify-center gap-3 mt-3">
+                <button className="record-button" style={{width:"3.5rem",height:"3.5rem",margin:0,boxShadow:"0 0 0 6px rgba(217,119,6,0.15)"}}
+                  onClick={addPhotoAttachment} disabled={saving || !cameraReady}><Camera size={20} /></button>
+              </div>
+              <button onClick={() => setMode("menu")} className="text-xs text-stone-400 mt-2 cursor-pointer">Back</button>
+            </div>
+          )}
+
+          {/* Video mode inline */}
+          {mode === "video" && (
+            <div className="border border-amber-200 bg-amber-50/50 rounded-2xl p-4 text-center">
+              <video ref={videoElRef} autoPlay playsInline muted className={`w-full max-h-48 rounded-xl object-cover ${cameraReady ? "block" : "hidden"}`} />
+              {!cameraReady && !analysisText && <p className="text-stone-500 text-sm">Starting camera...</p>}
+              {media.isRecording && <span className="recording-dot" />}
+              {analysisText && <p className="text-amber-700 text-sm animate-pulse">{analysisText}</p>}
+              {media.isRecording && <p className="text-amber-600 font-mono text-xs mt-1">{media.duration}s</p>}
+              <div className="flex justify-center mt-3">
+                <button className="record-button" style={{width:"3.5rem",height:"3.5rem",margin:0,boxShadow:"0 0 0 6px rgba(217,119,6,0.15)"}}
+                  onClick={() => { if (media.isRecording) addVideoAttachment(); else { setCameraReady(false); videoElRef.current && media.startVideoRecording(videoElRef.current).then(() => setCameraReady(true)); } }}
+                  disabled={saving}>{media.isRecording ? <Pause size={20} /> : <Video size={20} />}</button>
+              </div>
+              <button onClick={() => setMode("menu")} className="text-xs text-stone-400 mt-2 cursor-pointer">Back</button>
+            </div>
+          )}
+
+          {/* Location */}
+          <div className="flex items-center gap-2">
+            <button className={`location-capture cursor-pointer flex-1 ${location ? "active" : ""}`} onClick={toggleLocation}>
+              <MapPin size={15} /> {location ?? "Add a place"} {location && <span>Added</span>}
             </button>
-          </>
-        )}
-
-        {mode === "voice" && (
-          <div className="voice-capture">
-            {media.isRecording ? (
-              <>
-                <span className="recording-dot" />
-                <h2 className="font-serif font-medium text-stone-900 text-xl">Just speak.</h2>
-                <p className="text-stone-500 text-sm mt-1">I&apos;ll hold the thread while you remember.</p>
-                <p className="text-amber-600 font-mono text-xs mt-2">{media.duration}s</p>
-              </>
-            ) : analysisText ? (
-              <>
-                <div className="animate-pulse">
-                  <Sparkles className="text-amber-500 mx-auto" size={24} />
-                </div>
-                <h2 className="font-serif font-medium text-stone-900 text-xl mt-3">{analysisText}</h2>
-              </>
-            ) : (
-              <>
-                <h2 className="font-serif font-medium text-stone-900 text-xl">Ready to capture your voice</h2>
-                <p className="text-stone-500 text-sm mt-1">Tap the mic to start recording</p>
-                {startingMedia && <p className="text-amber-600 text-sm mt-2 animate-pulse">Requesting mic access...</p>}
-                {media.error && <p className="text-rose-600 text-sm mt-2">{media.error}</p>}
-              </>
-            )}
-            <div className={`voice-orbit ${media.isRecording ? "active" : ""}`}>
-              {Array.from({ length: 24 }).map((_, i) => (<i key={i} style={{ "--i": i } as React.CSSProperties} />))}
-            </div>
-            <div style={{display:"flex",justifyContent:"center",margin:"0.5rem 0",position:"relative",zIndex:10}}>
-              <button className="record-button" aria-label={media.isRecording ? "Stop recording" : "Start recording"}
-                onClick={() => {
-                  console.log("[voice-btn] clicked, isRecording:", media.isRecording, "saving:", saving, "startingMedia:", startingMedia);
-                  if (media.isRecording) { handleVoiceSave(); }
-                  else { setStartingMedia(true); media.startAudioRecording().catch((e) => console.warn("[voice-btn] rejected:", e)).finally(() => setStartingMedia(false)); }
-                }}
-                disabled={saving || startingMedia}>
-                {media.isRecording ? <Pause size={24} /> : <Mic size={24} />}
-              </button>
-            </div>
-            <div className="flex items-center gap-2 mt-2">
-              <button className={`location-capture cursor-pointer flex-1 ${location ? "active" : ""}`} onClick={toggleLocation}>
-                <MapPin size={15} /> {location ?? "Add a place"} {location && <span>Added</span>}
-              </button>
-              {!location && showLocationInput && (
-                <div className="flex gap-1.5 flex-1">
-                  <input type="text" value={locationInput} onChange={(e) => setLocationInput(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") applyLocationInput(); }}
-                    placeholder="Type a place name..." autoFocus
-                    className="flex-1 px-3 py-1.5 text-xs border border-stone-200 rounded-xl focus:outline-none focus:border-amber-500" />
-                  <button onClick={applyLocationInput} className="px-2 py-1 text-xs bg-amber-100 text-amber-700 rounded-xl cursor-pointer">OK</button>
-                  <button onClick={detectLocation} className="px-2 py-1 text-xs bg-stone-100 text-stone-600 rounded-xl cursor-pointer" title="Use GPS"><MapPin size={12} /></button>
-                </div>
-              )}
-            </div>
-            {media.isRecording && (
-              <button className="primary-action cursor-pointer mt-4" onClick={handleVoiceSave} disabled={saving}>
-                {saving ? "Transcribing..." : "Save voice memory"}
-              </button>
-            )}
-          </div>
-        )}
-
-        {mode === "photo" && (
-          <div className="voice-capture">
-            <video ref={videoElRef} autoPlay playsInline muted className={`w-full max-h-64 rounded-2xl object-cover ${cameraReady ? "block" : "hidden"}`} />
-            {!cameraReady && !analysisText && (
-              <div className="text-stone-500 text-sm">Starting camera...</div>
-            )}
-            {analysisText && (
-              <div className="animate-pulse mt-4">
-                <Sparkles className="text-amber-500 mx-auto" size={24} />
-                <p className="text-stone-600 text-sm mt-2">{analysisText}</p>
+            {!location && showLocationInput && (
+              <div className="flex gap-1.5 flex-1">
+                <input type="text" value={locationInput} onChange={(e) => setLocationInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") applyLocationInput(); }}
+                  placeholder="Type a place name..." autoFocus
+                  className="flex-1 px-3 py-1.5 text-xs border border-stone-200 rounded-xl focus:outline-none focus:border-amber-500" />
+                <button onClick={applyLocationInput} className="px-2 py-1 text-xs bg-amber-100 text-amber-700 rounded-xl cursor-pointer">OK</button>
+                <button onClick={detectLocation} className="px-2 py-1 text-xs bg-stone-100 text-stone-600 rounded-xl cursor-pointer" title="Use GPS"><MapPin size={12} /></button>
               </div>
             )}
-            <div className="flex gap-3 mt-4">
-              <button className="record-button cursor-pointer" onClick={handlePhotoCapture} disabled={saving || !cameraReady}>
-                <Camera />
-              </button>
-              <label className="record-button cursor-pointer flex items-center justify-center">
-                <Plus size={20} />
-                <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileUpload} />
-              </label>
-            </div>
-            <div className="flex items-center gap-2 mt-2">
-              <button className={`location-capture cursor-pointer flex-1 ${location ? "active" : ""}`} onClick={toggleLocation}>
-                <MapPin size={15} /> {location ?? "Add a place"} {location && <span>Added</span>}
-              </button>
-              {!location && showLocationInput && (
-                <div className="flex gap-1.5 flex-1">
-                  <input type="text" value={locationInput} onChange={(e) => setLocationInput(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") applyLocationInput(); }}
-                    placeholder="Type a place name..." autoFocus
-                    className="flex-1 px-3 py-1.5 text-xs border border-stone-200 rounded-xl focus:outline-none focus:border-amber-500" />
-                  <button onClick={applyLocationInput} className="px-2 py-1 text-xs bg-amber-100 text-amber-700 rounded-xl cursor-pointer">OK</button>
-                  <button onClick={detectLocation} className="px-2 py-1 text-xs bg-stone-100 text-stone-600 rounded-xl cursor-pointer" title="Use GPS"><MapPin size={12} /></button>
-                </div>
-              )}
-            </div>
           </div>
-        )}
 
-        {mode === "video" && (
-          <div className="voice-capture">
-            <video ref={videoElRef} autoPlay playsInline muted className={`w-full max-h-64 rounded-2xl object-cover ${cameraReady ? "block" : "hidden"}`} />
-            {!cameraReady && !analysisText && (
-              <div className="text-stone-500 text-sm">Starting camera...</div>
-            )}
-            {media.isRecording && <span className="recording-dot" />}
-            {analysisText ? (
-              <div className="animate-pulse mt-4">
-                <Sparkles className="text-amber-500 mx-auto" size={24} />
-                <p className="text-stone-600 text-sm mt-2">{analysisText}</p>
-              </div>
-            ) : media.isRecording ? (
-              <p className="text-amber-600 font-mono text-xs mt-2">{media.duration}s</p>
-            ) : null}
-            <div className="flex gap-3 mt-4">
-              <button className="record-button cursor-pointer" onClick={() => { if (media.isRecording) { handleVideoSave(); } else { setCameraReady(false); videoElRef.current && media.startVideoRecording(videoElRef.current).then(() => setCameraReady(true)); } }} disabled={saving}>
-                {media.isRecording ? <Pause /> : <Video />}
-              </button>
-            </div>
-            <div className="flex items-center gap-2 mt-2">
-              <button className={`location-capture cursor-pointer flex-1 ${location ? "active" : ""}`} onClick={toggleLocation}>
-                <MapPin size={15} /> {location ?? "Add a place"} {location && <span>Added</span>}
-              </button>
-              {!location && showLocationInput && (
-                <div className="flex gap-1.5 flex-1">
-                  <input type="text" value={locationInput} onChange={(e) => setLocationInput(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") applyLocationInput(); }}
-                    placeholder="Type a place name..." autoFocus
-                    className="flex-1 px-3 py-1.5 text-xs border border-stone-200 rounded-xl focus:outline-none focus:border-amber-500" />
-                  <button onClick={applyLocationInput} className="px-2 py-1 text-xs bg-amber-100 text-amber-700 rounded-xl cursor-pointer">OK</button>
-                  <button onClick={detectLocation} className="px-2 py-1 text-xs bg-stone-100 text-stone-600 rounded-xl cursor-pointer" title="Use GPS"><MapPin size={12} /></button>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-</section>
+          {/* Save button */}
+          {hasContent && (
+            <button className="primary-action cursor-pointer w-full" onClick={saveMemory} disabled={saving}>
+              {saving ? "Saving..." : `Keep this memory${attachments.length > 0 ? ` (${attachments.length + (text.trim() ? 1 : 0)} parts)` : ""}`}
+            </button>
+          )}
+        </div>
+      </section>
     </div>
   );
 }
+
+
 
 function SavedMomentToast() {
   return (
