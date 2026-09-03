@@ -1,6 +1,7 @@
 import type {Metadata} from 'next';
 import './globals.css'; // Global styles
 import { JournalProvider } from '@/lib/context/JournalContext';
+import { ArtStyleProvider } from '@/lib/context/ArtStyleContext';
 
 export const metadata: Metadata = {
   title: 'Memoiary — Your Memories, Beautifully Connected',
@@ -35,9 +36,11 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
         />
       </head>
       <body suppressHydrationWarning>
-        <JournalProvider>
-          {children}
-        </JournalProvider>
+        <ArtStyleProvider>
+          <JournalProvider>
+            {children}
+          </JournalProvider>
+        </ArtStyleProvider>
       </body>
     </html>
   );

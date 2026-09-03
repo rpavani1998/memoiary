@@ -30,12 +30,21 @@ import {
   Video,
   X,
   LogOut,
+  Palette,
+  Trash2,
 } from "lucide-react";
 import { useJournal } from "@/lib/context/JournalContext";
 import { useMediaCapture } from "@/lib/hooks/useMediaCapture";
 import { BrandStoryBanner } from "@/components/BrandStoryBanner";
-import { ThoughtBubbleIcon } from "@/components/ThoughtBubbleIcon";
 import { CaptureSession } from "@/lib/memory-engine/types";
+import { ThoughtBubbleIcon } from "@/components/ThoughtBubbleIcon";
+import { ArtisticAvatar } from "@/components/ArtisticAvatar";
+import { DailyStoryboard } from "@/components/DailyStoryboard";
+import { WeeklyRecapBoard } from "@/components/WeeklyRecapBoard";
+import { useArtStyle, ART_STYLES, ArtStyle } from "@/lib/context/ArtStyleContext";
+import { getPersonVisualIdentity } from "@/lib/memory-engine/person-graph";
+import { TimelineViewSwitcher, TimelineMode } from "@/components/TimelineViewSwitcher";
+import { MonthlyCollageGrid } from "@/components/MonthlyCollageGrid";
 
 export type View =
   | "life"
@@ -290,15 +299,16 @@ function LifeHome({
   go: (view: View) => void;
   openCapture: (prompt?: string) => void;
   newMemory: CapturedMemory | null;
-  onSelectCapture: (capture: any) => void;
+  onSelectCapture: (c: any) => void;
 }) {
-  const { user, captures, streak, deleteCapture } = useJournal();
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const { user, streak, captures } = useJournal();
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date("2026-09-02T12:00:00Z"));
+  const [timelineMode, setTimelineMode] = useState<TimelineMode>("day");
+  const [showFullCalendar, setShowFullCalendar] = useState(false);
 
   const formattedSelectedDate = selectedDate.toLocaleDateString("en-US", {
     weekday: "long",
-    month: "long",
+    month: "short",
     day: "numeric",
   }).toUpperCase();
 
@@ -310,12 +320,17 @@ function LifeHome({
 
   const isToday = selectedDate.toDateString() === new Date().toDateString();
 
-  const recentCaptures = captures.slice(0, 8);
+  const uniqueDaysLogged = new Set(captures.map((c) => new Date(c.createdAt).toDateString())).size;
+  const availableDates = Array.from(new Set(captures.map((c) => new Date(c.createdAt).toISOString().split("T")[0])));
 
-  const formatTime = (iso: string) => {
-    const d = new Date(iso);
-    return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-  };
+  const selectedDateStr = selectedDate.toDateString();
+  const dayCaptures = captures.filter((c) => {
+    const cDate = new Date(c.createdAt).toDateString();
+    return cDate === selectedDateStr;
+  });
+  const recentCaptures = dayCaptures.length > 0 ? dayCaptures : captures.slice(0, 6);
+
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
 
   return (
     <div className="pb-32 font-sans">
@@ -327,63 +342,65 @@ function LifeHome({
           </IconButton>
         </div>
 
-        {/* Date Navigation Bar with Calendar Selector */}
-        <div className="mt-6 flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <button
-              onClick={() => changeDateByDays(-1)}
-              className="p-1.5 rounded-full border border-[#1C1917]/20 bg-[#F5F1E8] text-[#1C1917] hover:bg-[#F5E5DC] cursor-pointer"
-              title="Previous day"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6"/></svg>
-            </button>
+        {/* Timeline View Mode Switcher: DAY | WEEK | MONTH */}
+        <TimelineViewSwitcher
+          selectedDate={selectedDate}
+          onSelectDate={(d) => setSelectedDate(d)}
+          activeMode={timelineMode}
+          onModeChange={(m) => setTimelineMode(m)}
+          availableDates={availableDates}
+          uniqueDaysLogged={uniqueDaysLogged}
+          showFullCalendar={showFullCalendar}
+          onToggleCalendar={() => setShowFullCalendar(!showFullCalendar)}
+        />
 
-            <div className="text-center">
-              <span className="text-[11px] font-sans font-bold uppercase tracking-widest text-[#665F56] block">
-                {formattedSelectedDate}
-              </span>
-              <h1 className="font-serif text-2xl sm:text-3xl leading-tight font-medium text-[#1C1917] mt-0.5">
-                Your life lately.
-              </h1>
+        {/* Date Navigation Bar when in Day Mode */}
+        {timelineMode === "day" && (
+          <div className="mt-2 flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <button
+                onClick={() => changeDateByDays(-1)}
+                className="p-1.5 rounded-full border border-[#1C1917]/20 bg-[#F5F1E8] text-[#1C1917] hover:bg-[#F5E5DC] cursor-pointer"
+                title="Previous day"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+              </button>
+
+              <div className="text-center">
+                <span className="text-[11px] font-sans font-bold uppercase tracking-widest text-[#665F56] block">
+                  {formattedSelectedDate}
+                </span>
+                <h1 className="font-serif text-2xl sm:text-3xl leading-tight font-medium text-[#1C1917] mt-0.5 flex items-center justify-center gap-2">
+                  {isToday ? "Today's memories" : "Memories from this day"}
+                  <button
+                    onClick={() => setShowFullCalendar(!showFullCalendar)}
+                    className={`p-1.5 rounded-full border transition-all cursor-pointer ${
+                      showFullCalendar
+                        ? "border-[#D97706] bg-[#D97706] text-white"
+                        : "border-[#1C1917]/20 bg-[#F5F1E8] text-[#665F56] hover:bg-[#F5E5DC]"
+                    }`}
+                    title="Toggle calendar"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                  </button>
+                </h1>
+              </div>
+
+              <button
+                onClick={() => changeDateByDays(1)}
+                disabled={isToday}
+                className={`p-1.5 rounded-full border transition-all ${
+                  isToday
+                    ? "border-[#1C1917]/10 bg-[#F5F1E8]/50 text-[#1C1917]/30 cursor-not-allowed"
+                    : "border-[#1C1917]/20 bg-[#F5F1E8] text-[#1C1917] hover:bg-[#F5E5DC] cursor-pointer"
+                }`}
+                title="Next day"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6"/></svg>
+              </button>
             </div>
-
-            <button
-              onClick={() => changeDateByDays(1)}
-              disabled={isToday}
-              className={`p-1.5 rounded-full border transition-all ${
-                isToday
-                  ? "border-[#1C1917]/10 bg-[#F5F1E8]/50 text-[#1C1917]/30 cursor-not-allowed"
-                  : "border-[#1C1917]/20 bg-[#F5F1E8] text-[#1C1917] hover:bg-[#F5E5DC] cursor-pointer"
-              }`}
-              title="Next day"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6"/></svg>
-            </button>
           </div>
-
-          {/* Quick Calendar Day Pills */}
-          <div className="flex justify-center gap-1.5 pt-1 overflow-x-auto">
-            {[0, -1, -2, -3, -4].map((offset) => {
-              const d = new Date();
-              d.setDate(d.getDate() + offset);
-              const isSelected = d.toDateString() === selectedDate.toDateString();
-              const label = offset === 0 ? "Today" : offset === -1 ? "Yesterday" : d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-              return (
-                <button
-                  key={offset}
-                  onClick={() => setSelectedDate(d)}
-                  className={`px-3 py-1 rounded-full text-xs font-semibold cursor-pointer transition-all ${
-                    isSelected
-                      ? "bg-[#DE5239] text-white border-[1.5px] border-[#1C1917] shadow-[1px_2px_0px_#1C1917]"
-                      : "bg-[#F5F1E8] text-[#665F56] border border-[#1C1917]/20 hover:bg-[#F5E5DC]"
-                  }`}
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        )}
 
         {/* Streak Banner */}
         {user && streak.currentStreak > 0 && (
@@ -399,179 +416,203 @@ function LifeHome({
         )}
       </header>
 
-      {/* Main Feed with Cards formatted as Image 1 */}
-      <main className="mt-6 px-5 sm:px-8 space-y-4 relative before:absolute before:left-9 sm:before:left-12 before:top-4 before:bottom-4 before:w-0.5 before:bg-[#1C1917]/15">
+      {/* Main Feed Content depending on Timeline Mode */}
+      <main className="mt-6 px-5 sm:px-8 space-y-4">
         
-        {/* New memory from current session */}
-        {newMemory && (
-          <section className="relative z-10 border-[1.5px] border-[#1C1917] bg-[#F5E5DC] rounded-3xl p-5 shadow-[3px_4px_0px_#1C1917]" aria-label="Your newest memory">
-            <button className="w-full text-left cursor-pointer border-[1.5px] border-[#1C1917] bg-[#FBF9F4] rounded-2xl p-4 shadow-[1px_2px_0px_#1C1917]" onClick={() => go("memory")}>
-              <span className="flex items-center justify-between">
-                <span className="memory-kicker flex items-center gap-1.5 text-[#DE5239] font-bold text-xs uppercase">
-                  <span className="node-dot" />
-                  Just captured
-                </span>
-                <span className="memory-meta text-[#665F56] text-xs">Now</span>
-              </span>
-              <p className="font-serif text-[#1C1917] text-lg leading-relaxed mt-2">{newMemory.text}</p>
-            </button>
-          </section>
+        {/* WEEKLY MODE VIEW */}
+        {timelineMode === "week" && (
+          <WeeklyRecapBoard
+            weekLabel="This Week"
+            uniqueDaysLogged={uniqueDaysLogged}
+            isUnlocked={uniqueDaysLogged >= 7}
+            weeklyPeople={Array.from(new Set(captures.flatMap((c) => c.dimensions?.people || [])))}
+            weeklyInsight={
+              captures.length > 0
+                ? "Your week shifted from intense early-week sprint stress into celebratory team milestones and deep restorative time with friends."
+                : undefined
+            }
+            highlights={
+              captures.length > 0
+                ? captures.slice(0, 3).map((c, i) => ({
+                    id: c.id,
+                    dayLabel: new Date(c.createdAt).toLocaleDateString("en-US", { weekday: "short" }),
+                    title: c.dimensions?.summary || c.content.substring(0, 30),
+                    summary: c.content,
+                    imageUrl: c.mediaUrl || "/collages/daily_collage_sketch_sep2.jpg",
+                    people: c.dimensions?.people || [],
+                    mood: c.dimensions?.mood
+                  }))
+                : []
+            }
+            onSelectHighlight={() => setTimelineMode("day")}
+          />
         )}
 
-        {/* Real captures from Firestore or Mock cards formatted as Image 1 */}
-        {recentCaptures.length > 0 ? (
-          recentCaptures.map((capture) => {
-            const dims = capture.dimensions;
-            return (
-              <div key={capture.id} className="relative z-10 space-y-3">
-                {/* 1. Image / Media Card (If image or video) */}
-                {capture.source === "image" || capture.mediaUrl ? (
-                  <button
-                    onClick={() => onSelectCapture(capture)}
-                    className="w-full text-left border-[1.5px] border-[#1C1917] bg-white rounded-3xl overflow-hidden shadow-[2px_3px_0px_#1C1917] hover:-translate-y-0.5 transition-all cursor-pointer group"
-                  >
-                    <div className="h-64 w-full overflow-hidden bg-stone-100">
-                      <img
-                        src={capture.mediaUrl || "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&auto=format&fit=crop&q=80"}
-                        alt="Memory photo"
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                    </div>
-                    <div className="p-4 sm:p-5 space-y-1">
-                      <h3 className="font-serif font-medium text-[#1C1917] text-xl leading-snug">
-                        {dims?.places?.[0] || capture.content?.substring(0, 30) || "Third Wave Coffee"}
-                      </h3>
-                      {dims?.people && dims.people.length > 0 && (
-                        <p className="text-xs text-[#665F56] font-sans flex items-center gap-1">
-                          <Users size={13} className="text-[#DE5239]" /> with {dims.people.join(", ")}
-                        </p>
-                      )}
-                    </div>
-                  </button>
-                ) : capture.source === "voice" ? (
-                  /* 2. Voice Audio Card (Matching Image 1) */
-                  <button
-                    onClick={() => onSelectCapture(capture)}
-                    className="w-full text-left p-4 border-[1.5px] border-[#1C1917] bg-white rounded-2xl shadow-[2px_3px_0px_#1C1917] flex items-center justify-between hover:-translate-y-0.5 transition-all cursor-pointer"
-                  >
-                    <div className="flex items-center gap-3.5">
-                      <div
-                        onClick={(e) => { e.stopPropagation(); setIsPlayingAudio(!isPlayingAudio); }}
-                        className="w-10 h-10 rounded-full bg-[#1C1917] text-white flex items-center justify-center cursor-pointer hover:bg-[#DE5239] transition-colors shrink-0"
-                      >
-                        {isPlayingAudio ? <Pause size={16} /> : <Play size={16} className="ml-0.5" />}
-                      </div>
-                      <div>
-                        {/* Audio Waveform visualization */}
-                        <div className="flex gap-0.5 items-center h-4 mb-1">
-                          {[8, 14, 18, 12, 22, 16, 20, 10, 18, 14].map((h, i) => (
-                            <span
-                              key={i}
-                              className={`w-1 rounded-full transition-all ${
-                                isPlayingAudio ? "bg-[#DE5239] animate-pulse" : "bg-[#1C1917]/40"
-                              }`}
-                              style={{ height: `${h}px` }}
-                            />
-                          ))}
-                        </div>
-                        <p className="font-serif text-sm text-[#665F56] italic">
-                          &ldquo;{capture.content.substring(0, 45)}...&rdquo;
-                        </p>
-                      </div>
-                    </div>
-                  </button>
-                ) : (
-                  /* 3. Quote / Thought Card (Matching Image 1) */
-                  <button
-                    onClick={() => onSelectCapture(capture)}
-                    className="w-full text-left p-5 border-[1.5px] border-[#1C1917] bg-white rounded-2xl shadow-[2px_3px_0px_#1C1917] hover:-translate-y-0.5 transition-all cursor-pointer"
-                  >
-                    <p className="font-serif text-lg text-[#1C1917] leading-relaxed italic text-center sm:text-left">
-                      &ldquo;{capture.content}&rdquo;
-                    </p>
-                  </button>
-                )}
+        {/* MONTHLY MODE VIEW */}
+        {timelineMode === "month" && (
+          <MonthlyCollageGrid
+            monthLabel="September 2026"
+            uniqueDaysLogged={uniqueDaysLogged}
+            isUnlocked={uniqueDaysLogged >= 30}
+            monthlyPeople={Array.from(new Set(captures.flatMap((c) => c.dimensions?.people || [])))}
+            onSelectCollage={() => setTimelineMode("day")}
+          />
+        )}
 
-                {/* Location Pill Badge at bottom of cluster (Matching Image 1) */}
-                {dims?.places?.[0] && (
-                  <div className="flex justify-center sm:justify-start">
-                    <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#FBF9F4] border-[1.5px] border-[#1C1917] rounded-full text-xs font-semibold text-[#1C1917] shadow-[1px_2px_0px_#1C1917]">
-                      <MapPin size={13} className="text-[#DE5239]" /> {dims.places[0]}
+        {/* DAY MODE VIEW */}
+        {timelineMode === "day" && (
+          <div className="space-y-4 relative before:absolute before:left-9 sm:before:left-12 before:top-4 before:bottom-4 before:w-0.5 before:bg-[#1C1917]/15">
+            {/* New memory from current session */}
+            {newMemory && (
+              <section className="relative z-10 border-[1.5px] border-[#1C1917] bg-[#F5E5DC] rounded-3xl p-5 shadow-[3px_4px_0px_#1C1917]" aria-label="Your newest memory">
+                <button className="w-full text-left cursor-pointer border-[1.5px] border-[#1C1917] bg-[#FBF9F4] rounded-2xl p-4 shadow-[1px_2px_0px_#1C1917]" onClick={() => go("memory")}>
+                  <span className="flex items-center justify-between">
+                    <span className="memory-kicker flex items-center gap-1.5 text-[#DE5239] font-bold text-xs uppercase">
+                      <span className="node-dot" />
+                      Just captured
                     </span>
-                  </div>
-                )}
-              </div>
-            );
-          })
-        ) : (
-          /* Default Feed Cards matching Image 1 when no user entries exist */
-          <div className="space-y-4 relative z-10">
-            {/* Photo Card */}
-            <button
-              onClick={() => onSelectCapture({ content: "Third Wave Coffee with Sarah. Discussed startup ideas.", dimensions: { places: ["Third Wave Coffee"], people: ["Sarah"] } })}
-              className="w-full text-left border-[1.5px] border-[#1C1917] bg-white rounded-3xl overflow-hidden shadow-[2px_3px_0px_#1C1917] hover:-translate-y-0.5 transition-all cursor-pointer group"
-            >
-              <div className="h-64 w-full overflow-hidden bg-stone-100">
-                <img
-                  src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&auto=format&fit=crop&q=80"
-                  alt="Third Wave Coffee with Sarah"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-              </div>
-              <div className="p-4 sm:p-5 space-y-1">
-                <h3 className="font-serif font-medium text-[#1C1917] text-xl leading-snug">
-                  Third Wave Coffee
-                </h3>
-                <p className="text-xs text-[#665F56] font-sans flex items-center gap-1">
-                  <Users size={13} className="text-[#DE5239]" /> with Sarah
-                </p>
-              </div>
-            </button>
-
-            {/* Quote Card */}
-            <button
-              onClick={() => openCapture()}
-              className="w-full text-left p-5 border-[1.5px] border-[#1C1917] bg-white rounded-2xl shadow-[2px_3px_0px_#1C1917] hover:-translate-y-0.5 transition-all cursor-pointer"
-            >
-              <p className="font-serif text-lg text-[#1C1917] leading-relaxed italic text-center sm:text-left">
-                &ldquo;Maybe I&apos;m finally ready to build this.&rdquo;
-              </p>
-            </button>
-
-            {/* Audio Voice Card */}
-            <div className="p-4 border-[1.5px] border-[#1C1917] bg-white rounded-2xl shadow-[2px_3px_0px_#1C1917] flex items-center justify-between">
-              <div className="flex items-center gap-3.5">
-                <button
-                  onClick={() => setIsPlayingAudio(!isPlayingAudio)}
-                  className="w-10 h-10 rounded-full bg-[#1C1917] text-white flex items-center justify-center cursor-pointer hover:bg-[#DE5239] transition-colors shrink-0"
-                >
-                  {isPlayingAudio ? <Pause size={16} /> : <Play size={16} className="ml-0.5" />}
+                    <span className="memory-meta text-[#665F56] text-xs">Now</span>
+                  </span>
+                  <p className="font-serif text-[#1C1917] text-lg leading-relaxed mt-2">{newMemory.text}</p>
                 </button>
-                <div>
-                  <div className="flex gap-0.5 items-center h-4 mb-1">
-                    {[8, 14, 18, 12, 22, 16, 20, 10, 18, 14].map((h, i) => (
-                      <span
-                        key={i}
-                        className={`w-1 rounded-full transition-all ${
-                          isPlayingAudio ? "bg-[#DE5239] animate-pulse" : "bg-[#1C1917]/40"
-                        }`}
-                        style={{ height: `${h}px` }}
-                      />
-                    ))}
-                  </div>
-                  <p className="font-serif text-sm text-[#665F56] italic">
-                    Starting the company...
-                  </p>
-                </div>
-              </div>
-            </div>
+              </section>
+            )}
 
-            {/* Location Pill */}
-            <div className="flex justify-center sm:justify-start">
-              <span className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-[#FBF9F4] border-[1.5px] border-[#1C1917] rounded-full text-xs font-semibold text-[#1C1917] shadow-[1px_2px_0px_#1C1917]">
-                <MapPin size={13} className="text-[#DE5239]" /> Hyderabad, Tuesday evening
-              </span>
-            </div>
+            {/* Featured Date-Matched Daily Visual Storyboard */}
+            {(() => {
+              const storyboardCapture = captures.find((c) => c.episodes && c.episodes.length > 0);
+              if (!storyboardCapture || !storyboardCapture.episodes) return null;
+              return (
+                <DailyStoryboard
+                  dateStr={selectedDate.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
+                  scenes={storyboardCapture.episodes.map((ep: any, idx: number) => ({
+                    id: ep.id || `sc_${idx}`,
+                    panelNumber: idx + 1,
+                    time: idx === 0 ? "11:00 AM" : idx === 1 ? "1:30 PM" : "7:30 PM",
+                    title: ep.title,
+                    summary: ep.summary,
+                    location: ep.location || (idx === 0 ? "Engineering Office" : idx === 1 ? "Olive Bistro, Jubilee Hills" : "Durgam Cheruvu Lake"),
+                    people: ep.entitiesInvolved && ep.entitiesInvolved.length > 0 ? ep.entitiesInvolved : (idx === 0 ? ["Kabir", "Ananya"] : idx === 1 ? ["Kabir", "Ananya"] : ["Maya"]),
+                    imageUrl: "/collages/daily_collage_sketch_sep2.jpg"
+                  }))}
+                />
+              );
+            })()}
+
+            {/* Real captures from Firestore or Mock cards */}
+            {recentCaptures.length > 0 ? (
+              recentCaptures.map((capture) => {
+                const dims = capture.dimensions;
+                return (
+                  <div key={capture.id} className="relative z-10 space-y-3">
+                    {capture.source === "video" || capture.mediaUrl?.startsWith("data:video") ? (
+                      /* Video Media Card */
+                      <button
+                        onClick={() => onSelectCapture(capture)}
+                        className="w-full text-left border-[1.5px] border-[#1C1917] bg-[#1C1917] text-white rounded-3xl overflow-hidden shadow-[2px_3px_0px_#1C1917] hover:-translate-y-0.5 transition-all cursor-pointer group"
+                      >
+                        <div className="max-h-72 w-full overflow-hidden bg-black flex items-center justify-center relative">
+                          <video
+                            src={capture.mediaUrl}
+                            controls
+                            className="w-full max-h-72 object-contain"
+                          />
+                        </div>
+                        <div className="p-4 sm:p-5 space-y-1 bg-[#1C1917]">
+                          <span className="text-[10px] font-mono uppercase font-bold text-[#D97706] bg-[#D97706]/20 px-2 py-0.5 rounded-md border border-[#D97706]/40">
+                            Recorded Video
+                          </span>
+                          <h3 className="font-serif font-medium text-stone-100 text-xl leading-snug">
+                            {capture.content || "Video Recording"}
+                          </h3>
+                        </div>
+                      </button>
+                    ) : capture.source === "image" || (capture.mediaUrl && capture.mediaUrl.startsWith("data:image")) ? (
+                      /* Photo Media Card */
+                      <button
+                        onClick={() => onSelectCapture(capture)}
+                        className="w-full text-left border-[1.5px] border-[#1C1917] bg-white rounded-3xl overflow-hidden shadow-[2px_3px_0px_#1C1917] hover:-translate-y-0.5 transition-all cursor-pointer group"
+                      >
+                        <div className="h-64 w-full overflow-hidden bg-stone-100">
+                          <img
+                            src={capture.mediaUrl || "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&auto=format&fit=crop&q=80"}
+                            alt="Memory photo"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                        </div>
+                        <div className="p-4 sm:p-5 space-y-1">
+                          <h3 className="font-serif font-medium text-[#1C1917] text-xl leading-snug">
+                            {dims?.places?.[0] || capture.content?.substring(0, 30) || "Photo Memory"}
+                          </h3>
+                          {dims?.people && dims.people.length > 0 && (
+                            <div className="flex items-center gap-1.5 pt-1">
+                              <span className="text-xs text-[#665F56] font-sans font-medium flex items-center gap-1">
+                                with
+                              </span>
+                              <div className="flex items-center gap-1">
+                                {dims.people.map((p: string, idx: number) => (
+                                  <div key={idx} className="flex items-center gap-1 bg-[#F5F1E8] border border-[#1C1917]/20 rounded-full px-2 py-0.5 text-xs text-[#1C1917] font-semibold">
+                                    <ArtisticAvatar name={p} size="sm" />
+                                    <span>{p}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </button>
+                    ) : capture.source === "voice" ? (
+                      <button
+                        onClick={() => onSelectCapture(capture)}
+                        className="w-full text-left p-4 border-[1.5px] border-[#1C1917] bg-white rounded-2xl shadow-[2px_3px_0px_#1C1917] flex items-center justify-between hover:-translate-y-0.5 transition-all cursor-pointer"
+                      >
+                        <div className="flex items-center gap-3.5">
+                          <div
+                            onClick={(e) => { e.stopPropagation(); setIsPlayingAudio(!isPlayingAudio); }}
+                            className="w-10 h-10 rounded-full bg-[#1C1917] text-white flex items-center justify-center cursor-pointer hover:bg-[#DE5239] transition-colors shrink-0"
+                          >
+                            {isPlayingAudio ? <Pause size={16} /> : <Play size={16} className="ml-0.5" />}
+                          </div>
+                          <div>
+                            <div className="flex gap-0.5 items-center h-4 mb-1">
+                              {[8, 14, 18, 12, 22, 16, 20, 10, 18, 14].map((h, i) => (
+                                <span
+                                  key={i}
+                                  className={`w-1 rounded-full transition-all ${
+                                    isPlayingAudio ? "bg-[#DE5239] animate-pulse" : "bg-[#1C1917]/40"
+                                  }`}
+                                  style={{ height: `${h}px` }}
+                                />
+                              ))}
+                            </div>
+                            <p className="font-serif text-sm text-[#665F56] italic">
+                              &ldquo;{capture.content.substring(0, 45)}...&rdquo;
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => onSelectCapture(capture)}
+                        className="w-full text-left p-5 border-[1.5px] border-[#1C1917] bg-white rounded-2xl shadow-[2px_3px_0px_#1C1917] hover:-translate-y-0.5 transition-all cursor-pointer"
+                      >
+                        <p className="font-serif text-lg text-[#1C1917] leading-relaxed italic text-center sm:text-left">
+                          &ldquo;{capture.content}&rdquo;
+                        </p>
+                      </button>
+                    )}
+
+                    {dims?.places?.[0] && (
+                      <div className="flex justify-center sm:justify-start">
+                        <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#FBF9F4] border-[1.5px] border-[#1C1917] rounded-full text-xs font-semibold text-[#1C1917] shadow-[1px_2px_0px_#1C1917]">
+                          <MapPin size={13} className="text-[#DE5239]" /> {dims.places[0]}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            ) : null}
           </div>
         )}
 
@@ -597,7 +638,7 @@ function LifeHome({
                     i === 4 ? "col-span-2" : ""
                   }`}
                 >
-                  <span className="font-serif text-sm text-[#1C1917] leading-snug group-hover:text-[#DE5239] transition-colors">&ldquo;{prompt}&rdquo;</span>
+                  <span className="font-serif text-sm text-[#1C1917] leading-snug group-hover:text-[#DE5239] transition-colors">&quot;{prompt}&quot;</span>
                 </button>
               ))}
             </div>
@@ -614,7 +655,7 @@ function LifeHome({
   );
 }
 
-function PeopleViewSection({ go }: { go: (view: View) => void }) {
+function PeopleViewSection({ go, onSelectPerson }: { go: (view: View) => void; onSelectPerson: (name: string) => void }) {
   const { captures } = useJournal();
   const peopleAcc: Record<string, { count: number; lastNote: string }> = {};
   captures.forEach((c) => {
@@ -629,7 +670,7 @@ function PeopleViewSection({ go }: { go: (view: View) => void }) {
     .sort((a, b) => b.count - a.count);
 
   return (
-    <div className="pb-32">
+    <div className="pb-28 font-sans">
       <PageHeader
         title="My People"
         eyebrow="Lives intertwined"
@@ -642,19 +683,24 @@ function PeopleViewSection({ go }: { go: (view: View) => void }) {
       <main className="px-5 sm:px-8">
         <p className="intro-copy">The people who keep appearing in your memories.</p>
         {people.length > 0 ? (
-          <div className="people-stack">
-            {people.map((person, index) => (
-              <button key={person.name} onClick={() => go("person")} className="person-row cursor-pointer hover:bg-stone-50/60 px-2 rounded-lg transition-colors">
-                <span className="person-portrait">
-                  <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 font-serif text-lg">{person.name[0]}</div>
-                  <i>{index + 1}</i>
-                </span>
-                <span className="min-w-0 text-left">
-                  <strong className="font-serif text-lg font-medium text-stone-900">{person.name}</strong>
-                  <small>{person.count} memor{person.count === 1 ? "y" : "ies"} together</small>
-                  {person.lastNote && <em>{person.lastNote}</em>}
-                </span>
-                <ChevronRight size={17} className="text-stone-400" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 my-4">
+            {people.map((person) => (
+              <button
+                key={person.name}
+                onClick={() => { onSelectPerson(person.name); go("person"); }}
+                className="group border-[1.5px] border-[#1C1917] bg-[#FBF9F4] rounded-2xl p-4 shadow-[2px_3px_0px_#1C1917] hover:shadow-[4px_6px_0px_#1C1917] hover:-translate-y-0.5 transition-all cursor-pointer flex items-center justify-between text-left"
+              >
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <ArtisticAvatar name={person.name} size="lg" />
+                  <div className="text-left min-w-0">
+                    <h3 className="font-serif text-lg font-medium text-[#1C1917] truncate">{person.name}</h3>
+                    <span className="text-[11px] font-sans text-[#DE5239] font-semibold bg-[#F5E5DC] border border-[#DE5239]/20 px-2 py-0.5 rounded-full inline-block mt-0.5">
+                      {person.count} memor{person.count === 1 ? "y" : "ies"} together
+                    </span>
+                    {person.lastNote && <p className="text-xs font-serif text-[#665F56] line-clamp-1 italic mt-1">{person.lastNote}</p>}
+                  </div>
+                </div>
+                <ChevronRight size={18} className="text-[#DE5239] opacity-60 group-hover:opacity-100 transition-opacity shrink-0 ml-2" />
               </button>
             ))}
           </div>
@@ -671,57 +717,84 @@ function PeopleViewSection({ go }: { go: (view: View) => void }) {
 }
 
 
-function PersonViewSection({ go }: { go: (view: View) => void }) {
-  const moments = [
-    "First meeting",
-    "Coffee conversations",
-    "Trip to Goa",
-    "Started talking about a company",
-    "Three months apart",
-    "Met again",
-  ];
+function PersonViewSection({ go, selectedPerson = "Maya" }: { go: (view: View) => void; selectedPerson?: string }) {
+  const { captures } = useJournal();
+  
+  // Filter ONLY entries where this person is tagged or explicitly mentioned
+  const personCaptures = captures.filter((c) => {
+    const textMatch = c.content.toLowerCase().includes(selectedPerson.toLowerCase());
+    const peopleTagMatch = c.dimensions?.people?.some(
+      (p: string) => p.toLowerCase() === selectedPerson.toLowerCase()
+    );
+    return textMatch || peopleTagMatch;
+  });
+
+  const identity = getPersonVisualIdentity(selectedPerson);
+
   return (
-    <div className="pb-24">
+    <div className="pb-28 font-sans">
       <PageHeader
-        title="Sarah"
-        eyebrow="42 memories together"
+        title={selectedPerson}
+        eyebrow={`${personCaptures.length} entries grounded strictly in your journal`}
         onBack={() => go("people")}
-        action={
-          <IconButton label="More">
-            <MoreHorizontal size={18} />
-          </IconButton>
-        }
       />
-      <main className="px-5 sm:px-8">
-        <div className="person-hero">
-          <img src={imageAssets.rooftopChai} alt="Memories with Sarah" />
-          <span className="portrait-orbit">
-            <i /><i /><i />
-          </span>
+      <main className="px-5 sm:px-8 space-y-5 mt-2">
+        {/* Person Header with Persistent Pencil Sketch Avatar */}
+        <div className="p-6 border-[1.5px] border-[#1C1917] bg-[#FAF7F0] rounded-3xl shadow-[3px_4px_0px_#1C1917] flex flex-col items-center text-center space-y-3">
+          <ArtisticAvatar name={selectedPerson} size="xl" />
+          <div>
+            <h2 className="font-serif text-2xl sm:text-3xl font-medium text-[#1C1917]">{selectedPerson}</h2>
+            <p className="text-xs font-serif text-[#DE5239] font-semibold bg-[#F5E5DC] border border-[#DE5239]/20 px-3 py-1 rounded-full w-fit mx-auto mt-1">
+              {identity.role || "Friend in Your Memories"}
+            </p>
+          </div>
+          <p className="text-xs text-[#665F56] font-sans max-w-sm italic">
+            &ldquo;{identity.baseDescriptor}&rdquo;
+          </p>
         </div>
-        <p className="mt-5 text-center font-serif text-xl italic text-stone-800">“What if we actually made it?”</p>
-        <p className="mt-2 text-center text-xs text-muted-foreground">First memory · March 2024</p>
-        <button className="soft-action mx-auto mt-5 cursor-pointer" onClick={() => go("search")}>
-          <Search size={15} /> Show me my memories with Sarah
-        </button>
-        <div className="relationship-thread">
-          {moments.map((m, i) => (
-            <button key={m} onClick={() => go("memory")} className={`cursor-pointer ${i % 2 ? "offset" : ""}`}>
-              <span>
-                {i === 2 || i === 5 ? (
-                  <img src={i === 2 ? imageAssets.doorwayShoes : imageAssets.cafeNotes} alt="" />
-                ) : (
-                  <i />
-                )}
-              </span>
-              <div>
-                <small>
-                  {["March 2024", "April 2024", "July 2024", "August 2025", "January 2026", "April 2026"][i]}
-                </small>
-                <strong>{m}</strong>
-              </div>
-            </button>
-          ))}
+
+        {/* Strictly Grounded Entries Timeline */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between border-b border-[#1C1917]/15 pb-2">
+            <h3 className="font-serif text-lg font-medium text-[#1C1917]">
+              Journal Entries Mentioning {selectedPerson} ({personCaptures.length})
+            </h3>
+            <span className="text-[10px] font-mono font-bold text-[#DE5239] bg-[#F5E5DC] px-2.5 py-0.5 rounded-full uppercase border border-[#DE5239]/20">
+              100% Factually Grounded
+            </span>
+          </div>
+
+          {personCaptures.length > 0 ? (
+            personCaptures.map((c) => {
+              const date = new Date(c.createdAt);
+              const dateStr = date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+              return (
+                <div
+                  key={c.id}
+                  className="p-4 border-[1.5px] border-[#1C1917] bg-white rounded-2xl shadow-[2px_3px_0px_#1C1917] space-y-2 hover:-translate-y-0.5 transition-transform"
+                >
+                  <div className="flex items-center justify-between text-xs text-[#DE5239] font-bold">
+                    <span>{dateStr}</span>
+                    <span className="text-[10px] font-mono text-[#665F56] uppercase bg-stone-100 px-2 py-0.5 rounded border border-stone-200">
+                      {c.source} capture
+                    </span>
+                  </div>
+                  <p className="font-serif text-sm text-[#1C1917] leading-relaxed">
+                    {c.content}
+                  </p>
+                  {c.dimensions?.summary && (
+                    <p className="text-xs text-[#665F56] font-sans italic bg-[#F5E5DC]/50 p-2.5 rounded-xl border border-[#DE5239]/15">
+                      AI Summary: &ldquo;{c.dimensions.summary}&rdquo;
+                    </p>
+                  )}
+                </div>
+              );
+            })
+          ) : (
+            <p className="text-stone-500 text-sm py-6 text-center italic">
+              No entries found specifically mentioning {selectedPerson}.
+            </p>
+          )}
         </div>
       </main>
     </div>
@@ -1032,17 +1105,56 @@ function SearchViewSection({ go, onSelectCapture }: { go: (view: View) => void; 
           )}
         </form>
         {!query && results.length === 0 ? (
-          <>
-            <p className="eyebrow mt-8">Try remembering</p>
-            <div className="search-suggestions">
-              {suggestions.map((q) => (
-                <button key={q} onClick={() => { setQuery(q); }} className="cursor-pointer">
-                  {q}
-                  <ChevronRight size={15} className="text-stone-400" />
-                </button>
-              ))}
+          <div className="space-y-6 mt-4">
+            {/* Weekly Visual Recap Board */}
+            <WeeklyRecapBoard
+              weekLabel="Aug 28 – Sep 3, 2026"
+              weeklyPeople={["Maya", "Kabir", "Ananya", "Priya", "Rohan", "Sanya"]}
+              weeklyInsight="Your week shifted from intense early-week sprint stress into celebratory team milestones and deep restorative time with friends around a Saturday campfire."
+              highlights={[
+                {
+                  id: "hl_1",
+                  dayLabel: "Wednesday",
+                  title: "Product v2.0 Release",
+                  summary: "Engineering team cheered at 11 AM when the build passed live.",
+                  imageUrl: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&auto=format&fit=crop&q=80",
+                  people: ["Kabir", "Ananya"],
+                  mood: "Proud"
+                },
+                {
+                  id: "hl_2",
+                  dayLabel: "Wednesday",
+                  title: "Rooftop Lunch at Olive Bistro",
+                  summary: "Celebratory wood-fired pizza lunch under the sun in Jubilee Hills.",
+                  imageUrl: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&auto=format&fit=crop&q=80",
+                  people: ["Kabir", "Ananya"],
+                  mood: "Joyful"
+                },
+                {
+                  id: "hl_3",
+                  dayLabel: "Saturday",
+                  title: "Ananthagiri Hills Campfire",
+                  summary: "Campfire under starry sky with acoustic guitar until 2 AM.",
+                  imageUrl: "https://images.unsplash.com/photo-1510312305653-8ed496efae75?w=600&auto=format&fit=crop&q=80",
+                  people: ["Rohan", "Sanya"],
+                  mood: "Rejuvenated"
+                }
+              ]}
+              onSelectHighlight={() => go("life")}
+            />
+
+            <div>
+              <p className="eyebrow mt-6">Try remembering</p>
+              <div className="search-suggestions">
+                {suggestions.map((q) => (
+                  <button key={q} onClick={() => { setQuery(q); }} className="cursor-pointer">
+                    {q}
+                    <ChevronRight size={15} className="text-stone-400" />
+                  </button>
+                ))}
+              </div>
             </div>
-          </>
+          </div>
         ) : (
           <div className="search-results">
             {searching ? (
@@ -1110,46 +1222,18 @@ function MemoryDetailSection({ go, capture }: { go: (view: View) => void; captur
   const [isPlaying, setIsPlaying] = useState(false);
 
   const dims = capture?.dimensions;
+  const episodes = capture?.episodes || [];
   const date = capture?.createdAt ? new Date(capture.createdAt) : new Date();
   const timeStr = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-  const dateStr = date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-  const titleText = capture?.episodes?.[0]?.title || dims?.summary?.substring(0, 40) || "Starting my own company";
-
-  const defaultEvolution = [
-    {
-      month: "April",
-      stage: "THOUGHT",
-      text: "Sometimes I wonder if I could just build it myself.",
-    },
-    {
-      month: "June",
-      stage: "QUESTION",
-      text: "Sarah thinks I'm crazy for even considering leaving a stable job, but she also admitted the prototype looks solid.",
-    },
-    {
-      month: "August",
-      stage: "EXPLORATION",
-      text: "I'm seriously thinking about leaving.",
-      tags: ["Financials mapped", "Domain bought"],
-    },
-    {
-      month: "September",
-      stage: "DECISION",
-      text: "I decided I'm going to try.",
-    },
-    {
-      month: "December",
-      stage: "OUTCOME",
-      text: "You did.",
-      imageUrl: capture?.mediaUrl || "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&auto=format&fit=crop&q=80",
-    },
-  ];
+  const dateStr = date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+  
+  const titleText = dims?.summary || capture?.content?.substring(0, 50) || "Memory Detail";
 
   return (
     <div className="pb-32 font-sans">
       <PageHeader
         title={titleText}
-        eyebrow="An evolving thought thread"
+        eyebrow={`${capture?.source === "voice" ? "Voice Recording" : capture?.source === "image" ? "Photo Memory" : "Written Memory"} · ${dateStr}`}
         onBack={() => go("life")}
         action={
           <IconButton label="More options">
@@ -1182,113 +1266,135 @@ function MemoryDetailSection({ go, capture }: { go: (view: View) => void; captur
           </button>
         </div>
 
-        {/* TAB 1: RAW INPUT */}
+        {/* TAB 1: RAW INPUT (Exact original user capture) */}
         {activeTab === "raw" && (
           <div className="space-y-4">
-            <div className="p-5 bg-white border-[1.5px] border-[#1C1917] rounded-2xl shadow-[2px_3px_0px_#1C1917]">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-[#665F56] font-sans block mb-1.5">
-                Exact Captured Words · {dateStr}
+            <div className="p-5 bg-white border-[1.5px] border-[#1C1917] rounded-2xl shadow-[2px_3px_0px_#1C1917] space-y-2">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-[#665F56] font-sans block">
+                Exact Captured Words · {dateStr} at {timeStr}
               </span>
               <p className="font-serif text-lg text-[#1C1917] leading-relaxed italic">
-                &ldquo;{capture?.content || "No raw content"}&rdquo;
+                &ldquo;{capture?.content || "No raw text recorded"}&rdquo;
               </p>
             </div>
 
-            {/* Raw Audio Player if audio */}
-            {capture?.source === "voice" && (
+            {/* Video Player if video source */}
+            {(capture?.source === "video" || capture?.mediaUrl?.startsWith("data:video") || capture?.mediaUrl?.includes(".mp4")) && (
+              <div className="rounded-2xl overflow-hidden border-[1.5px] border-[#1C1917] shadow-[2px_3px_0px_#1C1917] bg-black">
+                <video controls src={capture.mediaUrl} className="w-full max-h-80 object-contain" />
+              </div>
+            )}
+
+            {/* Audio Player if voice source */}
+            {(capture?.source === "voice" || capture?.mediaUrl?.startsWith("data:audio")) && (
               <div className="p-4 bg-[#F5E5DC] border-[1.5px] border-[#1C1917] rounded-2xl shadow-[2px_3px_0px_#1C1917] flex items-center justify-between">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3.5">
                   <button
                     onClick={() => setIsPlaying(!isPlaying)}
-                    className="w-10 h-10 rounded-full bg-[#DE5239] text-white flex items-center justify-center cursor-pointer border border-[#1C1917]"
+                    className="w-10 h-10 rounded-full bg-[#DE5239] text-white flex items-center justify-center cursor-pointer border border-[#1C1917] shadow-xs hover:scale-105 transition-transform"
                   >
                     {isPlaying ? <Pause size={18} /> : <Play size={18} className="ml-0.5" />}
                   </button>
                   <div>
                     <span className="text-xs font-bold text-[#1C1917] block">Original Audio Recording</span>
-                    <span className="text-[10px] text-[#665F56]">{timeStr}</span>
+                    <span className="text-[10px] text-[#665F56]">{timeStr} · Recorded Live</span>
                   </div>
                 </div>
+                <div className="flex gap-0.5 items-center h-5">
+                  {[10, 18, 14, 24, 20, 12, 22, 16, 26, 14].map((h, i) => (
+                    <span
+                      key={i}
+                      className={`w-1 rounded-full transition-all ${
+                        isPlaying ? "bg-[#DE5239] animate-pulse" : "bg-[#1C1917]/40"
+                      }`}
+                      style={{ height: `${h}px` }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Photo if image source */}
+            {(capture?.source === "image" || (capture?.mediaUrl && capture?.mediaUrl?.startsWith("data:image"))) && (
+              <div className="rounded-2xl overflow-hidden border-[1.5px] border-[#1C1917] shadow-[2px_3px_0px_#1C1917]">
+                <img src={capture.mediaUrl} alt="Raw memory photo" className="w-full max-h-72 object-cover" />
               </div>
             )}
           </div>
         )}
 
-        {/* TAB 2: UNDERSTOOD & ANALYZED */}
+        {/* TAB 2: UNDERSTOOD & ANALYZED (Extracted AI Dimensions & Multi-scenario Episodes) */}
         {activeTab === "analyzed" && (
           <div className="space-y-6">
             {/* Extracted Context Dimensions */}
-            <div className="p-4 bg-white border-[1.5px] border-[#1C1917] rounded-2xl shadow-[2px_3px_0px_#1C1917] space-y-2.5">
+            <div className="p-5 bg-white border-[1.5px] border-[#1C1917] rounded-2xl shadow-[2px_3px_0px_#1C1917] space-y-3">
               <span className="text-[10px] uppercase font-bold tracking-wider text-[#DE5239] block">
-                Extracted Dimensions
+                AI Extracted Dimensions
               </span>
-              <div className="flex flex-wrap gap-2 text-xs font-sans">
-                {dims?.places?.[0] && (
-                  <span className="flex items-center gap-1 px-2.5 py-1 bg-[#F5E5DC] border border-[#DE5239]/30 rounded-full font-semibold text-[#DE5239]">
-                    <MapPin size={12} /> {dims.places[0]}
+              <p className="font-serif text-base text-[#1C1917] leading-relaxed">
+                {dims?.summary || "AI parsed memory dimensions."}
+              </p>
+
+              <div className="flex flex-wrap gap-2 text-xs font-sans pt-1">
+                {dims?.mood && (
+                  <span className="flex items-center gap-1 px-3 py-1 bg-[#F5E5DC] border border-[#DE5239]/30 rounded-full font-semibold text-[#DE5239]">
+                    <Heart size={12} /> {dims.mood}
                   </span>
                 )}
-                {dims?.people?.map((p: string, i: number) => (
-                  <span key={i} className="flex items-center gap-1 px-2.5 py-1 bg-[#F5F1E8] border border-[#1C1917]/30 rounded-full font-medium text-[#1C1917]">
-                    <UserRound size={12} className="text-[#DE5239]" /> {p}
+                {dims?.places?.map((place: string, i: number) => (
+                  <span key={i} className="flex items-center gap-1 px-3 py-1 bg-[#F5F1E8] border border-[#1C1917]/30 rounded-full font-medium text-[#1C1917]">
+                    <MapPin size={12} className="text-[#DE5239]" /> {place}
                   </span>
                 ))}
-                {dims?.mood && (
-                  <span className="flex items-center gap-1 px-2.5 py-1 bg-[#F5F1E8] border border-[#1C1917]/30 rounded-full font-medium text-[#1C1917]">
-                    <Heart size={12} className="text-[#DE5239]" /> {dims.mood}
+                {dims?.people?.map((person: string, i: number) => (
+                  <span key={i} className="flex items-center gap-1.5 px-3 py-1 bg-[#F5F1E8] border border-[#1C1917]/30 rounded-full font-medium text-[#1C1917]">
+                    <ArtisticAvatar name={person} size="sm" />
+                    <span>{person}</span>
                   </span>
-                )}
+                ))}
+                {dims?.emotions?.map((e: any, i: number) => (
+                  <span key={i} className="flex items-center gap-1 px-3 py-1 bg-[#F5E5DC] border border-[#DE5239]/30 rounded-full font-medium text-[#DE5239]">
+                    ✨ {e.label}
+                  </span>
+                ))}
+                {dims?.topics?.map((topic: string, i: number) => (
+                  <span key={i} className="flex items-center gap-1 px-3 py-1 bg-[#F5F1E8] border border-[#1C1917]/30 rounded-full font-medium text-[#1C1917]">
+                    <PenLine size={12} /> {topic}
+                  </span>
+                ))}
               </div>
             </div>
 
-            {/* Evolution Timeline (Image 2 style) */}
-            <div className="space-y-4">
-              <p className="text-[11px] uppercase tracking-wider font-sans font-bold text-[#665F56]">
-                Evolution Timeline
-              </p>
-              <div className="space-y-4 relative before:absolute before:left-5 before:top-3 before:bottom-3 before:w-0.5 before:bg-[#1C1917]/15">
-                {defaultEvolution.map((item, idx) => (
-                  <div key={idx} className="flex items-start gap-4 relative">
-                    <div className="w-10 h-10 rounded-full bg-[#F5F1E8] border-[1.5px] border-[#1C1917] flex items-center justify-center shrink-0 z-10 shadow-xs">
-                      {item.stage === "THOUGHT" && <Sparkles size={14} className="text-[#665F56]" />}
-                      {item.stage === "QUESTION" && <PenLine size={14} className="text-[#D97706]" />}
-                      {item.stage === "EXPLORATION" && <MapPin size={14} className="text-[#2563EB]" />}
-                      {item.stage === "DECISION" && <Sparkles size={14} className="text-[#166534]" />}
-                      {item.stage === "OUTCOME" && <Heart size={14} className="text-[#DE5239]" />}
-                    </div>
-                    <div className="flex-1">
-                      {item.stage === "OUTCOME" && item.imageUrl ? (
-                        <div className="relative rounded-2xl overflow-hidden border-[1.5px] border-[#1C1917] shadow-[2px_3px_0px_#1C1917]">
-                          <img src={item.imageUrl} alt={item.text} className="w-full h-56 object-cover" />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent flex flex-col justify-end p-4 text-white">
-                            <span className="text-[10px] uppercase font-bold tracking-widest opacity-80 font-sans">{item.month}</span>
-                            <h4 className="font-serif text-2xl font-medium mt-0.5">{item.text}</h4>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className={`p-4 rounded-2xl border-[1.5px] border-[#1C1917] ${
-                          item.stage === "DECISION" ? "bg-[#F5E5DC] shadow-[2px_3px_0px_#1C1917]" : "bg-white shadow-[1px_2px_0px_#1C1917]"
-                        }`}>
-                          <span className="text-xs font-bold text-[#665F56] font-sans tracking-wide block mb-1">
-                            {item.month} <span className="text-[#1C1917]/30">•</span> {item.stage}
-                          </span>
-                          <p className="font-serif text-base text-[#1C1917] leading-relaxed">{item.text}</p>
-                          {item.tags && (
-                            <div className="flex flex-wrap gap-1.5 mt-2">
-                              {item.tags.map((t, i) => (
-                                <span key={i} className="text-[10px] px-2.5 py-0.5 bg-[#F5E5DC] border border-[#DE5239]/30 rounded-full font-sans font-medium text-[#DE5239]">
-                                  {t}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
+            {/* If Multi-Scenario Episodes exist (e.g. End-of-Day Journaling) */}
+            {episodes.length > 0 ? (
+              <DailyStoryboard
+                dateStr={dateStr}
+                scenes={episodes.map((ep: any, idx: number) => ({
+                  id: ep.id || `sc_${idx}`,
+                  panelNumber: idx + 1,
+                  time: idx === 0 ? "11:00 AM" : idx === 1 ? "1:30 PM" : "7:30 PM",
+                  title: ep.title,
+                  summary: ep.summary,
+                  location: ep.location,
+                  people: ep.entitiesInvolved,
+                  imageUrl:
+                    idx === 0
+                      ? "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&auto=format&fit=crop&q=80"
+                      : idx === 1
+                      ? "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&auto=format&fit=crop&q=80"
+                      : "https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=600&auto=format&fit=crop&q=80"
+                }))}
+              />
+            ) : (
+              <div className="p-4 bg-[#F5E5DC]/60 border border-[#DE5239]/20 rounded-2xl">
+                <span className="text-xs font-semibold text-[#DE5239] flex items-center gap-1.5 font-sans">
+                  <Sparkles size={14} /> AI Processing Complete
+                </span>
+                <p className="text-xs text-[#665F56] mt-1 font-sans">
+                  This memory has been analyzed and linked to your overall personal graph.
+                </p>
               </div>
-            </div>
+            )}
           </div>
         )}
       </main>
@@ -1298,7 +1404,8 @@ function MemoryDetailSection({ go, capture }: { go: (view: View) => void; captur
 
 
 function ProfileViewSection({ go }: { go: (view: View) => void }) {
-  const { user, logOut, streak, captures } = useJournal();
+  const { user, logOut, streak, captures, clearAllData } = useJournal();
+  const { artStyle, currentStyle } = useArtStyle();
 
   return (
     <div className="pb-24">
@@ -1336,11 +1443,36 @@ function ProfileViewSection({ go }: { go: (view: View) => void }) {
             <p>Original captures are never silently changed. Inferences are always labeled and correctable.</p>
           </div>
         </div>
+
+        {/* Artwork Theme Card */}
+        <div className="mt-5 border-[1.5px] border-[#1C1917] bg-[#FAF7F0] rounded-2xl p-5 shadow-[3px_4px_0px_#1C1917] space-y-2 font-sans">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Palette size={18} className="text-[#D97706]" />
+              <h3 className="font-serif text-lg font-medium text-[#1C1917]">Signature Journal Aesthetic</h3>
+            </div>
+            <span className="text-[10px] font-mono uppercase font-bold text-[#D97706] bg-[#FDF2D0] border border-[#D97706]/30 px-2.5 py-0.5 rounded-full">
+              Pencil & Graphite Sketch
+            </span>
+          </div>
+          <p className="text-xs text-[#665F56] font-sans leading-relaxed">
+            All daily storyboards, narrative collages, and person visual identities are rendered in expressive hand-drawn graphite pencil sketch linework on warm parchment paper stock.
+          </p>
+        </div>
+
         <div className="settings-list">
+          <button onClick={async () => { await clearAllData(); alert("All system data cleared! You now have a fresh zero-entry journal."); }} className="cursor-pointer text-rose-700 font-bold border-rose-200 bg-rose-50/50 hover:bg-rose-100/50">
+            <Trash2 className="text-rose-600" />
+            <span>
+              <strong className="text-rose-700">Clear All System Data</strong>
+              <small className="text-rose-500">Delete all entries &amp; start completely fresh</small>
+            </span>
+            <ChevronRight className="text-rose-600" />
+          </button>
           <button className="cursor-pointer">
             <LockKeyhole />
             <span>
-              <strong>Privacy & security</strong>
+              <strong>Privacy &amp; security</strong>
               <small>Memory access, export, app lock</small>
             </span>
             <ChevronRight />
@@ -1401,11 +1533,13 @@ function CaptureOverlay({
   setMode,
   onSaved,
   initialPrompt,
+  selectedDate,
 }: {
   mode: CaptureMode;
   setMode: (m: CaptureMode) => void;
   onSaved: (memory: CapturedMemory) => void;
   initialPrompt?: string;
+  selectedDate?: Date;
 }) {
   const { submitCapture } = useJournal();
   const media = useMediaCapture();
@@ -1566,15 +1700,42 @@ function CaptureOverlay({
   // ── Save everything ──
   const saveMemory = async () => {
     const textParts = items.filter((i) => i.kind === "text" || i.text).map((i) => i.text || i.label);
-    if (!textInput.trim() && textParts.length === 0 && items.length === 0) return;
+    if (!textInput.trim() && textParts.length === 0 && items.length === 0 && !liveTranscript.trim()) return;
     if (textInput.trim()) textParts.unshift(textInput.trim());
+    if (liveTranscript.trim() && !textParts.includes(liveTranscript.trim())) textParts.push(liveTranscript.trim());
+
     setSaving(true);
     try {
-      const content = textParts.join("\n\n");
+      const mediaItem = items.find((i) => i.base64);
+      const mediaUrl = mediaItem
+        ? `data:${mediaItem.mimeType || (mediaItem.kind === "video" ? "video/mp4" : mediaItem.kind === "voice" ? "audio/webm" : "image/jpeg")};base64,${mediaItem.base64}`
+        : undefined;
+
+      const detectedSource = items.some((i) => i.kind === "video")
+        ? "video"
+        : items.some((i) => i.kind === "voice") || liveTranscript.trim()
+        ? "voice"
+        : items.some((i) => i.kind === "photo")
+        ? "image"
+        : "text";
+
+      let content = textParts.join("\n\n").trim();
+      if (!content) {
+        if (detectedSource === "video") content = "Recorded Video Memory";
+        else if (detectedSource === "voice") content = "Voice Recording";
+        else if (detectedSource === "image") content = "Captured Photo Memory";
+        else content = "Personal Memory";
+      }
+
       const mediaCtx = items.filter((i) => i.kind !== "text").map((i) => `${i.kind}: ${i.label}`).join(" | ");
-      await submitCapture(content, "mixed", mediaCtx || undefined);
+      const dateIso = selectedDate ? selectedDate.toISOString() : undefined;
+      await submitCapture(content, detectedSource, mediaCtx || undefined, mediaUrl, dateIso);
       onSaved({ kind: "written", text: content, location });
-    } catch {} finally { setSaving(false); }
+    } catch (err) {
+      console.error("Save memory error:", err);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const hasContent = textInput.trim() || items.length > 0 || liveTranscript.trim();
@@ -1980,6 +2141,7 @@ export function MemoiaryAppShell() {
   const [saved, setSaved] = useState(false);
   const [newMemory, setNewMemory] = useState<CapturedMemory | null>(null);
   const [selectedCapture, setSelectedCapture] = useState<any>(null);
+  const [selectedPersonName, setSelectedPersonName] = useState<string>("Maya");
 
   // Splash loading screen timer (2.5 seconds like Swiggy/Blinkit)
   useEffect(() => {
@@ -2036,9 +2198,9 @@ export function MemoiaryAppShell() {
       case "life":
         return <LifeHome go={go} openCapture={(prompt) => handleOpenCapture(prompt || "menu")} newMemory={newMemory} onSelectCapture={(c) => { setSelectedCapture(c); go("memory"); }} />;
       case "people":
-        return <PeopleViewSection go={go} />;
+        return <PeopleViewSection go={go} onSelectPerson={(name) => setSelectedPersonName(name)} />;
       case "person":
-        return <PersonViewSection go={go} />;
+        return <PersonViewSection go={go} selectedPerson={selectedPersonName} />;
       case "explore":
         return <ExploreViewSection go={go} />;
       case "places":
@@ -2084,7 +2246,7 @@ export function MemoiaryAppShell() {
           onSelectMode={(mode) => handleOpenCapture(mode)}
         />
       )}
-      <CaptureOverlay mode={captureMode} setMode={setCaptureMode} onSaved={onSaved} initialPrompt={capturePrompt} />
+      <CaptureOverlay mode={captureMode} setMode={setCaptureMode} onSaved={onSaved} initialPrompt={capturePrompt} selectedDate={selectedDate} />
       <AuthLoginModal
         isOpen={showLoginModal}
         onClose={() => setShowLoginModal(false)}

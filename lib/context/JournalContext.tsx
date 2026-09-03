@@ -23,7 +23,8 @@ import {
 } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { sanitizePayload } from "@/lib/memory-engine/store";
-import { CaptureSession, CaptureDimensions } from "@/lib/memory-engine/types";
+import { CaptureSession, CaptureDimensions, EpistemicSource } from "@/lib/memory-engine/types";
+import { getSeededCaptures } from "@/lib/memory-engine/seeded-data";
 
 export interface MemoiaryCard {
   id: string;
@@ -153,9 +154,10 @@ interface JournalContextType {
     action: "confirm" | "reject" | "correct" | "dismiss",
     customCorrection?: string
   ) => Promise<void>;
-  submitCapture: (content: string, source?: string, mediaContext?: string) => Promise<any>;
+  submitCapture: (content: string, source?: string, mediaContext?: string, mediaUrl?: string, dateOverride?: string) => Promise<any>;
   deleteCapture: (captureId: string) => Promise<void>;
   updateCapture: (captureId: string, updates: Partial<{ content: string; source: string }>) => Promise<void>;
+  clearAllData: () => Promise<void>;
 }
 
 const JournalContext = createContext<JournalContextType | undefined>(undefined);
@@ -185,7 +187,7 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState<boolean>(true);
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [memories, setMemories] = useState<UserMemory[]>([]);
-  const [captures, setCaptures] = useState<CaptureSession[]>([]);
+  const [captures, setCaptures] = useState<CaptureSession[]>(getSeededCaptures());
   const [clarifications, setClarifications] = useState<ClarificationItem[]>([]);
   const [insights, setInsights] = useState<JournalInsights | null>(null);
   const [insightsLoading, setInsightsLoading] = useState<boolean>(false);
@@ -290,11 +292,12 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
 
     const capturesRef = collection(db, "users", user.uid, "captures");
     const capturesQuery = query(capturesRef, orderBy("createdAt", "desc"));
-    const unsubCaptures = onSnapshot(capturesQuery, (snapshot) => {
+    const unsubCaptures = onSnapshot(capturesQuery, async (snapshot) => {
       const loaded: CaptureSession[] = [];
-      snapshot.forEach((doc) => {
-        loaded.push({ id: doc.id, ...doc.data() } as CaptureSession);
+      snapshot.forEach((docSnap) => {
+        loaded.push({ id: docSnap.id, ...docSnap.data() } as CaptureSession);
       });
+
       setCaptures(loaded);
     }, (error) => {
       console.warn("Firestore captures offline fallback:", error?.message);
@@ -543,9 +546,60 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
     setClarifications((prev) => prev.filter((c) => c.id !== id));
   };
 
-  const submitCapture = async (content: string, source = "text", mediaContext?: string) => {
+  const submitCapture = async (content: string, source = "text", mediaContext?: string, mediaUrl?: string, dateOverride?: string) => {
+    const knownPeople = ["Maya", "Kabir", "Ananya", "Priya", "Rohan", "Sanya", "Sarah", "Vikram"];
+    const textToSearch = `${content} ${mediaContext || ""}`;
+    const detectedPeople = knownPeople.filter((p) => textToSearch.toLowerCase().includes(p.toLowerCase()));
+
+    const capId = `cap_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const nowIso = dateOverride || new Date().toISOString();
+
+    const parsedEpisodes = content.length > 30 || mediaContext ? [
+      {
+        id: `ep_${Date.now()}_1`,
+        userId: user?.uid || "guest_user",
+        captureId: capId,
+        title: content ? (content.substring(0, 45) + (content.length > 45 ? "..." : "")) : (mediaContext || "Captured Memory"),
+        summary: content || mediaContext || "Captured memory moment",
+        date: nowIso,
+        entitiesInvolved: detectedPeople,
+        epistemicStatus: EpistemicSource.USER_SAID,
+        createdAt: nowIso
+      }
+    ] : [];
+
+    const newCap: CaptureSession = {
+      id: capId,
+      userId: user?.uid || "guest_user",
+      content: content.trim() || mediaContext || "Captured Media Memory",
+      source: source as any,
+      mediaUrl,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      createdAt: nowIso,
+      status: "received",
+      episodes: parsedEpisodes,
+      dimensions: {
+        summary: mediaContext || content.substring(0, 120) || "Captured media moment",
+        mood: "Reflective & Present",
+        tone: "Warm & Personal",
+        emotions: [{ label: "Mindfulness", intensity: 0.85, valence: "positive" }],
+        people: detectedPeople,
+        places: [],
+        topics: ["Personal Memory"],
+        timeContext: "Now",
+        rawAnalysis: mediaContext || content
+      }
+    };
+
+    // Always optimistically update local state immediately so user sees their new capture!
+    setCaptures((prev) => [newCap, ...prev]);
+
     try {
       const idToken = await getIdToken();
+      if (!idToken || user?.uid?.startsWith("guest_user_")) {
+        return { success: true, capture: newCap };
+      }
+
       const response = await fetch("/api/v1/capture", {
         method: "POST",
         headers: {
@@ -553,8 +607,9 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
           Authorization: `Bearer ${idToken}`
         },
         body: JSON.stringify({
-          content,
+          content: content || mediaContext || "Captured Media Memory",
           source,
+          mediaUrl,
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           mediaContext
         })
@@ -600,6 +655,7 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.warn("Capture submission fallback:", error);
     }
+    return { success: true, capture: newCap };
   };
 
   const deleteCapture = async (captureId: string) => {
@@ -621,6 +677,27 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
       setCaptures((prev) => prev.map((c) => c.id === captureId ? { ...c, ...updates } as CaptureSession : c));
     } catch (err) {
       console.warn("Update capture failed:", err);
+    }
+  };
+
+  const clearAllData = async () => {
+    setCaptures([]);
+    setEntries([]);
+    setMemories([]);
+    setClarifications([]);
+    setInsights(null);
+    if (user && !user.uid.startsWith("guest_user_")) {
+      try {
+        const { getDocs, collection, deleteDoc, doc } = await import("firebase/firestore");
+        for (const colName of ["captures", "entries", "memories", "clarifications"]) {
+          const snap = await getDocs(collection(db, "users", user.uid, colName));
+          for (const d of snap.docs) {
+            await deleteDoc(doc(db, "users", user.uid, colName, d.id));
+          }
+        }
+      } catch (e) {
+        console.warn("Error clearing Firestore data:", e);
+      }
     }
   };
 
@@ -660,6 +737,7 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
         submitCapture,
         deleteCapture,
         updateCapture,
+        clearAllData,
       }}
     >
       {children}

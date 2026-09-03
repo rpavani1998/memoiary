@@ -11,10 +11,14 @@ export async function POST(req: Request) {
     }
 
     const body = (await req.json().catch(() => ({}))) || {};
-    const { content, source = "text", mediaUrl, timezone = "UTC", mediaContext } = body;
+    let { content, source = "text", mediaUrl, timezone = "UTC", mediaContext } = body;
 
     if (!content || typeof content !== "string" || !content.trim()) {
-      return NextResponse.json({ error: "Capture content is required" }, { status: 400 });
+      if (mediaUrl || mediaContext) {
+        content = mediaContext || `Recorded ${source === "video" ? "Video" : source === "voice" ? "Voice" : "Photo"} Memory`;
+      } else {
+        return NextResponse.json({ error: "Capture content is required" }, { status: 400 });
+      }
     }
 
     const userId = decodedToken.uid;

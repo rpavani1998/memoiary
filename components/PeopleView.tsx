@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { HandDrawnIllustration } from "./HandDrawnIllustration";
 import { ArrowLeft, Calendar } from "lucide-react";
 import { MemoryDetailModal, MemoryDetailData } from "./MemoryDetailModal";
+import { ArtisticAvatar } from "./ArtisticAvatar";
 
 export interface PersonItem {
   id: string;
@@ -35,17 +36,7 @@ export function PeopleView({ people }: Props) {
 
         {/* Person Header */}
         <div className="flex flex-col items-center justify-center text-center space-y-3 py-4 border-[1.5px] border-[#1C1917] bg-[#FBF9F4] rounded-3xl p-6 shadow-[3px_4px_0px_#1C1917]">
-          {selectedPerson.photoUrl ? (
-            <img
-              src={selectedPerson.photoUrl}
-              alt={selectedPerson.name}
-              className="w-20 h-20 rounded-full object-cover border-2 border-[#1C1917]"
-            />
-          ) : (
-            <div className="p-3 bg-[#F5E5DC] rounded-full border-[1.5px] border-[#1C1917]">
-              <HandDrawnIllustration type="person_abstract" size={48} />
-            </div>
-          )}
+          <ArtisticAvatar name={selectedPerson.name} photoUrl={selectedPerson.photoUrl} size="xl" />
 
           <div>
             <h2 className="font-serif text-2xl sm:text-3xl font-medium text-[#1C1917]">
@@ -113,17 +104,7 @@ export function PeopleView({ people }: Props) {
             className="bg-[#FBF9F4] border-[1.5px] border-[#1C1917] rounded-2xl p-5 flex items-center justify-between hover:shadow-[4px_6px_0px_#1C1917] hover:-translate-y-0.5 transition-all cursor-pointer shadow-[2px_3px_0px_#1C1917]"
           >
             <div className="flex items-center gap-3.5">
-              {person.photoUrl ? (
-                <img
-                  src={person.photoUrl}
-                  alt={person.name}
-                  className="w-12 h-12 rounded-full object-cover border-[1.5px] border-[#1C1917]"
-                />
-              ) : (
-                <div className="p-2 bg-[#F5E5DC] rounded-full border-[1.5px] border-[#1C1917]">
-                  <HandDrawnIllustration type="person_abstract" size={28} />
-                </div>
-              )}
+              <ArtisticAvatar name={person.name} photoUrl={person.photoUrl} size="lg" />
 
               <div>
                 <h3 className="font-serif text-lg font-medium text-[#1C1917]">
