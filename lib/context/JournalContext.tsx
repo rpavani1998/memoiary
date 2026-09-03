@@ -154,6 +154,8 @@ interface JournalContextType {
     customCorrection?: string
   ) => Promise<void>;
   submitCapture: (content: string, source?: string, mediaContext?: string) => Promise<any>;
+  deleteCapture: (captureId: string) => Promise<void>;
+  updateCapture: (captureId: string, updates: Partial<{ content: string; source: string }>) => Promise<void>;
 }
 
 const JournalContext = createContext<JournalContextType | undefined>(undefined);
@@ -600,6 +602,28 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const deleteCapture = async (captureId: string) => {
+    if (!user || user.uid.startsWith("guest_user_")) return;
+    try {
+      const { deleteDoc, doc } = await import("firebase/firestore");
+      await deleteDoc(doc(db, "users", user.uid, "captures", captureId));
+      setCaptures((prev) => prev.filter((c) => c.id !== captureId));
+    } catch (err) {
+      console.warn("Delete capture failed:", err);
+    }
+  };
+
+  const updateCapture = async (captureId: string, updates: Partial<{ content: string; source: string }>) => {
+    if (!user || user.uid.startsWith("guest_user_")) return;
+    try {
+      const { updateDoc, doc } = await import("firebase/firestore");
+      await updateDoc(doc(db, "users", user.uid, "captures", captureId), updates);
+      setCaptures((prev) => prev.map((c) => c.id === captureId ? { ...c, ...updates } as CaptureSession : c));
+    } catch (err) {
+      console.warn("Update capture failed:", err);
+    }
+  };
+
   return (
     <JournalContext.Provider
       value={{
@@ -633,7 +657,9 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
         deleteMemory,
         dismissMemorySuggestion,
         respondToClarification,
-        submitCapture
+        submitCapture,
+        deleteCapture,
+        updateCapture,
       }}
     >
       {children}

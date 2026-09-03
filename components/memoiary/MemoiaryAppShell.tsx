@@ -288,18 +288,27 @@ function LifeHome({
   onSelectCapture,
 }: {
   go: (view: View) => void;
-  openCapture: () => void;
+  openCapture: (prompt?: string) => void;
   newMemory: CapturedMemory | null;
   onSelectCapture: (capture: any) => void;
 }) {
-  const { user, captures, streak } = useJournal();
-  const [bannerDismissed, setBannerDismissed] = useState(false);
+  const { user, captures, streak, deleteCapture } = useJournal();
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
 
-  const currentDate = new Date().toLocaleDateString("en-US", {
+  const formattedSelectedDate = selectedDate.toLocaleDateString("en-US", {
     weekday: "long",
     month: "long",
     day: "numeric",
-  });
+  }).toUpperCase();
+
+  const changeDateByDays = (days: number) => {
+    const next = new Date(selectedDate);
+    next.setDate(next.getDate() + days);
+    setSelectedDate(next);
+  };
+
+  const isToday = selectedDate.toDateString() === new Date().toDateString();
 
   const recentCaptures = captures.slice(0, 8);
 
@@ -308,18 +317,9 @@ function LifeHome({
     return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
   };
 
-  const getSourceIcon = (source?: string) => {
-    switch (source) {
-      case "voice": return <Mic size={13} />;
-      case "image": return <Camera size={13} />;
-      case "video": return <Video size={13} />;
-      default: return <PenLine size={13} />;
-    }
-  };
-
   return (
-    <div className="pb-32">
-      <header className="px-5 pt-7 sm:px-8 sm:pt-10">
+    <div className="pb-32 font-sans">
+      <header className="px-5 pt-6 sm:px-8 sm:pt-8">
         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
           <Brand />
           <IconButton label="Search your life" onClick={() => go("search")}>
@@ -327,13 +327,63 @@ function LifeHome({
           </IconButton>
         </div>
 
-        <p className="eyebrow mt-6">{currentDate}</p>
-        <h1 className="mt-2 font-serif text-[2rem] leading-tight font-medium text-stone-900">Your life lately</h1>
-        <p className="mt-3 max-w-[34rem] text-sm leading-relaxed text-muted-foreground font-sans">
-          {recentCaptures.length > 0
-            ? `${recentCaptures.length} capture${recentCaptures.length !== 1 ? "s" : ""} from the last few days.`
-            : "Capture anything you want to remember."}
-        </p>
+        {/* Date Navigation Bar with Calendar Selector */}
+        <div className="mt-6 flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => changeDateByDays(-1)}
+              className="p-1.5 rounded-full border border-[#1C1917]/20 bg-[#F5F1E8] text-[#1C1917] hover:bg-[#F5E5DC] cursor-pointer"
+              title="Previous day"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+
+            <div className="text-center">
+              <span className="text-[11px] font-sans font-bold uppercase tracking-widest text-[#665F56] block">
+                {formattedSelectedDate}
+              </span>
+              <h1 className="font-serif text-2xl sm:text-3xl leading-tight font-medium text-[#1C1917] mt-0.5">
+                Your life lately.
+              </h1>
+            </div>
+
+            <button
+              onClick={() => changeDateByDays(1)}
+              disabled={isToday}
+              className={`p-1.5 rounded-full border transition-all ${
+                isToday
+                  ? "border-[#1C1917]/10 bg-[#F5F1E8]/50 text-[#1C1917]/30 cursor-not-allowed"
+                  : "border-[#1C1917]/20 bg-[#F5F1E8] text-[#1C1917] hover:bg-[#F5E5DC] cursor-pointer"
+              }`}
+              title="Next day"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6"/></svg>
+            </button>
+          </div>
+
+          {/* Quick Calendar Day Pills */}
+          <div className="flex justify-center gap-1.5 pt-1 overflow-x-auto">
+            {[0, -1, -2, -3, -4].map((offset) => {
+              const d = new Date();
+              d.setDate(d.getDate() + offset);
+              const isSelected = d.toDateString() === selectedDate.toDateString();
+              const label = offset === 0 ? "Today" : offset === -1 ? "Yesterday" : d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+              return (
+                <button
+                  key={offset}
+                  onClick={() => setSelectedDate(d)}
+                  className={`px-3 py-1 rounded-full text-xs font-semibold cursor-pointer transition-all ${
+                    isSelected
+                      ? "bg-[#DE5239] text-white border-[1.5px] border-[#1C1917] shadow-[1px_2px_0px_#1C1917]"
+                      : "bg-[#F5F1E8] text-[#665F56] border border-[#1C1917]/20 hover:bg-[#F5E5DC]"
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
         {/* Streak Banner */}
         {user && streak.currentStreak > 0 && (
@@ -347,109 +397,218 @@ function LifeHome({
             </span>
           </div>
         )}
-
       </header>
 
-      <main className="life-mosaic mt-8 px-5 sm:px-8">
+      {/* Main Feed with Cards formatted as Image 1 */}
+      <main className="mt-6 px-5 sm:px-8 space-y-4 relative before:absolute before:left-9 sm:before:left-12 before:top-4 before:bottom-4 before:w-0.5 before:bg-[#1C1917]/15">
+        
         {/* New memory from current session */}
         {newMemory && (
-          <section className="new-memory-cluster border-[1.5px] border-[#1C1917] bg-[#F5E5DC] rounded-3xl p-5 shadow-[3px_4px_0px_#1C1917]" aria-label="Your newest memory">
-            <div className="new-memory-thread" aria-hidden="true">
-              <i /><i /><i /><span />
-            </div>
-            <button className="new-memory-card cursor-pointer border-[1.5px] border-[#1C1917] bg-[#FBF9F4] rounded-2xl p-4" onClick={() => go("memory")}>
+          <section className="relative z-10 border-[1.5px] border-[#1C1917] bg-[#F5E5DC] rounded-3xl p-5 shadow-[3px_4px_0px_#1C1917]" aria-label="Your newest memory">
+            <button className="w-full text-left cursor-pointer border-[1.5px] border-[#1C1917] bg-[#FBF9F4] rounded-2xl p-4 shadow-[1px_2px_0px_#1C1917]" onClick={() => go("memory")}>
               <span className="flex items-center justify-between">
-                <span className="memory-kicker flex items-center gap-1.5 text-[#DE5239]">
+                <span className="memory-kicker flex items-center gap-1.5 text-[#DE5239] font-bold text-xs uppercase">
                   <span className="node-dot" />
                   Just captured
                 </span>
-                <span className="memory-meta text-[#665F56]">Now</span>
+                <span className="memory-meta text-[#665F56] text-xs">Now</span>
               </span>
               <p className="font-serif text-[#1C1917] text-lg leading-relaxed mt-2">{newMemory.text}</p>
-              <span className="new-memory-context text-xs text-[#665F56] mt-3">
-                {getSourceIcon(newMemory.kind)}
-                {newMemory.location && (
-                  <>
-                    <MapPin size={13} className="text-[#DE5239]" />
-                    {newMemory.location}
-                  </>
-                )}
-              </span>
             </button>
-            <p className="flex items-center gap-1.5 text-xs text-[#665F56] mt-3 font-sans">
-              <Sparkles size={14} className="text-[#DE5239]" /> It&apos;s already finding its place in your memory graph.
-            </p>
           </section>
         )}
 
-        {/* Real captures from Firestore */}
-        {recentCaptures.map((capture) => {
-          const dims = capture.dimensions;
-          return (
+        {/* Real captures from Firestore or Mock cards formatted as Image 1 */}
+        {recentCaptures.length > 0 ? (
+          recentCaptures.map((capture) => {
+            const dims = capture.dimensions;
+            return (
+              <div key={capture.id} className="relative z-10 space-y-3">
+                {/* 1. Image / Media Card (If image or video) */}
+                {capture.source === "image" || capture.mediaUrl ? (
+                  <button
+                    onClick={() => onSelectCapture(capture)}
+                    className="w-full text-left border-[1.5px] border-[#1C1917] bg-white rounded-3xl overflow-hidden shadow-[2px_3px_0px_#1C1917] hover:-translate-y-0.5 transition-all cursor-pointer group"
+                  >
+                    <div className="h-64 w-full overflow-hidden bg-stone-100">
+                      <img
+                        src={capture.mediaUrl || "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&auto=format&fit=crop&q=80"}
+                        alt="Memory photo"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                    </div>
+                    <div className="p-4 sm:p-5 space-y-1">
+                      <h3 className="font-serif font-medium text-[#1C1917] text-xl leading-snug">
+                        {dims?.places?.[0] || capture.content?.substring(0, 30) || "Third Wave Coffee"}
+                      </h3>
+                      {dims?.people && dims.people.length > 0 && (
+                        <p className="text-xs text-[#665F56] font-sans flex items-center gap-1">
+                          <Users size={13} className="text-[#DE5239]" /> with {dims.people.join(", ")}
+                        </p>
+                      )}
+                    </div>
+                  </button>
+                ) : capture.source === "voice" ? (
+                  /* 2. Voice Audio Card (Matching Image 1) */
+                  <button
+                    onClick={() => onSelectCapture(capture)}
+                    className="w-full text-left p-4 border-[1.5px] border-[#1C1917] bg-white rounded-2xl shadow-[2px_3px_0px_#1C1917] flex items-center justify-between hover:-translate-y-0.5 transition-all cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3.5">
+                      <div
+                        onClick={(e) => { e.stopPropagation(); setIsPlayingAudio(!isPlayingAudio); }}
+                        className="w-10 h-10 rounded-full bg-[#1C1917] text-white flex items-center justify-center cursor-pointer hover:bg-[#DE5239] transition-colors shrink-0"
+                      >
+                        {isPlayingAudio ? <Pause size={16} /> : <Play size={16} className="ml-0.5" />}
+                      </div>
+                      <div>
+                        {/* Audio Waveform visualization */}
+                        <div className="flex gap-0.5 items-center h-4 mb-1">
+                          {[8, 14, 18, 12, 22, 16, 20, 10, 18, 14].map((h, i) => (
+                            <span
+                              key={i}
+                              className={`w-1 rounded-full transition-all ${
+                                isPlayingAudio ? "bg-[#DE5239] animate-pulse" : "bg-[#1C1917]/40"
+                              }`}
+                              style={{ height: `${h}px` }}
+                            />
+                          ))}
+                        </div>
+                        <p className="font-serif text-sm text-[#665F56] italic">
+                          &ldquo;{capture.content.substring(0, 45)}...&rdquo;
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                ) : (
+                  /* 3. Quote / Thought Card (Matching Image 1) */
+                  <button
+                    onClick={() => onSelectCapture(capture)}
+                    className="w-full text-left p-5 border-[1.5px] border-[#1C1917] bg-white rounded-2xl shadow-[2px_3px_0px_#1C1917] hover:-translate-y-0.5 transition-all cursor-pointer"
+                  >
+                    <p className="font-serif text-lg text-[#1C1917] leading-relaxed italic text-center sm:text-left">
+                      &ldquo;{capture.content}&rdquo;
+                    </p>
+                  </button>
+                )}
+
+                {/* Location Pill Badge at bottom of cluster (Matching Image 1) */}
+                {dims?.places?.[0] && (
+                  <div className="flex justify-center sm:justify-start">
+                    <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#FBF9F4] border-[1.5px] border-[#1C1917] rounded-full text-xs font-semibold text-[#1C1917] shadow-[1px_2px_0px_#1C1917]">
+                      <MapPin size={13} className="text-[#DE5239]" /> {dims.places[0]}
+                    </span>
+                  </div>
+                )}
+              </div>
+            );
+          })
+        ) : (
+          /* Default Feed Cards matching Image 1 when no user entries exist */
+          <div className="space-y-4 relative z-10">
+            {/* Photo Card */}
             <button
-              key={capture.id}
-              className="w-full text-left p-4 sm:p-5 border-[1.5px] border-[#1C1917] bg-[#FBF9F4] rounded-2xl shadow-[2px_3px_0px_rgba(28,25,23,0.08)] hover:shadow-[3px_5px_12px_-2px_rgba(28,25,23,0.15)] hover:-translate-y-0.5 transition-all cursor-pointer"
-              onClick={() => onSelectCapture(capture)}
+              onClick={() => onSelectCapture({ content: "Third Wave Coffee with Sarah. Discussed startup ideas.", dimensions: { places: ["Third Wave Coffee"], people: ["Sarah"] } })}
+              className="w-full text-left border-[1.5px] border-[#1C1917] bg-white rounded-3xl overflow-hidden shadow-[2px_3px_0px_#1C1917] hover:-translate-y-0.5 transition-all cursor-pointer group"
             >
-              <span className="flex items-center justify-between mb-2">
-                <span className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider font-semibold text-[#DE5239]">
-                  <span className="node-dot" />
-                  {getSourceIcon(capture.source)}
-                  {" "}
-                  {capture.source === "voice" ? "Voice memory" : capture.source === "image" ? "Photo" : "Capture"}
-                </span>
-                <span className="text-xs text-[#665F56] font-sans">{formatTime(capture.createdAt)}</span>
-              </span>
-              {(capture.episodes?.[0]?.title || dims?.summary) && (
-                <h3 className="font-serif font-medium text-[#1C1917] text-lg leading-snug mb-1">
-                  {capture.episodes?.[0]?.title || dims?.summary?.substring(0, 50)}
+              <div className="h-64 w-full overflow-hidden bg-stone-100">
+                <img
+                  src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&auto=format&fit=crop&q=80"
+                  alt="Third Wave Coffee with Sarah"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+              </div>
+              <div className="p-4 sm:p-5 space-y-1">
+                <h3 className="font-serif font-medium text-[#1C1917] text-xl leading-snug">
+                  Third Wave Coffee
                 </h3>
-              )}
-              {dims ? (
-                <>
-                  <blockquote className="font-serif text-[#665F56] text-sm italic border-l-2 border-[#DE5239]/40 pl-2.5 my-2">&ldquo;{dims.summary}&rdquo;</blockquote>
-                  <div className="flex flex-wrap gap-1.5 mt-3">
-                    {dims.mood && (
-                      <span className="text-[10px] px-2.5 py-0.5 bg-[#F5F1E8] border border-[#1C1917]/20 rounded-full font-sans font-medium text-[#1C1917]">
-                        {dims.mood}
-                      </span>
-                    )}
-                    {dims.emotions?.slice(0, 2).map((e, i) => (
-                      <span key={i} className="text-[10px] px-2.5 py-0.5 bg-[#F5E5DC] border border-[#DE5239]/30 rounded-full font-sans font-medium text-[#DE5239]">
-                        {e.label}
-                      </span>
-                    ))}
-                    {dims.people?.slice(0, 2).map((p, i) => (
-                      <span key={i} className="text-[10px] px-2.5 py-0.5 bg-[#F5F1E8] border border-[#1C1917]/20 rounded-full font-sans font-medium text-[#1C1917]">
-                        {p}
-                      </span>
+                <p className="text-xs text-[#665F56] font-sans flex items-center gap-1">
+                  <Users size={13} className="text-[#DE5239]" /> with Sarah
+                </p>
+              </div>
+            </button>
+
+            {/* Quote Card */}
+            <button
+              onClick={() => openCapture()}
+              className="w-full text-left p-5 border-[1.5px] border-[#1C1917] bg-white rounded-2xl shadow-[2px_3px_0px_#1C1917] hover:-translate-y-0.5 transition-all cursor-pointer"
+            >
+              <p className="font-serif text-lg text-[#1C1917] leading-relaxed italic text-center sm:text-left">
+                &ldquo;Maybe I&apos;m finally ready to build this.&rdquo;
+              </p>
+            </button>
+
+            {/* Audio Voice Card */}
+            <div className="p-4 border-[1.5px] border-[#1C1917] bg-white rounded-2xl shadow-[2px_3px_0px_#1C1917] flex items-center justify-between">
+              <div className="flex items-center gap-3.5">
+                <button
+                  onClick={() => setIsPlayingAudio(!isPlayingAudio)}
+                  className="w-10 h-10 rounded-full bg-[#1C1917] text-white flex items-center justify-center cursor-pointer hover:bg-[#DE5239] transition-colors shrink-0"
+                >
+                  {isPlayingAudio ? <Pause size={16} /> : <Play size={16} className="ml-0.5" />}
+                </button>
+                <div>
+                  <div className="flex gap-0.5 items-center h-4 mb-1">
+                    {[8, 14, 18, 12, 22, 16, 20, 10, 18, 14].map((h, i) => (
+                      <span
+                        key={i}
+                        className={`w-1 rounded-full transition-all ${
+                          isPlayingAudio ? "bg-[#DE5239] animate-pulse" : "bg-[#1C1917]/40"
+                        }`}
+                        style={{ height: `${h}px` }}
+                      />
                     ))}
                   </div>
-                </>
-              ) : (
-                <blockquote className="font-serif text-[#1C1917] text-sm italic">&ldquo;{capture.content.substring(0, 120)}{capture.content.length > 120 ? "..." : ""}&rdquo;</blockquote>
-              )}
-            </button>
-          );
-        })}
+                  <p className="font-serif text-sm text-[#665F56] italic">
+                    Starting the company...
+                  </p>
+                </div>
+              </div>
+            </div>
 
-        {/* Empty state */}
+            {/* Location Pill */}
+            <div className="flex justify-center sm:justify-start">
+              <span className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-[#FBF9F4] border-[1.5px] border-[#1C1917] rounded-full text-xs font-semibold text-[#1C1917] shadow-[1px_2px_0px_#1C1917]">
+                <MapPin size={13} className="text-[#DE5239]" /> Hyderabad, Tuesday evening
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Prompt suggestion tiles */}
         {recentCaptures.length === 0 && !newMemory && (
-          <>
-            <button className="capture-inline cursor-pointer hover:bg-stone-100/60 rounded-xl py-3 transition-colors" onClick={openCapture}>
-              <Plus size={18} /> Capture your first memory
-            </button>
-            <p className="text-center text-xs text-stone-400 mt-4 font-sans">
-              Text, voice, photo, or video — anything you want to remember.
+          <div className="space-y-2.5 pt-4 relative z-10">
+            <p className="text-[11px] uppercase tracking-wider font-sans font-bold text-[#DE5239] flex items-center gap-1.5">
+              <span className="node-dot" />
+              Start with something simple
             </p>
-          </>
+            <div className="grid grid-cols-2 gap-2.5">
+              {[
+                "What made you smile today?",
+                "A place that felt like home…",
+                "Someone you're grateful for",
+                "A conversation that stayed with you",
+                "Something you don't want to forget",
+              ].map((prompt, i) => (
+                <button
+                  key={prompt}
+                  onClick={() => openCapture(prompt)}
+                  className={`text-left p-3.5 border-[1.5px] border-[#1C1917] bg-[#FBF9F4] rounded-2xl shadow-[2px_3px_0px_#1C1917] hover:shadow-[4px_6px_0px_#1C1917] hover:-translate-y-0.5 transition-all cursor-pointer group ${
+                    i === 4 ? "col-span-2" : ""
+                  }`}
+                >
+                  <span className="font-serif text-sm text-[#1C1917] leading-snug group-hover:text-[#DE5239] transition-colors">&ldquo;{prompt}&rdquo;</span>
+                </button>
+              ))}
+            </div>
+          </div>
         )}
 
-        {recentCaptures.length > 0 && (
-          <button className="capture-inline cursor-pointer hover:bg-stone-100/60 rounded-xl py-3 transition-colors" onClick={openCapture}>
-            <Plus size={18} /> Capture what this moment feels like
+        <div className="pt-2 relative z-10">
+          <button className="w-full text-center py-3.5 border-[1.5px] border-dashed border-[#1C1917]/40 bg-[#FBF9F4] rounded-2xl text-sm font-sans font-medium text-[#665F56] hover:border-[#DE5239] hover:text-[#DE5239] transition-all cursor-pointer" onClick={() => openCapture()}>
+            <Plus size={16} className="inline -mt-0.5 mr-1" /> Capture what this moment feels like
           </button>
-        )}
+        </div>
       </main>
     </div>
   );
@@ -569,13 +728,13 @@ function PersonViewSection({ go }: { go: (view: View) => void }) {
   );
 }
 
-const exploreItems: { title: string; subtitle: string; icon: React.ReactNode; view: View }[] = [
-  { title: "Places", subtitle: "A geography of your life", icon: <MapPin />, view: "places" },
-  { title: "Thoughts", subtitle: "See how your ideas evolved", icon: <PenLine />, view: "thoughts" },
-  { title: "Journeys", subtitle: "Paths, departures, returns", icon: <Map />, view: "journeys" },
-  { title: "Chapters", subtitle: "The seasons that emerged", icon: <BookOpen />, view: "chapters" },
-  { title: "Connections", subtitle: "Explore the invisible threads", icon: <Sparkles />, view: "connections" },
-  { title: "Stories", subtitle: "Your memories, quietly told", icon: <Play />, view: "story" },
+const exploreItems: { title: string; subtitle: string; icon: React.ReactNode; view: View; hero?: boolean }[] = [
+  { title: "Places", subtitle: "A geography of your life", icon: <MapPin size={28} />, view: "places", hero: true },
+  { title: "Thoughts", subtitle: "See how your ideas evolved", icon: <PenLine size={24} />, view: "thoughts" },
+  { title: "Journeys", subtitle: "Paths, departures, returns", icon: <Map size={24} />, view: "journeys" },
+  { title: "Chapters", subtitle: "The seasons that emerged", icon: <BookOpen size={24} />, view: "chapters" },
+  { title: "Connections", subtitle: "Explore the invisible threads", icon: <Sparkles size={24} />, view: "connections" },
+  { title: "Stories", subtitle: "Your memories, quietly told", icon: <Play size={28} />, view: "story", hero: true },
 ];
 
 function ExploreViewSection({ go }: { go: (view: View) => void }) {
@@ -591,19 +750,26 @@ function ExploreViewSection({ go }: { go: (view: View) => void }) {
         }
       />
       <main className="px-5 sm:px-8">
-        <p className="intro-copy">There are many ways back into a life.</p>
-        <div className="explore-list">
-          {exploreItems.map((item, i) => (
-            <button key={item.title} onClick={() => go(item.view)} className="cursor-pointer hover:bg-stone-50/60 px-2 rounded-lg transition-colors">
-              <span className="explore-icon">
+        <p className="text-sm text-[#665F56] font-sans mt-1 mb-5">There are many ways back into a life.</p>
+        <div className="grid grid-cols-2 gap-3 sm:gap-4">
+          {exploreItems.map((item) => (
+            <button
+              key={item.title}
+              onClick={() => go(item.view)}
+              className={`group text-left border-[1.5px] border-[#1C1917] bg-[#FBF9F4] rounded-2xl shadow-[2px_3px_0px_#1C1917] hover:shadow-[4px_6px_0px_#1C1917] hover:-translate-y-1 transition-all cursor-pointer ${
+                item.hero ? "col-span-2 p-5 sm:p-6 flex items-center gap-4" : "col-span-1 p-4 sm:p-5 flex flex-col gap-3"
+              }`}
+            >
+              <div className={`flex items-center justify-center rounded-2xl border-[1.5px] border-[#1C1917] bg-[#F5E5DC] text-[#DE5239] shrink-0 ${
+                item.hero ? "w-14 h-14" : "w-12 h-12"
+              }`}>
                 {item.icon}
-                <i style={{ animationDelay: `${i * 0.2}s` }} />
-              </span>
-              <span>
-                <strong className="font-serif text-stone-900">{item.title}</strong>
-                <small>{item.subtitle}</small>
-              </span>
-              <ChevronRight size={17} className="text-stone-400" />
+              </div>
+              <div className="min-w-0">
+                <h3 className={`font-serif font-medium text-[#1C1917] ${item.hero ? "text-xl" : "text-base"}`}>{item.title}</h3>
+                <p className="text-xs text-[#665F56] font-sans mt-0.5 leading-relaxed">{item.subtitle}</p>
+              </div>
+              {item.hero && <ChevronRight size={20} className="text-[#DE5239] ml-auto opacity-60 group-hover:opacity-100 transition-opacity shrink-0" />}
             </button>
           ))}
         </div>
@@ -940,17 +1106,50 @@ function ConnectionsViewSection({ go }: { go: (view: View) => void }) {
 }
 
 function MemoryDetailSection({ go, capture }: { go: (view: View) => void; capture: any }) {
+  const [activeTab, setActiveTab] = useState<"raw" | "analyzed">("analyzed");
+  const [isPlaying, setIsPlaying] = useState(false);
+
   const dims = capture?.dimensions;
   const date = capture?.createdAt ? new Date(capture.createdAt) : new Date();
   const timeStr = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
   const dateStr = date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-  const sourceLabel = capture?.source === "voice" ? "Voice memory" : capture?.source === "image" ? "Photo" : capture?.source === "video" ? "Video" : "Capture";
+  const titleText = capture?.episodes?.[0]?.title || dims?.summary?.substring(0, 40) || "Starting my own company";
+
+  const defaultEvolution = [
+    {
+      month: "April",
+      stage: "THOUGHT",
+      text: "Sometimes I wonder if I could just build it myself.",
+    },
+    {
+      month: "June",
+      stage: "QUESTION",
+      text: "Sarah thinks I'm crazy for even considering leaving a stable job, but she also admitted the prototype looks solid.",
+    },
+    {
+      month: "August",
+      stage: "EXPLORATION",
+      text: "I'm seriously thinking about leaving.",
+      tags: ["Financials mapped", "Domain bought"],
+    },
+    {
+      month: "September",
+      stage: "DECISION",
+      text: "I decided I'm going to try.",
+    },
+    {
+      month: "December",
+      stage: "OUTCOME",
+      text: "You did.",
+      imageUrl: capture?.mediaUrl || "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&auto=format&fit=crop&q=80",
+    },
+  ];
 
   return (
-    <div className="pb-24">
+    <div className="pb-32 font-sans">
       <PageHeader
-        title={dims?.summary?.substring(0, 40) || sourceLabel}
-        eyebrow="A memory"
+        title={titleText}
+        eyebrow="An evolving thought thread"
         onBack={() => go("life")}
         action={
           <IconButton label="More options">
@@ -958,46 +1157,140 @@ function MemoryDetailSection({ go, capture }: { go: (view: View) => void; captur
           </IconButton>
         }
       />
-      <main>
-        <section className="memory-detail px-5 sm:px-8">
-          <p className="exact-words font-serif text-stone-900">
-            &ldquo;{capture?.content || "No content"}&rdquo;
-          </p>
-          <p className="memory-meta mt-3">You said · {dateStr} · {timeStr}</p>
-          <div className="context-grid">
-            {dims?.places?.[0] && (
-              <span><MapPin /> {dims.places[0]}</span>
+      <main className="px-5 sm:px-8 mt-4 space-y-5">
+        {/* Dual Tab Switcher: RAW vs ANALYZED */}
+        <div className="flex border-b border-[#1C1917]/15 pb-1 gap-4">
+          <button
+            onClick={() => setActiveTab("analyzed")}
+            className={`flex items-center gap-1.5 pb-2 text-xs font-sans font-semibold border-b-2 cursor-pointer transition-colors ${
+              activeTab === "analyzed"
+                ? "border-[#DE5239] text-[#DE5239]"
+                : "border-transparent text-[#665F56] hover:text-[#1C1917]"
+            }`}
+          >
+            <Sparkles size={14} /> Understood &amp; Analyzed
+          </button>
+          <button
+            onClick={() => setActiveTab("raw")}
+            className={`flex items-center gap-1.5 pb-2 text-xs font-sans font-semibold border-b-2 cursor-pointer transition-colors ${
+              activeTab === "raw"
+                ? "border-[#DE5239] text-[#DE5239]"
+                : "border-transparent text-[#665F56] hover:text-[#1C1917]"
+            }`}
+          >
+            <PenLine size={14} /> RAW Input
+          </button>
+        </div>
+
+        {/* TAB 1: RAW INPUT */}
+        {activeTab === "raw" && (
+          <div className="space-y-4">
+            <div className="p-5 bg-white border-[1.5px] border-[#1C1917] rounded-2xl shadow-[2px_3px_0px_#1C1917]">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-[#665F56] font-sans block mb-1.5">
+                Exact Captured Words · {dateStr}
+              </span>
+              <p className="font-serif text-lg text-[#1C1917] leading-relaxed italic">
+                &ldquo;{capture?.content || "No raw content"}&rdquo;
+              </p>
+            </div>
+
+            {/* Raw Audio Player if audio */}
+            {capture?.source === "voice" && (
+              <div className="p-4 bg-[#F5E5DC] border-[1.5px] border-[#1C1917] rounded-2xl shadow-[2px_3px_0px_#1C1917] flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setIsPlaying(!isPlaying)}
+                    className="w-10 h-10 rounded-full bg-[#DE5239] text-white flex items-center justify-center cursor-pointer border border-[#1C1917]"
+                  >
+                    {isPlaying ? <Pause size={18} /> : <Play size={18} className="ml-0.5" />}
+                  </button>
+                  <div>
+                    <span className="text-xs font-bold text-[#1C1917] block">Original Audio Recording</span>
+                    <span className="text-[10px] text-[#665F56]">{timeStr}</span>
+                  </div>
+                </div>
+              </div>
             )}
-            {dims?.people?.map((p: string, i: number) => (
-              <span key={i}><UserRound /> {p}</span>
-            ))}
-            {dims?.mood && (
-              <span><Heart /> {dims.mood}</span>
-            )}
-            {dims?.topics?.slice(0, 2).map((t: string, i: number) => (
-              <span key={i}><PenLine /> {t}</span>
-            ))}
           </div>
-          {dims?.emotions?.length > 0 && (
-            <div className="mt-3">
-              <span className="text-xs text-stone-500 font-sans">Emotions</span>
-              <div className="flex flex-wrap gap-1.5 mt-1">
-                {dims.emotions.map((e: any, i: number) => (
-                  <span key={i} className="text-xs px-2 py-0.5 bg-amber-50 rounded-full text-amber-700">{e.label}</span>
+        )}
+
+        {/* TAB 2: UNDERSTOOD & ANALYZED */}
+        {activeTab === "analyzed" && (
+          <div className="space-y-6">
+            {/* Extracted Context Dimensions */}
+            <div className="p-4 bg-white border-[1.5px] border-[#1C1917] rounded-2xl shadow-[2px_3px_0px_#1C1917] space-y-2.5">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-[#DE5239] block">
+                Extracted Dimensions
+              </span>
+              <div className="flex flex-wrap gap-2 text-xs font-sans">
+                {dims?.places?.[0] && (
+                  <span className="flex items-center gap-1 px-2.5 py-1 bg-[#F5E5DC] border border-[#DE5239]/30 rounded-full font-semibold text-[#DE5239]">
+                    <MapPin size={12} /> {dims.places[0]}
+                  </span>
+                )}
+                {dims?.people?.map((p: string, i: number) => (
+                  <span key={i} className="flex items-center gap-1 px-2.5 py-1 bg-[#F5F1E8] border border-[#1C1917]/30 rounded-full font-medium text-[#1C1917]">
+                    <UserRound size={12} className="text-[#DE5239]" /> {p}
+                  </span>
+                ))}
+                {dims?.mood && (
+                  <span className="flex items-center gap-1 px-2.5 py-1 bg-[#F5F1E8] border border-[#1C1917]/30 rounded-full font-medium text-[#1C1917]">
+                    <Heart size={12} className="text-[#DE5239]" /> {dims.mood}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Evolution Timeline (Image 2 style) */}
+            <div className="space-y-4">
+              <p className="text-[11px] uppercase tracking-wider font-sans font-bold text-[#665F56]">
+                Evolution Timeline
+              </p>
+              <div className="space-y-4 relative before:absolute before:left-5 before:top-3 before:bottom-3 before:w-0.5 before:bg-[#1C1917]/15">
+                {defaultEvolution.map((item, idx) => (
+                  <div key={idx} className="flex items-start gap-4 relative">
+                    <div className="w-10 h-10 rounded-full bg-[#F5F1E8] border-[1.5px] border-[#1C1917] flex items-center justify-center shrink-0 z-10 shadow-xs">
+                      {item.stage === "THOUGHT" && <Sparkles size={14} className="text-[#665F56]" />}
+                      {item.stage === "QUESTION" && <PenLine size={14} className="text-[#D97706]" />}
+                      {item.stage === "EXPLORATION" && <MapPin size={14} className="text-[#2563EB]" />}
+                      {item.stage === "DECISION" && <Sparkles size={14} className="text-[#166534]" />}
+                      {item.stage === "OUTCOME" && <Heart size={14} className="text-[#DE5239]" />}
+                    </div>
+                    <div className="flex-1">
+                      {item.stage === "OUTCOME" && item.imageUrl ? (
+                        <div className="relative rounded-2xl overflow-hidden border-[1.5px] border-[#1C1917] shadow-[2px_3px_0px_#1C1917]">
+                          <img src={item.imageUrl} alt={item.text} className="w-full h-56 object-cover" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent flex flex-col justify-end p-4 text-white">
+                            <span className="text-[10px] uppercase font-bold tracking-widest opacity-80 font-sans">{item.month}</span>
+                            <h4 className="font-serif text-2xl font-medium mt-0.5">{item.text}</h4>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className={`p-4 rounded-2xl border-[1.5px] border-[#1C1917] ${
+                          item.stage === "DECISION" ? "bg-[#F5E5DC] shadow-[2px_3px_0px_#1C1917]" : "bg-white shadow-[1px_2px_0px_#1C1917]"
+                        }`}>
+                          <span className="text-xs font-bold text-[#665F56] font-sans tracking-wide block mb-1">
+                            {item.month} <span className="text-[#1C1917]/30">•</span> {item.stage}
+                          </span>
+                          <p className="font-serif text-base text-[#1C1917] leading-relaxed">{item.text}</p>
+                          {item.tags && (
+                            <div className="flex flex-wrap gap-1.5 mt-2">
+                              {item.tags.map((t, i) => (
+                                <span key={i} className="text-[10px] px-2.5 py-0.5 bg-[#F5E5DC] border border-[#DE5239]/30 rounded-full font-sans font-medium text-[#DE5239]">
+                                  {t}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
-          )}
-          {dims?.tone && (
-            <p className="text-sm text-stone-500 mt-3">Tone: {dims.tone}</p>
-          )}
-          {capture?.mediaCtx && (
-            <div className="mt-3 p-3 bg-stone-50 rounded-xl">
-              <span className="text-xs text-stone-500 font-sans">AI Analysis</span>
-              <p className="text-sm text-stone-700 mt-1">{capture.mediaCtx}</p>
-            </div>
-          )}
-        </section>
+          </div>
+        )}
       </main>
     </div>
   );
@@ -1107,13 +1400,18 @@ function CaptureOverlay({
   mode,
   setMode,
   onSaved,
+  initialPrompt,
 }: {
   mode: CaptureMode;
   setMode: (m: CaptureMode) => void;
   onSaved: (memory: CapturedMemory) => void;
+  initialPrompt?: string;
 }) {
   const { submitCapture } = useJournal();
   const media = useMediaCapture();
+
+  type CaptureTab = "write" | "speak" | "capture";
+  const [activeTab, setActiveTab] = useState<CaptureTab>("write");
 
   // ── Accumulated items (NO processing until save) ──
   const [items, setItems] = useState<{ kind: string; label: string; base64?: string; mimeType?: string; text?: string }[]>([]);
@@ -1125,16 +1423,28 @@ function CaptureOverlay({
   const [cameraReady, setCameraReady] = useState(false);
   const videoElRef = useRef<HTMLVideoElement>(null);
   const [isRecordingVoice, setIsRecordingVoice] = useState(false);
+  const [voiceDone, setVoiceDone] = useState(false);
   const [liveTranscript, setLiveTranscript] = useState("");
+  const [voiceSeconds, setVoiceSeconds] = useState(0);
   const recognitionRef = useRef<any>(null);
+  const voiceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [captureSubMode, setCaptureSubMode] = useState<"photo" | "video">("photo");
 
-  // Camera setup for photo/video modes
+  // Set initial prompt when opening
   useEffect(() => {
-    if (mode === "photo" || mode === "video") {
+    if (mode && initialPrompt) {
+      setTextInput(initialPrompt);
+      setActiveTab("write");
+    }
+  }, [mode, initialPrompt]);
+
+  // Camera setup for capture tab
+  useEffect(() => {
+    if (activeTab === "capture" && mode) {
       setCameraReady(false);
       const el = videoElRef.current;
       if (el) {
-        const start = mode === "video" ? () => media.startVideoRecording(el) : () => media.startCamera(el);
+        const start = captureSubMode === "video" ? () => media.startVideoRecording(el) : () => media.startCamera(el);
         start().then(() => setCameraReady(true)).catch(() => {});
       }
     } else {
@@ -1142,7 +1452,7 @@ function CaptureOverlay({
       setCameraReady(false);
     }
     return () => media.stopCamera();
-  }, [mode]); // eslint-disable-line
+  }, [activeTab, mode, captureSubMode]); // eslint-disable-line
 
   // Cleanup on unmount
   useEffect(() => () => media.cleanup(), []); // eslint-disable-line
@@ -1169,10 +1479,15 @@ function CaptureOverlay({
   };
 
   // ── Voice recording with live transcription ──
+  const formatTimer = (s: number) => `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
+
   const startVoiceRecording = () => {
+    setVoiceDone(false);
+    setLiveTranscript("");
+    setVoiceSeconds(0);
+    voiceTimerRef.current = setInterval(() => setVoiceSeconds((s) => s + 1), 1000);
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      // Fallback: just use MediaRecorder without transcription
       media.startAudioRecording().then(() => setIsRecordingVoice(true)).catch(() => {});
       return;
     }
@@ -1181,16 +1496,12 @@ function CaptureOverlay({
     recognition.interimResults = true;
     recognition.lang = "en-US";
     recognition.onresult = (e: any) => {
-      let final = "";
-      let interim = "";
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) final += e.results[i][0].transcript;
-        else interim += e.results[i][0].transcript;
-      }
-      setLiveTranscript(final || interim);
+      let full = "";
+      for (let i = 0; i < e.results.length; i++) full += e.results[i][0].transcript;
+      setLiveTranscript(full);
     };
     recognition.onerror = () => {};
-    recognition.onend = () => {};
+    recognition.onend = () => { if (isRecordingVoice) { try { recognition.start(); } catch {} } };
     recognitionRef.current = recognition;
     recognition.start();
     setIsRecordingVoice(true);
@@ -1199,35 +1510,34 @@ function CaptureOverlay({
 
   const stopVoiceRecording = async () => {
     setIsRecordingVoice(false);
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-      recognitionRef.current = null;
-    }
+    setVoiceDone(true);
+    if (voiceTimerRef.current) clearInterval(voiceTimerRef.current);
+    if (recognitionRef.current) { recognitionRef.current.stop(); recognitionRef.current = null; }
     try {
       const result = await media.stopAudioRecording();
-      // Store raw audio — NO processing yet
       setItems((prev) => [...prev, {
         kind: "voice",
         label: liveTranscript ? `"${liveTranscript.substring(0, 60)}"` : "Voice recording",
-        base64: result.base64,
-        mimeType: result.mimeType,
+        base64: result.base64, mimeType: result.mimeType,
         text: liveTranscript || undefined
       }]);
-      setLiveTranscript("");
     } catch {
-      // If MediaRecorder failed, still save the transcript
       if (liveTranscript) {
         setItems((prev) => [...prev, { kind: "voice", label: `"${liveTranscript.substring(0, 60)}"`, text: liveTranscript }]);
-        setLiveTranscript("");
       }
     }
+  };
+
+  const resetVoice = () => {
+    setVoiceDone(false);
+    setLiveTranscript("");
+    setVoiceSeconds(0);
   };
 
   // ── Photo capture ──
   const capturePhoto = () => {
     const result = media.capturePhoto();
     if (!result) return;
-    // Store raw image — NO processing yet
     setItems((prev) => [...prev, { kind: "photo", label: "Photo", base64: result.base64, mimeType: result.mimeType }]);
   };
 
@@ -1235,7 +1545,6 @@ function CaptureOverlay({
   const stopVideoRecording = async () => {
     try {
       const result = await media.stopVideoRecording();
-      // Store raw video — NO processing yet
       setItems((prev) => [...prev, { kind: "video", label: "Video", base64: result.base64, mimeType: result.mimeType }]);
     } catch {}
   };
@@ -1254,13 +1563,6 @@ function CaptureOverlay({
     e.target.value = "";
   };
 
-  // ── Add text ──
-  const addText = () => {
-    if (!textInput.trim()) return;
-    setItems((prev) => [...prev, { kind: "text", label: textInput.trim().substring(0, 50), text: textInput.trim() }]);
-    setTextInput("");
-  };
-
   // ── Save everything ──
   const saveMemory = async () => {
     const textParts = items.filter((i) => i.kind === "text" || i.text).map((i) => i.text || i.label);
@@ -1268,7 +1570,6 @@ function CaptureOverlay({
     if (textInput.trim()) textParts.unshift(textInput.trim());
     setSaving(true);
     try {
-      // Send text content + location. Media items stay local for now.
       const content = textParts.join("\n\n");
       const mediaCtx = items.filter((i) => i.kind !== "text").map((i) => `${i.kind}: ${i.label}`).join(" | ");
       await submitCapture(content, "mixed", mediaCtx || undefined);
@@ -1276,135 +1577,270 @@ function CaptureOverlay({
     } catch {} finally { setSaving(false); }
   };
 
-  const hasContent = textInput.trim() || items.length > 0;
+  const hasContent = textInput.trim() || items.length > 0 || liveTranscript.trim();
+
+  const tabItems: { key: CaptureTab; label: string; icon: React.ReactNode }[] = [
+    { key: "write", label: "Write", icon: <PenLine size={16} /> },
+    { key: "speak", label: "Speak", icon: <Mic size={16} /> },
+    { key: "capture", label: "Capture", icon: <Camera size={16} /> },
+  ];
 
   return (
-    <div className="capture-backdrop" role="dialog" aria-modal="true" aria-label="Capture a memory"
+    <div className="fixed inset-0 z-50 bg-[#1C1917]/50 backdrop-blur-xs flex items-end sm:items-center justify-center" role="dialog" aria-modal="true" aria-label="Capture a memory"
       onMouseDown={(e) => { if (e.currentTarget === e.target) setMode(null); }}>
-      <section className={`capture-sheet ${mode}`}>
-        <div className="capture-handle" />
-        <div className="capture-top">
-          <Brand compact />
-          <IconButton label="Close capture" onClick={() => setMode(null)}><X size={18} /></IconButton>
+      <section className="w-full sm:max-w-lg bg-[#FBF9F4] border-[1.5px] border-[#1C1917] sm:rounded-3xl rounded-t-3xl shadow-[4px_6px_0px_#1C1917] max-h-[92vh] overflow-y-auto font-sans">
+        {/* Handle bar */}
+        <div className="flex justify-center pt-2.5 pb-1 sm:hidden">
+          <div className="w-10 h-1 bg-[#1C1917]/20 rounded-full" />
         </div>
 
-        <div className="space-y-3 pt-2">
-          <span className="memory-kicker">A new memory</span>
-          <h2 className="font-serif font-medium text-stone-900 text-xl">What do you want to remember?</h2>
+        {/* Header */}
+        <div className="px-5 pt-3 pb-2 flex items-center justify-between">
+          <div>
+            <span className="text-[11px] uppercase tracking-wider font-sans font-bold text-[#DE5239] flex items-center gap-1.5">
+              <span className="node-dot" /> A new memory
+            </span>
+            <h2 className="font-serif font-medium text-[#1C1917] text-xl mt-0.5">Tell me anything.</h2>
+          </div>
+          <button onClick={() => setMode(null)} className="p-2 rounded-full border border-[#1C1917]/20 bg-[#F5F1E8] text-[#665F56] hover:text-[#1C1917] cursor-pointer">
+            <X size={16} />
+          </button>
+        </div>
 
-          {/* ── Text input ── */}
-          <textarea value={textInput} onChange={(e) => setTextInput(e.target.value)}
-            placeholder="Write your thoughts..."
-            className="w-full min-h-[4rem] p-3 border border-stone-200 rounded-2xl text-stone-800 placeholder-stone-400 text-sm focus:outline-none focus:border-amber-500 resize-none font-sans" />
-          {textInput.trim() && (
-            <button onClick={addText} className="text-xs px-3 py-1.5 bg-amber-50 text-amber-700 rounded-xl cursor-pointer hover:bg-amber-100">
-              + Add text
+        {/* Tab bar */}
+        <div className="flex px-5 gap-1 mb-3">
+          {tabItems.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-sans font-semibold transition-all cursor-pointer ${
+                activeTab === tab.key
+                  ? "bg-[#DE5239] text-white border-[1.5px] border-[#1C1917] shadow-[1px_2px_0px_#1C1917]"
+                  : "bg-[#F5F1E8] text-[#665F56] border border-[#1C1917]/20 hover:bg-[#F5E5DC]"
+              }`}
+            >
+              {tab.icon} {tab.label}
             </button>
+          ))}
+        </div>
+
+        {/* Tab Content */}
+        <div className="px-5 pb-4 space-y-3">
+
+          {/* ── WRITE TAB ── */}
+          {activeTab === "write" && (
+            <div className="space-y-3">
+              <textarea
+                value={textInput}
+                onChange={(e) => setTextInput(e.target.value)}
+                placeholder="Write whatever comes to mind…"
+                autoFocus
+                className="w-full min-h-[10rem] p-4 border-[1.5px] border-[#1C1917] bg-white rounded-2xl text-[#1C1917] placeholder-[#665F56]/60 text-base font-serif focus:outline-none resize-none shadow-[2px_3px_0px_#1C1917] leading-relaxed"
+              />
+            </div>
           )}
 
-          {/* ── Items added so far ── */}
+          {/* ── SPEAK TAB ── */}
+          {activeTab === "speak" && (
+            <div className="space-y-4 flex flex-col items-center">
+              {/* Timer */}
+              <p className="text-xs text-[#665F56] font-sans font-medium tracking-wider">
+                {isRecordingVoice ? formatTimer(voiceSeconds) : voiceDone ? formatTimer(voiceSeconds) : "Tap to start"}
+              </p>
+
+              {/* Large animated recording orb */}
+              <div className="relative w-32 h-32 flex items-center justify-center">
+                {/* Outer rotating ring */}
+                <div className={`absolute inset-0 rounded-full border-2 border-dashed ${isRecordingVoice ? "border-[#DE5239]/60 animate-spin" : "border-[#1C1917]/15"}`}
+                  style={isRecordingVoice ? { animationDuration: "8s" } : {}} />
+                {/* Middle pulsing glow */}
+                <div className={`absolute inset-3 rounded-full ${isRecordingVoice ? "bg-[#DE5239]/20 animate-pulse" : "bg-[#F5E5DC]"}`} />
+                {/* Inner solid orb button */}
+                <button
+                  onClick={isRecordingVoice ? stopVoiceRecording : startVoiceRecording}
+                  disabled={saving || voiceDone}
+                  className={`relative z-10 w-20 h-20 rounded-full flex items-center justify-center transition-all cursor-pointer border-[2px] border-[#1C1917] ${
+                    isRecordingVoice
+                      ? "bg-[#DE5239] text-white shadow-[0_0_20px_rgba(222,82,57,0.4)] scale-105"
+                      : voiceDone
+                      ? "bg-[#F5E5DC] text-[#DE5239]"
+                      : "bg-[#DE5239] text-white hover:scale-105"
+                  }`}
+                >
+                  {isRecordingVoice ? (
+                    <div className="flex gap-0.5 items-end h-6">
+                      {[1,2,3,4,5].map((i) => (
+                        <div key={i} className="w-1 bg-white rounded-full animate-pulse" style={{
+                          height: `${8 + Math.random() * 16}px`,
+                          animationDelay: `${i * 0.12}s`, animationDuration: "0.6s"
+                        }} />
+                      ))}
+                    </div>
+                  ) : voiceDone ? (
+                    <span className="text-xs font-sans font-bold">✓</span>
+                  ) : (
+                    <Mic size={28} />
+                  )}
+                </button>
+              </div>
+
+              <p className="text-[10px] text-[#665F56] font-sans">
+                {isRecordingVoice ? "Tap to stop" : voiceDone ? "Recording saved" : "Tap the orb to record"}
+              </p>
+
+              {/* Live transcription */}
+              {(isRecordingVoice || liveTranscript) && (
+                <div className="w-full min-h-[6rem] p-4 border-[1.5px] border-[#1C1917] bg-white rounded-2xl shadow-[2px_3px_0px_#1C1917]">
+                  {liveTranscript ? (
+                    <textarea
+                      value={liveTranscript}
+                      onChange={(e) => setLiveTranscript(e.target.value)}
+                      readOnly={isRecordingVoice}
+                      className="w-full min-h-[5rem] text-base font-serif text-[#1C1917] leading-relaxed bg-transparent resize-none focus:outline-none"
+                    />
+                  ) : (
+                    <p className="text-sm font-serif text-[#665F56] italic animate-pulse">Listening — your words appear here…</p>
+                  )}
+                </div>
+              )}
+
+              {/* Re-record button */}
+              {voiceDone && (
+                <button onClick={resetVoice} className="text-xs font-sans font-semibold text-[#DE5239] hover:underline cursor-pointer">
+                  Re-record
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* ── CAPTURE TAB (Photo + Video) ── */}
+          {activeTab === "capture" && (
+            <div className="space-y-3">
+              {/* Photo/Video toggle */}
+              <div className="flex gap-1.5">
+                <button onClick={() => setCaptureSubMode("photo")}
+                  className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-xs font-sans font-semibold cursor-pointer transition-all ${
+                    captureSubMode === "photo" ? "bg-[#F5E5DC] border-[1.5px] border-[#1C1917] text-[#DE5239]" : "bg-[#F5F1E8] border border-[#1C1917]/20 text-[#665F56]"
+                  }`}>
+                  <Camera size={14} /> Photo
+                </button>
+                <button onClick={() => setCaptureSubMode("video")}
+                  className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-xs font-sans font-semibold cursor-pointer transition-all ${
+                    captureSubMode === "video" ? "bg-[#F5E5DC] border-[1.5px] border-[#1C1917] text-[#DE5239]" : "bg-[#F5F1E8] border border-[#1C1917]/20 text-[#665F56]"
+                  }`}>
+                  <Video size={14} /> Video
+                </button>
+              </div>
+
+              {/* Camera viewfinder */}
+              <div className="relative rounded-2xl overflow-hidden border-[1.5px] border-[#1C1917] bg-[#1C1917] aspect-[4/3]">
+                <video ref={videoElRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+                {!cameraReady && (
+                  <div className="absolute inset-0 flex items-center justify-center text-white/60 text-xs font-sans">
+                    Starting camera…
+                  </div>
+                )}
+                {media.isRecording && captureSubMode === "video" && (
+                  <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 bg-red-500 rounded-full text-white text-[10px] font-sans font-bold">
+                    <span className="w-2 h-2 bg-white rounded-full animate-pulse" /> REC {media.duration}s
+                  </div>
+                )}
+              </div>
+
+              {/* Camera controls */}
+              <div className="flex items-center justify-center gap-4">
+                {/* Gallery picker */}
+                <label className="p-3 rounded-2xl border-[1.5px] border-[#1C1917] bg-[#F5F1E8] text-[#665F56] hover:bg-[#F5E5DC] cursor-pointer transition-colors">
+                  <ImageIcon size={20} />
+                  <input type="file" accept="image/*,video/*" className="hidden" onChange={handleFileUpload} />
+                </label>
+
+                {/* Main capture button */}
+                {captureSubMode === "photo" ? (
+                  <button onClick={capturePhoto} disabled={!cameraReady}
+                    className="w-16 h-16 rounded-full bg-[#DE5239] border-[3px] border-[#1C1917] text-white flex items-center justify-center cursor-pointer hover:scale-105 transition-transform disabled:opacity-40 shadow-[2px_3px_0px_#1C1917]">
+                    <Camera size={24} />
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      if (media.isRecording) stopVideoRecording();
+                      else { setCameraReady(false); videoElRef.current && media.startVideoRecording(videoElRef.current).then(() => setCameraReady(true)); }
+                    }}
+                    className={`w-16 h-16 rounded-full border-[3px] border-[#1C1917] flex items-center justify-center cursor-pointer hover:scale-105 transition-transform shadow-[2px_3px_0px_#1C1917] ${
+                      media.isRecording ? "bg-red-500 text-white" : "bg-[#DE5239] text-white"
+                    }`}>
+                    {media.isRecording ? <span className="w-5 h-5 rounded-sm bg-white" /> : <Video size={24} />}
+                  </button>
+                )}
+
+                {/* Flip camera placeholder */}
+                <div className="w-12" />
+              </div>
+
+              {/* Optional note for captured media */}
+              <textarea
+                value={textInput}
+                onChange={(e) => setTextInput(e.target.value)}
+                placeholder="Add a note about this…"
+                className="w-full min-h-[3rem] p-3 border-[1.5px] border-[#1C1917] bg-white rounded-2xl text-sm text-[#1C1917] placeholder-[#665F56]/60 font-serif focus:outline-none resize-none shadow-[1px_2px_0px_#1C1917]"
+              />
+            </div>
+          )}
+
+          {/* ── Items added so far (thumbnail pills) ── */}
           {items.length > 0 && (
-            <div className="space-y-1.5">
+            <div className="flex flex-wrap gap-1.5">
               {items.map((item, i) => (
-                <div key={i} className="flex items-center gap-2 px-3 py-2 bg-stone-50 rounded-xl text-xs">
-                  <span className="text-stone-500">{item.kind === "text" ? "✍" : item.kind === "voice" ? "🎤" : item.kind === "photo" ? "📷" : "🎬"}</span>
-                  <span className="flex-1 truncate text-stone-600">{item.label}</span>
-                  <button onClick={() => setItems((prev) => prev.filter((_, j) => j !== i))} className="text-stone-400 hover:text-red-500 cursor-pointer ml-1">✕</button>
+                <div key={i} className="flex items-center gap-1.5 px-2.5 py-1.5 bg-[#F5E5DC] border border-[#DE5239]/30 rounded-xl text-[10px] font-sans font-medium text-[#1C1917]">
+                  <span>{item.kind === "text" ? "✍" : item.kind === "voice" ? "🎤" : item.kind === "photo" ? "📷" : "🎬"}</span>
+                  <span className="max-w-[6rem] truncate">{item.label}</span>
+                  <button onClick={() => setItems((prev) => prev.filter((_, j) => j !== i))} className="text-[#DE5239] hover:text-red-600 cursor-pointer ml-0.5">✕</button>
                 </div>
               ))}
             </div>
           )}
 
-          {/* ── Media buttons ── */}
-          <div className="grid grid-cols-2 gap-2">
-            {/* Voice */}
-            <div className="border border-stone-200 rounded-xl p-3">
-              {isRecordingVoice ? (
-                <div className="text-center">
-                  <span className="recording-dot" />
-                  <p className="text-xs text-amber-600 mt-1">Recording... {media.duration}s</p>
-                  {liveTranscript && <p className="text-xs text-stone-600 mt-1 italic max-h-16 overflow-y-auto">{liveTranscript}</p>}
-                  <button onClick={stopVoiceRecording} className="mt-2 px-3 py-1 bg-red-500 text-white rounded-lg text-xs cursor-pointer">Stop</button>
-                </div>
-              ) : (
-                <button onClick={startVoiceRecording} disabled={saving}
-                  className="w-full flex flex-col items-center gap-1 text-xs text-stone-600 hover:text-amber-700 cursor-pointer">
-                  <Mic size={18} /> Record voice
-                </button>
-              )}
-            </div>
-
-            {/* Photo */}
-            {(mode === "photo" || mode === "menu" || !mode) && (
-              <div className="border border-stone-200 rounded-xl p-3">
-                {mode === "photo" ? (
-                  <div className="text-center">
-                    <video ref={videoElRef} autoPlay playsInline muted className="w-full max-h-32 rounded-lg object-cover" />
-                    <button onClick={capturePhoto} disabled={!cameraReady}
-                      className="mt-2 px-3 py-1 bg-amber-600 text-white rounded-lg text-xs cursor-pointer">Take photo</button>
-                    <button onClick={() => setMode("menu")} className="mt-1 text-xs text-stone-400 cursor-pointer">Back</button>
-                  </div>
-                ) : (
-                  <button onClick={() => setMode("photo")} className="w-full flex flex-col items-center gap-1 text-xs text-stone-600 hover:text-amber-700 cursor-pointer">
-                    <Camera size={18} /> Take photo
-                  </button>
-                )}
-              </div>
-            )}
-
-            {/* Video */}
-            {(mode === "video" || mode === "menu" || !mode) && (
-              <div className="border border-stone-200 rounded-xl p-3">
-                {mode === "video" ? (
-                  <div className="text-center">
-                    <video ref={videoElRef} autoPlay playsInline muted className="w-full max-h-32 rounded-lg object-cover" />
-                    {media.isRecording && <p className="text-xs text-amber-600 mt-1">Recording {media.duration}s</p>}
-                    <div className="flex gap-2 justify-center mt-2">
-                      <button onClick={() => { if (media.isRecording) stopVideoRecording(); else { setCameraReady(false); videoElRef.current && media.startVideoRecording(videoElRef.current).then(() => setCameraReady(true)); } }}
-                        className="px-3 py-1 bg-amber-600 text-white rounded-lg text-xs cursor-pointer">
-                        {media.isRecording ? "Stop" : "Start video"}
-                      </button>
-                      <button onClick={() => setMode("menu")} className="text-xs text-stone-400 cursor-pointer">Back</button>
-                    </div>
-                  </div>
-                ) : (
-                  <button onClick={() => setMode("video")} className="w-full flex flex-col items-center gap-1 text-xs text-stone-600 hover:text-amber-700 cursor-pointer">
-                    <Video size={18} /> Record video
-                  </button>
-                )}
-              </div>
-            )}
-
-            {/* File upload */}
-            <label className="border border-dashed border-stone-300 rounded-xl p-3 flex flex-col items-center gap-1 text-xs text-stone-500 cursor-pointer hover:border-amber-400">
-              <Plus size={18} /> Upload file
+          {/* ── Bottom toolbar ── */}
+          <div className="flex items-center gap-2 pt-1">
+            {/* Attach file */}
+            <label className="p-2.5 rounded-xl border border-[#1C1917]/20 bg-[#F5F1E8] text-[#665F56] hover:bg-[#F5E5DC] cursor-pointer transition-colors" title="Attach a file">
+              <Plus size={16} />
               <input type="file" accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.txt" className="hidden" onChange={handleFileUpload} />
             </label>
-          </div>
 
-          {/* ── Location ── */}
-          <div className="flex items-center gap-2">
-            <button className={`location-capture cursor-pointer flex-1 ${location ? "active" : ""}`} onClick={toggleLocation}>
-              <MapPin size={15} /> {location ?? "Add a place"} {location && <span>Added</span>}
+            {/* Location */}
+            <button className={`p-2.5 rounded-xl border transition-colors cursor-pointer ${location ? "border-[#DE5239] bg-[#F5E5DC] text-[#DE5239]" : "border-[#1C1917]/20 bg-[#F5F1E8] text-[#665F56] hover:bg-[#F5E5DC]"}`}
+              onClick={toggleLocation} title={location || "Add location"}>
+              <MapPin size={16} />
             </button>
             {!location && showLocationInput && (
               <div className="flex gap-1.5 flex-1">
                 <input type="text" value={locationInput} onChange={(e) => setLocationInput(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") applyLocationInput(); }}
-                  placeholder="Type a place name..." autoFocus
-                  className="flex-1 px-3 py-1.5 text-xs border border-stone-200 rounded-xl focus:outline-none focus:border-amber-500" />
-                <button onClick={applyLocationInput} className="px-2 py-1 text-xs bg-amber-100 text-amber-700 rounded-xl cursor-pointer">OK</button>
-                <button onClick={detectLocation} className="px-2 py-1 text-xs bg-stone-100 text-stone-600 rounded-xl cursor-pointer" title="Use GPS"><MapPin size={12} /></button>
+                  placeholder="Place name…" autoFocus
+                  className="flex-1 px-3 py-1.5 text-xs border border-[#1C1917]/30 rounded-xl focus:outline-none focus:border-[#DE5239] bg-white font-sans" />
+                <button onClick={applyLocationInput} className="px-2.5 py-1 text-xs bg-[#F5E5DC] text-[#DE5239] border border-[#DE5239]/30 rounded-xl cursor-pointer font-semibold">OK</button>
+                <button onClick={detectLocation} className="px-2 py-1 text-xs bg-[#F5F1E8] text-[#665F56] border border-[#1C1917]/20 rounded-xl cursor-pointer" title="Use GPS"><MapPin size={12} /></button>
               </div>
             )}
-          </div>
+            {location && (
+              <span className="text-[10px] font-sans text-[#DE5239] font-medium truncate max-w-[8rem]">📍 {location}</span>
+            )}
 
-          {/* ── Save ── */}
-          {hasContent && (
-            <button className="primary-action cursor-pointer w-full" onClick={saveMemory} disabled={saving}>
-              {saving ? "Saving..." : `Keep this memory${items.length > 0 ? ` (${items.length + (textInput.trim() ? 1 : 0)} parts)` : ""}`}
+            {/* Save button — always visible */}
+            <button
+              className={`ml-auto px-5 py-2.5 rounded-xl text-xs font-sans font-bold transition-all cursor-pointer border-[1.5px] border-[#1C1917] shadow-[2px_3px_0px_#1C1917] ${
+                hasContent
+                  ? "bg-[#DE5239] text-white hover:bg-[#C6422A]"
+                  : "bg-[#F5F1E8] text-[#665F56]/40 pointer-events-none"
+              }`}
+              onClick={saveMemory}
+              disabled={saving || !hasContent}
+            >
+              {saving ? "Saving…" : "Remember this"}
             </button>
-          )}
+          </div>
         </div>
       </section>
     </div>
@@ -1539,6 +1975,7 @@ export function MemoiaryAppShell() {
   const [isSplash, setIsSplash] = useState(true);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [captureMode, setCaptureMode] = useState<CaptureMode>(null);
+  const [capturePrompt, setCapturePrompt] = useState<string>("");
   const [pendingCaptureMode, setPendingCaptureMode] = useState<CaptureMode>(null);
   const [saved, setSaved] = useState(false);
   const [newMemory, setNewMemory] = useState<CapturedMemory | null>(null);
@@ -1558,12 +1995,17 @@ export function MemoiaryAppShell() {
 
   const go = (next: View) => setView(next);
 
-  const handleOpenCapture = (mode: CaptureMode = "menu") => {
+  const handleOpenCapture = (modeOrPrompt: CaptureMode | string = "menu") => {
+    // If a string prompt was passed, open in write mode with prompt
+    const isPrompt = typeof modeOrPrompt === "string" && !["menu", "write", "voice", "photo", "video"].includes(modeOrPrompt);
+    const mode: CaptureMode = isPrompt ? "menu" : (modeOrPrompt as CaptureMode);
     if (!user) {
       setPendingCaptureMode(mode);
       setShowLoginModal(true);
       return;
     }
+    if (isPrompt) setCapturePrompt(modeOrPrompt as string);
+    else setCapturePrompt("");
     setCaptureMode(mode);
   };
 
@@ -1592,7 +2034,7 @@ export function MemoiaryAppShell() {
   const content = useMemo(() => {
     switch (view) {
       case "life":
-        return <LifeHome go={go} openCapture={() => handleOpenCapture("menu")} newMemory={newMemory} onSelectCapture={(c) => { setSelectedCapture(c); go("memory"); }} />;
+        return <LifeHome go={go} openCapture={(prompt) => handleOpenCapture(prompt || "menu")} newMemory={newMemory} onSelectCapture={(c) => { setSelectedCapture(c); go("memory"); }} />;
       case "people":
         return <PeopleViewSection go={go} />;
       case "person":
@@ -1624,7 +2066,7 @@ export function MemoiaryAppShell() {
       case "empty":
         return <EmptyViewSection go={go} capture={() => handleOpenCapture("menu")} />;
       case "onboarding":
-        return <LifeHome go={go} openCapture={() => handleOpenCapture("menu")} newMemory={newMemory} onSelectCapture={(c) => { setSelectedCapture(c); go("memory"); }} />;
+        return <LifeHome go={go} openCapture={(prompt) => handleOpenCapture(prompt || "menu")} newMemory={newMemory} onSelectCapture={(c) => { setSelectedCapture(c); go("memory"); }} />;
     }
   }, [view, newMemory, user, selectedCapture]);
 
@@ -1642,7 +2084,7 @@ export function MemoiaryAppShell() {
           onSelectMode={(mode) => handleOpenCapture(mode)}
         />
       )}
-      <CaptureOverlay mode={captureMode} setMode={setCaptureMode} onSaved={onSaved} />
+      <CaptureOverlay mode={captureMode} setMode={setCaptureMode} onSaved={onSaved} initialPrompt={capturePrompt} />
       <AuthLoginModal
         isOpen={showLoginModal}
         onClose={() => setShowLoginModal(false)}

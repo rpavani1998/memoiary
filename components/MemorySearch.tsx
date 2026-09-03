@@ -33,20 +33,20 @@ export function MemorySearch({ memories }: Props) {
     : [];
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 pb-24">
+    <div className="max-w-2xl mx-auto space-y-6 pb-24 font-sans">
       {/* Header */}
       <div className="space-y-1">
-        <h2 className="font-serif-editorial text-2xl font-medium text-stone-900">
+        <h2 className="font-serif text-2xl sm:text-3xl font-medium text-[#1C1917]">
           Ask Your Memory
         </h2>
-        <p className="text-xs text-stone-500 font-sans-clean">
+        <p className="text-xs text-[#665F56] font-sans">
           Search people, places, conversations, and moments in your story.
         </p>
       </div>
 
       {/* Search Input Box */}
       <div className="relative">
-        <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-stone-400">
+        <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-[#DE5239]">
           <SearchIcon className="w-5 h-5" />
         </div>
         <input
@@ -54,12 +54,12 @@ export function MemorySearch({ memories }: Props) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search your memories..."
-          className="w-full pl-12 pr-4 py-3.5 bg-white border border-[#E8E2D9] rounded-2xl text-base text-stone-800 placeholder-stone-400 outline-none focus:border-[#E09885] transition-colors shadow-2xs font-serif-editorial"
+          className="w-full pl-12 pr-4 py-3.5 bg-[#FBF9F4] border-[1.5px] border-[#1C1917] rounded-2xl text-base text-[#1C1917] placeholder-[#665F56] outline-none focus:border-[#DE5239] transition-colors shadow-[2px_3px_0px_#1C1917] font-serif"
         />
         {query && (
           <button
             onClick={() => setQuery("")}
-            className="absolute inset-y-0 right-4 flex items-center text-xs text-stone-400 hover:text-stone-700"
+            className="absolute inset-y-0 right-4 flex items-center text-xs text-[#665F56] hover:text-[#1C1917] font-semibold"
           >
             Clear
           </button>
@@ -69,18 +69,18 @@ export function MemorySearch({ memories }: Props) {
       {/* Example Prompt Chips */}
       {!query && (
         <div className="space-y-3 pt-2">
-          <p className="text-xs font-serif-editorial italic text-stone-500">
+          <p className="text-xs font-serif italic text-[#665F56]">
             Or try asking:
           </p>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2.5">
             {exampleQuestions.map((q, idx) => (
               <button
                 key={idx}
                 onClick={() => setQuery(q)}
-                className="text-left px-4 py-3 bg-white border border-[#E8E2D9] rounded-2xl text-sm font-serif-editorial text-stone-700 hover:border-[#E09885] hover:text-[#E09885] transition-all cursor-pointer flex items-center justify-between group shadow-2xs"
+                className="text-left px-4 py-3.5 bg-[#FBF9F4] border-[1.5px] border-[#1C1917] rounded-2xl text-sm font-serif text-[#1C1917] hover:bg-[#F5E5DC] hover:text-[#DE5239] transition-all cursor-pointer flex items-center justify-between group shadow-[2px_3px_0px_#1C1917]"
               >
                 <span>&ldquo;{q}&rdquo;</span>
-                <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity text-[#E09885]" />
+                <ArrowRight className="w-4 h-4 text-[#DE5239] opacity-70 group-hover:opacity-100 transition-opacity" />
               </button>
             ))}
           </div>
@@ -91,12 +91,15 @@ export function MemorySearch({ memories }: Props) {
       {query.trim() && (
         <div className="space-y-4 pt-2">
           {/* Conversational answer synthesis summary */}
-          <div className="bg-[#FAF7F2] border border-[#E8E2D9] rounded-2xl p-5 space-y-2">
-            <div className="flex items-center gap-2 text-[#E09885] text-xs font-semibold uppercase tracking-wider">
+          <div className="bg-[#F5E5DC] border-[1.5px] border-[#1C1917] rounded-2xl p-5 space-y-2 shadow-[2px_3px_0px_#1C1917]">
+            <div className="flex items-center gap-2 text-[#DE5239] text-xs font-bold uppercase tracking-wider font-sans">
               <HandDrawnIllustration type="search" size={20} />
-              <span>Memory Recall</span>
+              <span className="flex items-center gap-1">
+                <span className="node-dot" />
+                Memory Recall
+              </span>
             </div>
-            <p className="font-serif-editorial text-base text-stone-800 leading-relaxed italic">
+            <p className="font-serif text-base text-[#1C1917] leading-relaxed italic">
               {filteredMemories.length > 0
                 ? `Found ${filteredMemories.length} relevant moment${
                     filteredMemories.length > 1 ? "s" : ""
@@ -111,22 +114,23 @@ export function MemorySearch({ memories }: Props) {
               <div
                 key={mem.id}
                 onClick={() => setActiveMemory(mem)}
-                className="bg-white border border-[#E8E2D9] rounded-2xl p-5 hover:border-[#E09885]/60 transition-all cursor-pointer shadow-2xs space-y-2"
+                className="bg-[#FBF9F4] border-[1.5px] border-[#1C1917] rounded-2xl p-5 hover:shadow-[4px_6px_0px_#1C1917] hover:-translate-y-0.5 transition-all cursor-pointer shadow-[2px_3px_0px_#1C1917] space-y-2"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs uppercase tracking-widest text-[#E09885] font-semibold">
+                  <span className="text-xs uppercase tracking-widest text-[#DE5239] font-sans font-bold flex items-center gap-1.5">
+                    <span className="node-dot" />
                     {mem.date}
                   </span>
                   {mem.place && (
-                    <span className="text-xs text-stone-500 font-sans-clean">
+                    <span className="text-xs text-[#665F56] font-sans">
                       📍 {mem.place}
                     </span>
                   )}
                 </div>
-                <h4 className="font-serif-editorial text-lg text-stone-900 font-medium">
+                <h4 className="font-serif text-lg text-[#1C1917] font-medium">
                   {mem.title}
                 </h4>
-                <p className="text-sm text-stone-600 line-clamp-2 font-serif-editorial">
+                <p className="text-sm text-[#665F56] line-clamp-2 font-serif">
                   {mem.content}
                 </p>
               </div>

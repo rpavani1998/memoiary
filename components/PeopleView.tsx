@@ -24,46 +24,48 @@ export function PeopleView({ people }: Props) {
 
   if (selectedPerson) {
     return (
-      <div className="max-w-2xl mx-auto space-y-6 pb-24">
+      <div className="max-w-2xl mx-auto space-y-6 pb-24 font-sans">
         {/* Back button */}
         <button
           onClick={() => setSelectedPerson(null)}
-          className="flex items-center gap-1.5 text-xs text-stone-500 hover:text-stone-800 font-sans-clean font-medium cursor-pointer"
+          className="flex items-center gap-1.5 text-xs text-[#665F56] hover:text-[#1C1917] font-sans font-medium cursor-pointer"
         >
-          <ArrowLeft className="w-4 h-4" /> Back to People
+          <ArrowLeft className="w-4 h-4 text-[#DE5239]" /> Back to People
         </button>
 
         {/* Person Header */}
-        <div className="flex flex-col items-center justify-center text-center space-y-3 py-4">
+        <div className="flex flex-col items-center justify-center text-center space-y-3 py-4 border-[1.5px] border-[#1C1917] bg-[#FBF9F4] rounded-3xl p-6 shadow-[3px_4px_0px_#1C1917]">
           {selectedPerson.photoUrl ? (
             <img
               src={selectedPerson.photoUrl}
               alt={selectedPerson.name}
-              className="w-20 h-20 rounded-full object-cover border-2 border-[#E8E2D9]"
+              className="w-20 h-20 rounded-full object-cover border-2 border-[#1C1917]"
             />
           ) : (
-            <div className="p-3 bg-[#FAF0EB] rounded-full border border-[#E8E2D9]">
+            <div className="p-3 bg-[#F5E5DC] rounded-full border-[1.5px] border-[#1C1917]">
               <HandDrawnIllustration type="person_abstract" size={48} />
             </div>
           )}
 
           <div>
-            <h2 className="font-serif-editorial text-2xl font-medium text-stone-900">
+            <h2 className="font-serif text-2xl sm:text-3xl font-medium text-[#1C1917]">
               {selectedPerson.name}
             </h2>
             {selectedPerson.roleOrCompany && (
-              <p className="text-xs text-stone-500 font-sans-clean">
+              <p className="text-xs text-[#665F56] font-sans mt-0.5">
                 {selectedPerson.roleOrCompany}
               </p>
             )}
           </div>
 
-          <p className="text-sm font-serif-editorial italic text-stone-600">
+          <p className="text-sm font-serif italic text-[#665F56]">
             Your story with {selectedPerson.name}
           </p>
-        </div>
 
-        <hr className="border-[#E8E2D9]" />
+          <span className="px-3.5 py-1 bg-[#F5E5DC] border border-[#DE5239]/30 rounded-full text-xs text-[#DE5239] font-sans font-semibold">
+            {selectedPerson.memoriesCount} memories
+          </span>
+        </div>
 
         {/* Chronological Story Timeline */}
         <div className="space-y-4">
@@ -71,25 +73,20 @@ export function PeopleView({ people }: Props) {
             <div
               key={mem.id}
               onClick={() => setActiveMemory(mem)}
-              className="bg-white border border-[#E8E2D9] rounded-2xl p-5 hover:border-[#E09885]/50 transition-all cursor-pointer shadow-2xs space-y-2"
+              className="bg-[#FBF9F4] border-[1.5px] border-[#1C1917] rounded-2xl p-5 hover:shadow-[4px_6px_0px_#1C1917] hover:-translate-y-0.5 transition-all cursor-pointer shadow-[2px_3px_0px_#1C1917] space-y-2"
             >
-              <span className="text-xs uppercase tracking-widest text-[#E09885] font-semibold">
+              <span className="text-xs uppercase tracking-widest text-[#DE5239] font-sans font-bold flex items-center gap-1.5">
+                <span className="node-dot" />
                 {mem.date}
               </span>
-              <h4 className="font-serif-editorial text-lg text-stone-900 font-medium">
+              <h4 className="font-serif text-lg text-[#1C1917] font-medium">
                 {mem.title}
               </h4>
-              <p className="text-sm text-stone-600 line-clamp-2 font-serif-editorial">
+              <p className="text-sm text-[#665F56] line-clamp-2 font-serif">
                 {mem.content}
               </p>
             </div>
           ))}
-        </div>
-
-        <div className="text-center pt-4">
-          <span className="px-4 py-1.5 bg-[#FAF7F2] border border-[#E8E2D9] rounded-full text-xs text-stone-500 font-medium">
-            {selectedPerson.memoriesCount} memories
-          </span>
         </div>
 
         <MemoryDetailModal memory={activeMemory} onClose={() => setActiveMemory(null)} />
@@ -98,12 +95,12 @@ export function PeopleView({ people }: Props) {
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 pb-24">
+    <div className="max-w-2xl mx-auto space-y-6 pb-24 font-sans">
       <div>
-        <h2 className="font-serif-editorial text-2xl font-medium text-stone-900">
+        <h2 className="font-serif text-2xl sm:text-3xl font-medium text-[#1C1917]">
           People
         </h2>
-        <p className="text-xs text-stone-500 font-sans-clean mt-1">
+        <p className="text-xs text-[#665F56] font-sans mt-1">
           The people remembered in your story.
         </p>
       </div>
@@ -113,34 +110,34 @@ export function PeopleView({ people }: Props) {
           <div
             key={person.id}
             onClick={() => setSelectedPerson(person)}
-            className="bg-white border border-[#E8E2D9] rounded-2xl p-5 flex items-center justify-between hover:border-[#E09885]/60 transition-all cursor-pointer shadow-2xs"
+            className="bg-[#FBF9F4] border-[1.5px] border-[#1C1917] rounded-2xl p-5 flex items-center justify-between hover:shadow-[4px_6px_0px_#1C1917] hover:-translate-y-0.5 transition-all cursor-pointer shadow-[2px_3px_0px_#1C1917]"
           >
             <div className="flex items-center gap-3.5">
               {person.photoUrl ? (
                 <img
                   src={person.photoUrl}
                   alt={person.name}
-                  className="w-12 h-12 rounded-full object-cover border border-[#E8E2D9]"
+                  className="w-12 h-12 rounded-full object-cover border-[1.5px] border-[#1C1917]"
                 />
               ) : (
-                <div className="p-2 bg-[#FAF0EB] rounded-full border border-[#E8E2D9]">
+                <div className="p-2 bg-[#F5E5DC] rounded-full border-[1.5px] border-[#1C1917]">
                   <HandDrawnIllustration type="person_abstract" size={28} />
                 </div>
               )}
 
               <div>
-                <h3 className="font-serif-editorial text-lg font-medium text-stone-900">
+                <h3 className="font-serif text-lg font-medium text-[#1C1917]">
                   {person.name}
                 </h3>
                 {person.roleOrCompany && (
-                  <p className="text-xs text-stone-500 font-sans-clean">
+                  <p className="text-xs text-[#665F56] font-sans">
                     {person.roleOrCompany}
                   </p>
                 )}
               </div>
             </div>
 
-            <span className="text-xs text-stone-500 font-sans-clean font-medium">
+            <span className="text-xs text-[#DE5239] font-sans font-semibold px-2.5 py-1 bg-[#F5E5DC] rounded-full border border-[#DE5239]/30">
               {person.memoriesCount} memories
             </span>
           </div>

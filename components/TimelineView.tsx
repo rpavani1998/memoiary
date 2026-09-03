@@ -35,10 +35,10 @@ export function TimelineView({ entries }: Props) {
   return (
     <div className="max-w-xl mx-auto space-y-10 pb-28">
       <div className="text-center space-y-1">
-        <h2 className="font-serif-editorial text-2xl font-medium text-stone-900">
+        <h2 className="font-serif text-2xl sm:text-3xl font-medium text-[#1C1917]">
           Timeline
         </h2>
-        <p className="text-xs text-stone-500 font-sans-clean">
+        <p className="text-xs text-[#665F56] font-sans">
           A quiet stream of your lived experiences.
         </p>
       </div>
@@ -47,7 +47,8 @@ export function TimelineView({ entries }: Props) {
         <div key={dateGroup} className="space-y-6">
           {/* Date header */}
           <div className="text-center py-2">
-            <span className="text-xs uppercase tracking-widest text-stone-500 font-sans-clean font-semibold">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#F5E5DC] border border-[#DE5239]/30 rounded-full text-[11px] uppercase tracking-widest text-[#DE5239] font-sans font-bold">
+              <span className="node-dot" />
               {dateGroup}
             </span>
           </div>
@@ -70,26 +71,26 @@ export function TimelineView({ entries }: Props) {
                       hasAudio: item.hasAudio,
                     })
                   }
-                  className="bg-white border border-[#E8E2D9] rounded-2xl p-5 hover:border-[#E09885]/60 transition-all cursor-pointer shadow-2xs space-y-2 relative"
+                  className="bg-[#FBF9F4] border-[1.5px] border-[#1C1917] rounded-2xl p-5 hover:shadow-[4px_6px_0px_#1C1917] hover:-translate-y-0.5 transition-all cursor-pointer shadow-[2px_3px_0px_#1C1917] space-y-2 relative"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-sans-clean text-stone-400 font-medium">
+                    <span className="text-xs font-sans text-[#665F56] font-medium">
                       {item.time}
                     </span>
                     {item.place && (
-                      <span className="text-xs text-[#E09885] font-sans-clean font-medium">
+                      <span className="text-xs text-[#DE5239] font-sans font-semibold">
                         {item.place}
                       </span>
                     )}
                   </div>
 
                   {item.title && (
-                    <h3 className="font-serif-editorial text-lg font-medium text-stone-900">
+                    <h3 className="font-serif text-lg font-medium text-[#1C1917]">
                       {item.title}
                     </h3>
                   )}
 
-                  <p className="font-serif-editorial text-stone-700 text-sm leading-relaxed">
+                  <p className="font-serif text-[#1C1917] text-sm leading-relaxed">
                     {item.content}
                   </p>
 
@@ -104,7 +105,7 @@ export function TimelineView({ entries }: Props) {
                 {/* Bullet dot separator between entries */}
                 {idx < groupEntries.length - 1 && (
                   <div className="flex justify-center py-1">
-                    <span className="text-stone-300 text-sm font-bold">•</span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#DE5239]" />
                   </div>
                 )}
               </div>
