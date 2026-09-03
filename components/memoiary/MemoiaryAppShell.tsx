@@ -400,39 +400,18 @@ function LifeHome({
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
 
   return (
-    <div className="pb-32 font-sans">
-      <header className="px-5 pt-6 sm:px-8 sm:pt-8">
-        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
-          <Brand />
-          <div className="flex items-center gap-2">
-            <IconButton label="Search your life" onClick={() => go("search")}>
-              <Search size={18} />
-            </IconButton>
-            <button
-              onClick={() => go("you")}
-              className="w-8 h-8 rounded-full overflow-hidden border border-stone-200 hover:border-amber-400 transition-colors cursor-pointer flex-shrink-0"
-              title="You"
-            >
-              <img
-                src={user?.photoURL || imageAssets.logo}
-                alt="You"
-                className="w-full h-full object-cover"
-              />
-            </button>
-          </div>
-        </div>
-
-        {/* Timeline View Mode Switcher: DAY | WEEK | MONTH */}
-        <TimelineViewSwitcher
-          selectedDate={selectedDate}
-          onSelectDate={(d) => setSelectedDate(d)}
-          activeMode={timelineMode}
-          onModeChange={(m) => setTimelineMode(m)}
-          availableDates={availableDates}
-          uniqueDaysLogged={uniqueDaysLogged}
-          showFullCalendar={showFullCalendar}
-          onToggleCalendar={() => setShowFullCalendar(!showFullCalendar)}
-        />
+    <div className="pb-32 font-sans px-5 sm:px-8 pt-2 space-y-4">
+      {/* Timeline View Mode Switcher: DAY | WEEK | MONTH */}
+      <TimelineViewSwitcher
+        selectedDate={selectedDate}
+        onSelectDate={(d) => setSelectedDate(d)}
+        activeMode={timelineMode}
+        onModeChange={(m) => setTimelineMode(m)}
+        availableDates={availableDates}
+        uniqueDaysLogged={uniqueDaysLogged}
+        showFullCalendar={showFullCalendar}
+        onToggleCalendar={() => setShowFullCalendar(!showFullCalendar)}
+      />
 
         {/* Date Navigation Bar when in Day Mode */}
         {timelineMode === "day" && (
@@ -494,7 +473,6 @@ function LifeHome({
             </span>
           </div>
         )}
-      </header>
 
       {/* Main Feed Content depending on Timeline Mode */}
       <main className="mt-6 px-5 sm:px-8 space-y-4">
