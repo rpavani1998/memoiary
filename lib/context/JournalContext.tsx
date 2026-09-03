@@ -208,23 +208,8 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
     } catch (error: any) {
       console.warn("Google Auth error:", error?.code, error?.message);
       if (error?.code === "auth/unauthorized-domain") {
-        console.warn("Domain unauthorized in Firebase Console. Falling back to Anonymous Auth...");
-        try {
-          await signInAnonymously(auth);
-          setSaveError("Google domain unauthorized in Firebase Console. Logged in via Anonymous Session.");
-          return;
-        } catch (anonErr) {
-          const guestUser = {
-            uid: "guest_user_" + Date.now().toString(36),
-            displayName: "Guest User",
-            email: "guest@journal.local",
-            photoURL: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80",
-            getIdToken: async () => "demo_guest_token",
-          };
-          setUser(guestUser as any);
-          setSaveError(null);
-          return;
-        }
+        setSaveError("This domain is not authorized in Firebase Console. Add it to Authentication > Authorized domains.");
+        return;
       } else if (error?.code === "auth/popup-closed-by-user") {
         setSaveError("Sign in popup was closed. Please try again.");
       } else {
@@ -239,15 +224,8 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
       await signInAnonymously(auth);
       setSaveError(null);
     } catch (anonErr) {
-      const guestUser = {
-        uid: "guest_user_" + Date.now().toString(36),
-        displayName: "Guest User",
-        email: "guest@journal.local",
-        photoURL: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80",
-        getIdToken: async () => "demo_guest_token",
-      };
-      setUser(guestUser as any);
-      setSaveError(null);
+      console.warn("Anonymous auth failed:", anonErr);
+      setSaveError("Anonymous sign-in is not enabled. Enable it in Firebase Console > Authentication > Sign-in method.");
     }
   };
 
@@ -272,9 +250,7 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
   // Auth state
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      if (firebaseUser) {
-        setUser(firebaseUser);
-      }
+      setUser(firebaseUser);
       setLoading(false);
     });
     return () => unsubscribe();

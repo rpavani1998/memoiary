@@ -285,10 +285,12 @@ function LifeHome({
   go,
   openCapture,
   newMemory,
+  onSelectCapture,
 }: {
   go: (view: View) => void;
   openCapture: () => void;
   newMemory: CapturedMemory | null;
+  onSelectCapture: (capture: any) => void;
 }) {
   const { user, captures, streak } = useJournal();
   const [bannerDismissed, setBannerDismissed] = useState(false);
@@ -387,7 +389,7 @@ function LifeHome({
             <button
               key={capture.id}
               className="thought-memory cursor-pointer"
-              onClick={() => go("memory")}
+              onClick={() => onSelectCapture(capture)}
             >
               <span className="flex items-center justify-between">
                 <span className="memory-kicker">
@@ -397,9 +399,14 @@ function LifeHome({
                 </span>
                 <span className="memory-meta">{formatTime(capture.createdAt)}</span>
               </span>
+              {(capture.episodes?.[0]?.title || dims?.summary) && (
+                <h3 className="font-serif font-medium text-stone-900 text-base mt-1 leading-snug">
+                  {capture.episodes?.[0]?.title || dims?.summary?.substring(0, 50)}
+                </h3>
+              )}
               {dims ? (
                 <>
-                  <blockquote className="font-serif">&ldquo;{dims.summary}&rdquo;</blockquote>
+                  <blockquote className="font-serif text-stone-600 text-sm">&ldquo;{dims.summary}&rdquo;</blockquote>
                   <div className="flex flex-wrap gap-1.5 mt-2">
                     {dims.mood && (
                       <span className="text-[0.65rem] px-2 py-0.5 bg-stone-100 rounded-full text-stone-600">
@@ -448,11 +455,19 @@ function LifeHome({
 }
 
 function PeopleViewSection({ go }: { go: (view: View) => void }) {
-  const people = [
-    { name: "Sarah", count: 42, note: "Started with a coffee in March 2024", image: imageAssets.rooftopChai },
-    { name: "Mom", count: 87, note: "Home, recipes, quiet phone calls", image: imageAssets.cafeNotes },
-    { name: "Arjun", count: 28, note: "Goa, old jokes, and long walks", image: imageAssets.doorwayShoes },
-  ];
+  const { captures } = useJournal();
+  const peopleAcc: Record<string, { count: number; lastNote: string }> = {};
+  captures.forEach((c) => {
+    c.dimensions?.people?.forEach((p: string) => {
+      if (!peopleAcc[p]) peopleAcc[p] = { count: 0, lastNote: "" };
+      peopleAcc[p].count++;
+      if (c.dimensions?.summary) peopleAcc[p].lastNote = c.dimensions.summary.substring(0, 60);
+    });
+  });
+  const people = Object.entries(peopleAcc)
+    .map(([name, data]) => ({ name, ...data }))
+    .sort((a, b) => b.count - a.count);
+
   return (
     <div className="pb-32">
       <PageHeader
@@ -466,21 +481,26 @@ function PeopleViewSection({ go }: { go: (view: View) => void }) {
       />
       <main className="px-5 sm:px-8">
         <p className="intro-copy">The people who keep appearing in your memories.</p>
-        <div className="people-stack">
-          {people.map((person, index) => (
-            <button key={person.name} onClick={() => go("person")} className="person-row cursor-pointer hover:bg-stone-50/60 px-2 rounded-lg transition-colors">
-              <span className="person-portrait">
-                <img src={person.image} alt={person.name} loading="lazy" /> <i>{index + 1}</i>
-              </span>
-              <span className="min-w-0 text-left">
-                <strong className="font-serif text-lg font-medium text-stone-900">{person.name}</strong>
-                <small>{person.count} memories together</small>
-                <em>{person.note}</em>
-              </span>
-              <ChevronRight size={17} className="text-stone-400" />
-            </button>
-          ))}
-        </div>
+        {people.length > 0 ? (
+          <div className="people-stack">
+            {people.map((person, index) => (
+              <button key={person.name} onClick={() => go("person")} className="person-row cursor-pointer hover:bg-stone-50/60 px-2 rounded-lg transition-colors">
+                <span className="person-portrait">
+                  <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 font-serif text-lg">{person.name[0]}</div>
+                  <i>{index + 1}</i>
+                </span>
+                <span className="min-w-0 text-left">
+                  <strong className="font-serif text-lg font-medium text-stone-900">{person.name}</strong>
+                  <small>{person.count} memor{person.count === 1 ? "y" : "ies"} together</small>
+                  {person.lastNote && <em>{person.lastNote}</em>}
+                </span>
+                <ChevronRight size={17} className="text-stone-400" />
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p className="text-stone-400 text-sm text-center py-8">No people detected yet. Capture memories and Memoiary will find them.</p>
+        )}
         <p className="notice">
           <Sparkles size={14} className="text-amber-600 shrink-0" />
           People emerge naturally as your life takes shape.
@@ -489,6 +509,7 @@ function PeopleViewSection({ go }: { go: (view: View) => void }) {
     </div>
   );
 }
+
 
 function PersonViewSection({ go }: { go: (view: View) => void }) {
   const moments = [
@@ -591,38 +612,45 @@ function ExploreViewSection({ go }: { go: (view: View) => void }) {
 }
 
 function PlacesViewSection({ go }: { go: (view: View) => void }) {
+  const { captures } = useJournal();
+  const placesAcc: Record<string, { count: number; lastNote: string }> = {};
+  captures.forEach((c) => {
+    c.dimensions?.places?.forEach((p: string) => {
+      if (!placesAcc[p]) placesAcc[p] = { count: 0, lastNote: "" };
+      placesAcc[p].count++;
+      if (c.dimensions?.summary) placesAcc[p].lastNote = c.dimensions.summary.substring(0, 60);
+    });
+  });
+  const places = Object.entries(placesAcc)
+    .map(([name, data]) => ({ name, ...data }))
+    .sort((a, b) => b.count - a.count);
+
   return (
     <div className="pb-28">
       <PageHeader title="My Places" eyebrow="A geography of you" onBack={() => go("explore")} />
       <main>
-        <div className="memory-map" aria-label="Memory map of Hyderabad">
-          <div className="map-roads" />
-          <button className="map-marker marker-home cursor-pointer">
-            <i />Home<small>31</small>
-          </button>
-          <button onClick={() => go("place")} className="map-marker marker-cafe cursor-pointer">
-            <i />Third Wave<small>17</small>
-          </button>
-          <button className="map-marker marker-park cursor-pointer">
-            <i />KBR Park<small>8</small>
-          </button>
-          <div className="map-label font-serif text-stone-900">Hyderabad</div>
-        </div>
         <section className="px-5 sm:px-8">
           <p className="eyebrow mt-7">Places that hold you</p>
-          <button onClick={() => go("place")} className="place-feature cursor-pointer">
-            <div>
-              <strong className="font-serif text-xl font-medium text-stone-900">Third Wave Coffee</strong>
-              <small>17 memories · 2025—2026</small>
-              <q>You seem to think differently when you’re here.</q>
-            </div>
-            <ChevronRight size={18} className="text-stone-400" />
-          </button>
+          {places.length > 0 ? (
+            places.map((place) => (
+              <button key={place.name} onClick={() => go("place")} className="place-feature cursor-pointer">
+                <div>
+                  <strong className="font-serif text-xl font-medium text-stone-900">{place.name}</strong>
+                  <small>{place.count} memor{place.count === 1 ? "y" : "ies"}</small>
+                  {place.lastNote && <q>{place.lastNote}</q>}
+                </div>
+                <ChevronRight size={18} className="text-stone-400" />
+              </button>
+            ))
+          ) : (
+            <p className="text-stone-400 text-sm py-4">No places detected yet. Capture memories with location context.</p>
+          )}
         </section>
       </main>
     </div>
   );
 }
+
 
 function PlaceViewSection({ go }: { go: (view: View) => void }) {
   return (
@@ -655,102 +683,41 @@ function PlaceViewSection({ go }: { go: (view: View) => void }) {
 }
 
 function ThoughtsViewSection({ go }: { go: (view: View) => void }) {
+  const { captures } = useJournal();
+  const topicsAcc: Record<string, { count: number; lastSummary: string }> = {};
+  captures.forEach((c) => {
+    c.dimensions?.topics?.forEach((t: string) => {
+      if (!topicsAcc[t]) topicsAcc[t] = { count: 0, lastSummary: "" };
+      topicsAcc[t].count++;
+      if (c.dimensions?.summary) topicsAcc[t].lastSummary = c.dimensions.summary.substring(0, 80);
+    });
+  });
+  const topics = Object.entries(topicsAcc)
+    .map(([name, data]) => ({ name, ...data }))
+    .sort((a, b) => b.count - a.count);
+
   return (
     <div className="pb-28">
-      <PageHeader title="My Thoughts" eyebrow="Ideas in motion" onBack={() => go("explore")} />
+      <PageHeader title="Thought Threads" eyebrow="Ideas that recur" onBack={() => go("explore")} />
       <main className="px-5 sm:px-8">
-        <p className="intro-copy">Not notes. The paths your thoughts have taken.</p>
-        <button className="thought-feature cursor-pointer" onClick={() => go("thought")}>
-          <span className="memory-kicker">Evolving since April</span>
-          <h2 className="font-serif font-medium text-stone-900">Starting my own company</h2>
-          <div className="mini-evolution">
-            <i /><i /><i /><i /><i />
+        {topics.length > 0 ? (
+          <div className="space-y-3">
+            {topics.map((topic) => (
+              <button key={topic.name} className="w-full text-left p-4 bg-white border border-stone-200/80 rounded-2xl hover:bg-stone-50 cursor-pointer transition-colors">
+                <strong className="font-serif text-base font-medium text-stone-900">{topic.name}</strong>
+                <small className="block text-stone-500 text-xs mt-1">{topic.count} related memories</small>
+                {topic.lastSummary && <em className="block text-stone-600 text-sm mt-1">{topic.lastSummary}</em>}
+              </button>
+            ))}
           </div>
-          <p>Question → Exploration → Decision → Action</p>
-          <ChevronRight size={18} className="text-stone-400" />
-        </button>
-        <button className="thought-feature quiet cursor-pointer" onClick={() => go("thought")}>
-          <span className="memory-kicker">Returning thought</span>
-          <h2 className="font-serif font-medium text-stone-900">What does home mean now?</h2>
-          <p>12 fragments across 3 years</p>
-          <ChevronRight size={18} className="text-stone-400" />
-        </button>
+        ) : (
+          <p className="text-stone-400 text-sm py-8">No thought threads yet. Capture more memories and patterns will emerge.</p>
+        )}
       </main>
     </div>
   );
 }
 
-function ThoughtThreadSection({ go }: { go: (view: View) => void }) {
-  const points = [
-    ["April", "THOUGHT", "Sometimes I wonder whether I should build something myself."],
-    ["June", "QUESTION", "Sarah thinks we could actually make this work."],
-    ["July", "EXPLORATION", "What would I even build?"],
-    ["August", "DECISION", "I’m seriously thinking about leaving."],
-    ["September", "ACTION", "I decided I’m going to try."],
-    ["December", "REFLECTION", "You did."],
-  ];
-  return (
-    <div className="pb-24">
-      <PageHeader title="Starting my own company" eyebrow="An evolving thought" onBack={() => go("thoughts")} />
-      <main className="px-5 sm:px-8">
-        <div className="evolution-thread">
-          {points.map(([month, type, text], i) => (
-            <article key={month} className={i === points.length - 1 ? "final" : ""}>
-              <span className="thread-node" />
-              <small>
-                {month} · {type}
-              </small>
-              {i === 5 && <img src={imageAssets.cafeNotes} alt="First office ideas" />}
-              <blockquote className="font-serif text-stone-800">“{text}”</blockquote>
-            </article>
-          ))}
-        </div>
-      </main>
-    </div>
-  );
-}
-
-function ConnectionsViewSection({ go }: { go: (view: View) => void }) {
-  const [focus, setFocus] = useState("Sarah");
-  const nodes =
-    focus === "Sarah"
-      ? ["Goa", "Startup", "Third Wave", "Birthday", "Design", "Hyderabad"]
-      : ["Sarah", "Monsoon", "Home", "2026", "Airport", "Chai"];
-  return (
-    <div className="min-h-screen bg-constellation pb-24 text-constellation">
-      <PageHeader title="Connections" eyebrow="Your memory constellation" onBack={() => go("explore")} />
-      <main className="px-4">
-        <p className="constellation-hint">Tap any point. Watch your life rearrange around it.</p>
-        <div className="constellation" key={focus}>
-          <svg viewBox="0 0 360 420" aria-hidden="true">
-            <path d="M180 205 C118 142 83 115 48 80 M180 205 C250 140 287 105 315 74 M180 205 C110 220 74 244 45 278 M180 205 C247 220 290 245 323 283 M180 205 C165 285 149 327 120 359 M180 205 C214 291 235 325 270 356" />
-          </svg>
-          <button
-            className="center-node cursor-pointer"
-            onClick={() => setFocus(focus === "Sarah" ? "Goa" : "Sarah")}
-          >
-            {focus}
-            <small>{focus === "Sarah" ? "42 memories" : "11 moments"}</small>
-          </button>
-          {nodes.map((node, i) => (
-            <button
-              key={node}
-              className={`orbit-node n${i + 1} cursor-pointer`}
-              onClick={() => setFocus(node)}
-            >
-              <i />
-              {node}
-            </button>
-          ))}
-        </div>
-        <p className="text-center font-serif text-lg italic mt-4">
-          “The same idea appears wherever you and Sarah talk over coffee.”
-        </p>
-        <p className="mt-2 text-center text-xs text-constellation-muted">Possible connection · You can correct this</p>
-      </main>
-    </div>
-  );
-}
 
 function ChaptersViewSection({ go }: { go: (view: View) => void }) {
   const chapters = [
@@ -834,7 +801,7 @@ function StoryViewSection({ go }: { go: (view: View) => void }) {
   );
 }
 
-function SearchViewSection({ go }: { go: (view: View) => void }) {
+function SearchViewSection({ go, onSelectCapture }: { go: (view: View) => void; onSelectCapture: (c: any) => void }) {
   const { user } = useJournal();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<any[]>([]);
@@ -922,7 +889,7 @@ function SearchViewSection({ go }: { go: (view: View) => void }) {
                   const c = r.capture;
                   const dims = c.dimensions;
                   return (
-                    <button key={c.id || i} onClick={() => go("memory")} className="cursor-pointer">
+                    <button key={c.id || i} onClick={() => onSelectCapture(c)} className="cursor-pointer">
                       <span className="result-icon">
                         {getSourceIcon(c.source)}
                       </span>
@@ -949,11 +916,39 @@ function SearchViewSection({ go }: { go: (view: View) => void }) {
   );
 }
 
-function MemoryDetailSection({ go }: { go: (view: View) => void }) {
+function ThoughtThreadSection({ go }: { go: (view: View) => void }) {
+  return (
+    <div className="pb-24">
+      <PageHeader title="Thought Thread" eyebrow="A recurring idea" onBack={() => go("thoughts")} />
+      <main className="px-5 sm:px-8">
+        <p className="text-stone-400 text-sm py-8">This thought thread will populate as you capture more memories on this topic.</p>
+      </main>
+    </div>
+  );
+}
+
+function ConnectionsViewSection({ go }: { go: (view: View) => void }) {
+  return (
+    <div className="pb-24">
+      <PageHeader title="Connections" eyebrow="How memories link" onBack={() => go("life")} />
+      <main className="px-5 sm:px-8">
+        <p className="text-stone-400 text-sm py-8">Connections between your memories will appear here as patterns emerge.</p>
+      </main>
+    </div>
+  );
+}
+
+function MemoryDetailSection({ go, capture }: { go: (view: View) => void; capture: any }) {
+  const dims = capture?.dimensions;
+  const date = capture?.createdAt ? new Date(capture.createdAt) : new Date();
+  const timeStr = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  const dateStr = date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  const sourceLabel = capture?.source === "voice" ? "Voice memory" : capture?.source === "image" ? "Photo" : capture?.source === "video" ? "Video" : "Capture";
+
   return (
     <div className="pb-24">
       <PageHeader
-        title="Sunday chai"
+        title={dims?.summary?.substring(0, 40) || sourceLabel}
         eyebrow="A memory"
         onBack={() => go("life")}
         action={
@@ -963,60 +958,50 @@ function MemoryDetailSection({ go }: { go: (view: View) => void }) {
         }
       />
       <main>
-        <img className="memory-hero" src={imageAssets.rooftopChai} alt="Two friends sharing Sunday chai" />
         <section className="memory-detail px-5 sm:px-8">
           <p className="exact-words font-serif text-stone-900">
-            “Maybe we should actually stop talking about it and build it.”
+            &ldquo;{capture?.content || "No content"}&rdquo;
           </p>
-          <p className="memory-meta mt-3">You said · September 2 · 6:42 PM</p>
+          <p className="memory-meta mt-3">You said · {dateStr} · {timeStr}</p>
           <div className="context-grid">
-            <span>
-              <MapPin /> Third Wave Coffee
-            </span>
-            <span>
-              <UserRound /> Sarah
-            </span>
-            <span>
-              <Heart /> Excited · uncertain
-            </span>
-            <span>
-              <PenLine /> Starting the company
-            </span>
+            {dims?.places?.[0] && (
+              <span><MapPin /> {dims.places[0]}</span>
+            )}
+            {dims?.people?.map((p: string, i: number) => (
+              <span key={i}><UserRound /> {p}</span>
+            ))}
+            {dims?.mood && (
+              <span><Heart /> {dims.mood}</span>
+            )}
+            {dims?.topics?.slice(0, 2).map((t: string, i: number) => (
+              <span key={i}><PenLine /> {t}</span>
+            ))}
           </div>
-          <div className="noticed">
-            <span>
-              <Sparkles /> Memoiary noticed
-            </span>
-            <p className="font-serif">This may be connected to <strong>Starting my own company</strong>.</p>
-            <div>
-              <button className="cursor-pointer font-medium">Correct</button>
-              <button className="cursor-pointer">Not related</button>
+          {dims?.emotions?.length > 0 && (
+            <div className="mt-3">
+              <span className="text-xs text-stone-500 font-sans">Emotions</span>
+              <div className="flex flex-wrap gap-1.5 mt-1">
+                {dims.emotions.map((e: any, i: number) => (
+                  <span key={i} className="text-xs px-2 py-0.5 bg-amber-50 rounded-full text-amber-700">{e.label}</span>
+                ))}
+              </div>
             </div>
-          </div>
-          <h2 className="section-title font-serif font-medium text-stone-900">Connected to</h2>
-          <div className="connected-row">
-            <button onClick={() => go("memory")} className="cursor-pointer">
-              <small>June 14</small>Coffee with Sarah
-            </button>
-            <button onClick={() => go("thought")} className="cursor-pointer">
-              <small>July 3</small>“Maybe we should build this.”
-            </button>
-            <button onClick={() => go("explore")} className="cursor-pointer">
-              <small>August</small>Startup ideas
-            </button>
-          </div>
-          <div className="insight">
-            <span>Looking back</span>
-            <p className="font-serif text-stone-800">
-              You returned to this idea five times before this moment. This was the first time you said <em>build</em>, not{" "}
-              <em>maybe</em>.
-            </p>
-          </div>
+          )}
+          {dims?.tone && (
+            <p className="text-sm text-stone-500 mt-3">Tone: {dims.tone}</p>
+          )}
+          {capture?.mediaCtx && (
+            <div className="mt-3 p-3 bg-stone-50 rounded-xl">
+              <span className="text-xs text-stone-500 font-sans">AI Analysis</span>
+              <p className="text-sm text-stone-700 mt-1">{capture.mediaCtx}</p>
+            </div>
+          )}
         </section>
       </main>
     </div>
   );
 }
+
 
 function ProfileViewSection({ go }: { go: (view: View) => void }) {
   const { user, logOut, streak, captures } = useJournal();
@@ -1134,6 +1119,7 @@ function CaptureOverlay({
   const [saving, setSaving] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
   const [analysisText, setAnalysisText] = useState("");
+  const [startingMedia, setStartingMedia] = useState(false);
   const videoElRef = useRef<HTMLVideoElement>(null);
   const prevModeRef = useRef<CaptureMode>(null);
 
@@ -1169,7 +1155,19 @@ function CaptureOverlay({
 
   if (!mode) return null;
 
-  const toggleLocation = () => setLocation((c) => (c ? undefined : "Banjara Hills, Hyderabad"));
+  const toggleLocation = () => {
+    if (location) { setLocation(undefined); return; }
+    if (!navigator.geolocation) { setLocation("Unknown location"); return; }
+    setLocation("Getting location...");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setLocation(`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+      },
+      () => { setLocation("Location unavailable"); },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  };
   const memLoc = (kind: CapturedMemory["kind"], t: string): CapturedMemory =>
     location ? { kind, text: t, location } : { kind, text: t };
 
@@ -1388,14 +1386,19 @@ function CaptureOverlay({
               <>
                 <h2 className="font-serif font-medium text-stone-900 text-xl">Ready to capture your voice</h2>
                 <p className="text-stone-500 text-sm mt-1">Tap the mic to start recording</p>
+                {startingMedia && <p className="text-amber-600 text-sm mt-2 animate-pulse">Requesting mic access...</p>}
+                {media.error && <p className="text-rose-600 text-sm mt-2">{media.error}</p>}
               </>
             )}
             <div className={`voice-orbit ${media.isRecording ? "active" : ""}`}>
               {Array.from({ length: 24 }).map((_, i) => (<i key={i} style={{ "--i": i } as React.CSSProperties} />))}
             </div>
             <button className="record-button cursor-pointer" aria-label={media.isRecording ? "Stop recording" : "Start recording"}
-              onClick={() => { if (media.isRecording) { handleVoiceSave(); } else { media.startAudioRecording(); } }}
-              disabled={saving}>
+              onClick={() => {
+                if (media.isRecording) { handleVoiceSave(); }
+                else { setStartingMedia(true); media.startAudioRecording().finally(() => setStartingMedia(false)); }
+              }}
+              disabled={saving || startingMedia}>
               {media.isRecording ? <Pause /> : <Mic />}
             </button>
             <button className={`location-capture cursor-pointer ${location ? "active" : ""}`} onClick={toggleLocation}>
@@ -1602,6 +1605,7 @@ export function MemoiaryAppShell() {
   const [pendingCaptureMode, setPendingCaptureMode] = useState<CaptureMode>(null);
   const [saved, setSaved] = useState(false);
   const [newMemory, setNewMemory] = useState<CapturedMemory | null>(null);
+  const [selectedCapture, setSelectedCapture] = useState<any>(null);
 
   // Splash loading screen timer (2.5 seconds like Swiggy/Blinkit)
   useEffect(() => {
@@ -1651,7 +1655,7 @@ export function MemoiaryAppShell() {
   const content = useMemo(() => {
     switch (view) {
       case "life":
-        return <LifeHome go={go} openCapture={() => handleOpenCapture("menu")} newMemory={newMemory} />;
+        return <LifeHome go={go} openCapture={() => handleOpenCapture("menu")} newMemory={newMemory} onSelectCapture={(c) => { setSelectedCapture(c); go("memory"); }} />;
       case "people":
         return <PeopleViewSection go={go} />;
       case "person":
@@ -1675,15 +1679,15 @@ export function MemoiaryAppShell() {
       case "story":
         return <StoryViewSection go={go} />;
       case "search":
-        return <SearchViewSection go={go} />;
+        return <SearchViewSection go={go} onSelectCapture={(c) => { setSelectedCapture(c); go("memory"); }} />;
       case "profile":
         return <ProfileViewSection go={go} />;
       case "memory":
-        return <MemoryDetailSection go={go} />;
+        return <MemoryDetailSection go={go} capture={selectedCapture} />;
       case "empty":
         return <EmptyViewSection go={go} capture={() => handleOpenCapture("menu")} />;
       case "onboarding":
-        return <LifeHome go={go} openCapture={() => handleOpenCapture("menu")} newMemory={newMemory} />;
+        return <LifeHome go={go} openCapture={() => handleOpenCapture("menu")} newMemory={newMemory} onSelectCapture={(c) => { setSelectedCapture(c); go("memory"); }} />;
     }
   }, [view, newMemory, user]);
 
