@@ -2227,10 +2227,6 @@ function BottomNav({
         <Compass />
         <span>Explore</span>
       </button>
-      <button className={`cursor-pointer ${active === "profile" ? "active" : ""}`} onClick={() => go("profile")}>
-        <CircleUserRound />
-        <span>You</span>
-      </button>
     </nav>
   );
 }

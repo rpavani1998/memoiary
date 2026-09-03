@@ -4,11 +4,7 @@ import React, { useState } from "react";
 import {
   Sparkles,
   Play,
-  Pause,
-  Plus,
   MapPin,
-  Heart,
-  ChevronRight,
   FolderPlus,
   Compass,
   Users,
@@ -16,8 +12,8 @@ import {
   X,
   Volume2,
   VolumeX,
-  Calendar,
-  Layers
+  Layers,
+  Plus
 } from "lucide-react";
 import { ArtisticAvatar } from "./ArtisticAvatar";
 import { CaptureSession } from "@/lib/memory-engine/types";
@@ -26,7 +22,7 @@ interface CollectionAlbum {
   id: string;
   title: string;
   category: "trip" | "person" | "custom" | "smart";
-  coverUrl: string;
+  coverUrl?: string;
   itemCount: number;
   dateRange: string;
   location?: string;
@@ -52,129 +48,62 @@ export function ApplePhotosGallery({
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newAlbumTitle, setNewAlbumTitle] = useState("");
   const [newAlbumCategory, setNewAlbumCategory] = useState<"custom" | "trip">("custom");
+  const [customAlbums, setCustomAlbums] = useState<CollectionAlbum[]>([]);
 
-  // Custom albums state
-  const [customAlbums, setCustomAlbums] = useState<CollectionAlbum[]>([
-    {
-      id: "alb_1",
-      title: "Rooftop Conversations & Team Lunches",
-      category: "smart",
-      coverUrl: "/collages/daily_collage_sketch_sep2.jpg",
-      itemCount: 6,
-      dateRange: "Aug 29 – Sep 2, 2026",
-      location: "Olive Bistro, Hyderabad",
-      people: ["Kabir", "Ananya"],
-      description: "Team catchups, strategic reflections, and rooftop lunches."
-    },
-    {
-      id: "alb_2",
-      title: "Sunset Walks by Lakewood Bridge",
-      category: "trip",
-      coverUrl: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&auto=format&fit=crop&q=80",
-      itemCount: 4,
-      dateRange: "September 2026",
-      location: "Lakewood Bridge Lake",
-      people: ["Maya"],
-      description: "Quiet evening walks, sunset talks, and mindful reflections."
-    },
-    {
-      id: "alb_3",
-      title: "Product Milestones & Hackathons",
-      category: "smart",
-      coverUrl: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&auto=format&fit=crop&q=80",
-      itemCount: 8,
-      dateRange: "Late August 2026",
-      location: "Engineering HQ",
-      people: ["Kabir", "Rohan"],
-      description: "Late night code sessions, architecture diagrams, and release moments."
-    }
-  ]);
-
-  // Extract unique people from captures with counts
+  // 1. Dynamically extract unique people ONLY from user's actual captures
   const peopleList = React.useMemo(() => {
-    const defaultPeople = [
-      { name: "Maya", count: 14, role: "Close Friend & Walking Companion", avatarSeed: "Maya" },
-      { name: "Kabir", count: 8, role: "Co-founder & Tech Lead", avatarSeed: "Kabir" },
-      { name: "Ananya", count: 5, role: "Design Partner", avatarSeed: "Ananya" },
-      { name: "Priya", count: 4, role: "Mentor & Advisor", avatarSeed: "Priya" },
-      { name: "Rohan", count: 3, role: "Engineering Teammate", avatarSeed: "Rohan" }
-    ];
-
-    // Merge with people detected in actual captures
-    const map = new Map<string, number>();
+    const map = new Map<string, { name: string; count: number; lastSeen: string }>();
     captures.forEach((c) => {
+      const dateStr = c.createdAt ? new Date(c.createdAt).toLocaleDateString() : "Recently";
       c.dimensions?.people?.forEach((p) => {
-        map.set(p, (map.get(p) || 0) + 1);
+        const existing = map.get(p);
+        if (existing) {
+          existing.count += 1;
+        } else {
+          map.set(p, { name: p, count: 1, lastSeen: dateStr });
+        }
       });
     });
-
-    defaultPeople.forEach((p) => {
-      if (map.has(p.name)) {
-        p.count += map.get(p.name)!;
-      }
-    });
-
-    return defaultPeople;
+    return Array.from(map.values());
   }, [captures]);
 
-  // Extract featured locations/trips
-  const tripsList = [
-    {
-      id: "trip_1",
-      title: "Hyderabad Culinary & Tech Meetups",
-      location: "Jubilee Hills & Financial District",
-      dates: "Aug 28 – Sep 3, 2026",
-      momentsCount: 12,
-      coverUrl: "/collages/daily_collage_sketch_sep2.jpg",
-      people: ["Kabir", "Ananya", "Maya"]
-    },
-    {
-      id: "trip_2",
-      title: "Coorg Pine Forest Retreat",
-      location: "Madikeri, Karnataka",
-      dates: "July 2026",
-      momentsCount: 9,
-      coverUrl: "https://images.unsplash.com/photo-1511497584788-876761c13910?w=800&auto=format&fit=crop&q=80",
-      people: ["Maya"]
-    },
-    {
-      id: "trip_3",
-      title: "Sunset Lake Promenade Walks",
-      location: "Durgam Cheruvu Lake",
-      dates: "Weekly Evenings",
-      momentsCount: 15,
-      coverUrl: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&auto=format&fit=crop&q=80",
-      people: ["Maya", "Ananya"]
-    }
-  ];
+  // 2. Dynamically extract unique trips & places ONLY from user's actual captures
+  const tripsList = React.useMemo(() => {
+    const map = new Map<string, { location: string; count: number; coverUrl?: string; lastDate: string }>();
+    captures.forEach((c) => {
+      const places = c.dimensions?.places || [];
+      const cover = c.mediaUrl;
+      const dateStr = c.createdAt ? new Date(c.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
+      places.forEach((pl) => {
+        const existing = map.get(pl);
+        if (existing) {
+          existing.count += 1;
+          if (!existing.coverUrl && cover) existing.coverUrl = cover;
+        } else {
+          map.set(pl, { location: pl, count: 1, coverUrl: cover, lastDate: dateStr });
+        }
+      });
+    });
+    return Array.from(map.values());
+  }, [captures]);
 
-  // Featured memory slides for interactive slideshow reel
-  const reelSlides = [
-    {
-      title: "Wednesday Sunset Walk across Lakewood Bridge",
-      date: "Wednesday, September 2, 2026",
-      location: "Lakewood Bridge, Hyderabad",
-      quote: "Talking with Maya as the orange sun reflected off the water. She reminded me how far we've come.",
-      imageUrl: "/collages/daily_collage_sketch_sep2.jpg",
-      people: ["Maya"]
-    },
-    {
-      title: "Rooftop Lunch at Olive Bistro",
-      date: "Wednesday, September 2, 2026",
-      location: "Olive Bistro, Jubilee Hills",
-      quote: "Kabir and Ananya celebrating our system launch over iced tea and pasta under the sun canopy.",
-      imageUrl: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&auto=format&fit=crop&q=80",
-      people: ["Kabir", "Ananya"]
-    },
-    {
-      title: "Morning Coffee & Code Architecture",
-      date: "Tuesday, September 1, 2026",
-      location: "Third Wave Coffee",
-      quote: "Sketching out the new memory graph engine on warm parchment stock. Everything fell into place.",
-      imageUrl: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=800&auto=format&fit=crop&q=80",
-      people: ["Kabir"]
-    }
-  ];
+  // 3. Dynamically extract memory reels ONLY from actual captures
+  const reelSlides = React.useMemo(() => {
+    return captures.map((c) => {
+      const date = c.createdAt ? new Date(c.createdAt) : new Date();
+      const dateStr = date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+      return {
+        id: c.id,
+        rawCapture: c,
+        title: c.dimensions?.summary || c.content?.substring(0, 45) || "Captured Memory",
+        date: dateStr,
+        location: c.dimensions?.places?.[0] || "Personal Memory",
+        quote: c.content || "Memory captured in Memoiary",
+        imageUrl: c.mediaUrl || "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&auto=format&fit=crop&q=80",
+        people: c.dimensions?.people || []
+      };
+    });
+  }, [captures]);
 
   const handleCreateAlbum = (e: React.FormEvent) => {
     e.preventDefault();
@@ -183,10 +112,10 @@ export function ApplePhotosGallery({
       id: `alb_${Date.now()}`,
       title: newAlbumTitle.trim(),
       category: newAlbumCategory,
-      coverUrl: "/collages/daily_collage_sketch_sep2.jpg",
-      itemCount: 1,
+      coverUrl: captures.find((c) => c.mediaUrl)?.mediaUrl,
+      itemCount: 0,
       dateRange: "Just now",
-      description: "User created personal collection."
+      description: "User created custom album."
     };
     setCustomAlbums([newAlb, ...customAlbums]);
     setNewAlbumTitle("");
@@ -195,13 +124,13 @@ export function ApplePhotosGallery({
 
   return (
     <div className="w-full font-sans space-y-6">
-      {/* ── Top Header & Tab Navigation Bar ── */}
+      {/* ── Header Bar ── */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#1C1917]/15 pb-4">
         <div>
           <span className="text-[11px] font-bold uppercase tracking-wider text-[#DE5239] flex items-center gap-1.5 font-sans">
-            <Sparkles size={14} /> Apple Photos Style Collections
+            <Sparkles size={14} /> Memories &amp; Visual Collections
           </span>
-          <h2 className="font-serif text-2xl font-medium text-[#1C1917] mt-0.5">Memories &amp; Moments</h2>
+          <h2 className="font-serif text-2xl font-medium text-[#1C1917] mt-0.5">Collections</h2>
         </div>
 
         {/* Tab Switcher Buttons */}
@@ -214,7 +143,7 @@ export function ApplePhotosGallery({
                 : "text-[#665F56] hover:text-[#1C1917]"
             }`}
           >
-            <Compass size={14} /> Memories
+            <Compass size={14} /> Memories ({reelSlides.length})
           </button>
           <button
             onClick={() => setActiveTab("people")}
@@ -224,7 +153,7 @@ export function ApplePhotosGallery({
                 : "text-[#665F56] hover:text-[#1C1917]"
             }`}
           >
-            <Users size={14} /> People &amp; Faces
+            <Users size={14} /> People &amp; Faces ({peopleList.length})
           </button>
           <button
             onClick={() => setActiveTab("trips")}
@@ -234,7 +163,7 @@ export function ApplePhotosGallery({
                 : "text-[#665F56] hover:text-[#1C1917]"
             }`}
           >
-            <MapPin size={14} /> Trips &amp; Places
+            <MapPin size={14} /> Places ({tripsList.length})
           </button>
           <button
             onClick={() => setActiveTab("albums")}
@@ -249,185 +178,192 @@ export function ApplePhotosGallery({
         </div>
       </div>
 
-      {/* ── TAB 1: FEATURED MEMORIES REEL ── */}
+      {/* ── TAB 1: MEMORIES REEL ── */}
       {activeTab === "memories" && (
         <div className="space-y-6">
-          {/* iOS Style Full-Bleed Featured Hero Reel Card */}
-          <div className="relative rounded-3xl overflow-hidden border-[1.5px] border-[#1C1917] shadow-[4px_6px_0px_#1C1917] group min-h-[22rem] flex flex-col justify-end bg-stone-900">
-            <img
-              src="/collages/daily_collage_sketch_sep2.jpg"
-              alt="Featured Memory Reel"
-              className="absolute inset-0 w-full h-full object-cover opacity-85 group-hover:scale-105 transition-transform duration-700"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#1C1917] via-[#1C1917]/40 to-transparent" />
-
-            <div className="relative z-10 p-6 sm:p-8 space-y-3">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono font-bold uppercase tracking-wider bg-[#DE5239] text-white px-2.5 py-1 rounded-full border border-black/30 shadow-xs flex items-center gap-1">
-                  <Sparkles size={12} /> Featured Memory Reel
-                </span>
-                <span className="text-xs font-medium text-stone-300">September 2, 2026</span>
-              </div>
-
-              <h3 className="font-serif text-2xl sm:text-3xl font-medium text-white max-w-xl leading-tight">
-                Wednesday Walks &amp; Rooftop Celebrations
-              </h3>
-
-              <p className="text-stone-300 text-sm font-sans max-w-lg line-clamp-2">
-                &ldquo;A day of milestones, deep talks with Maya, and celebrating team launch with Kabir and Ananya.&rdquo;
+          {reelSlides.length === 0 ? (
+            <div className="p-10 bg-white border-[1.5px] border-dashed border-[#1C1917]/30 rounded-3xl text-center space-y-3 font-sans">
+              <Compass size={32} className="text-[#DE5239] mx-auto" />
+              <h3 className="font-serif text-xl font-medium text-[#1C1917]">No Memories Captured Yet</h3>
+              <p className="text-xs text-[#665F56] max-w-sm mx-auto">
+                As you capture moments, thoughts, photos, or voice notes, Memoiary will automatically assemble memory reels here!
               </p>
+            </div>
+          ) : (
+            <>
+              {/* Featured Memory Reel Hero */}
+              <div className="relative rounded-3xl overflow-hidden border-[1.5px] border-[#1C1917] shadow-[4px_6px_0px_#1C1917] group min-h-[22rem] flex flex-col justify-end bg-stone-900">
+                <img
+                  src={reelSlides[0].imageUrl}
+                  alt={reelSlides[0].title}
+                  className="absolute inset-0 w-full h-full object-cover opacity-85 group-hover:scale-105 transition-transform duration-700"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#1C1917] via-[#1C1917]/40 to-transparent" />
 
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-stone-300 font-medium">Featuring:</span>
-                  <div className="flex items-center gap-1">
-                    {["Maya", "Kabir", "Ananya"].map((person, i) => (
-                      <div key={i} className="flex items-center gap-1 bg-white/20 backdrop-blur-md px-2.5 py-0.5 rounded-full text-xs text-white font-medium border border-white/30">
-                        <ArtisticAvatar name={person} size="sm" />
-                        <span>{person}</span>
+                <div className="relative z-10 p-6 sm:p-8 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider bg-[#DE5239] text-white px-2.5 py-1 rounded-full border border-black/30 shadow-xs flex items-center gap-1">
+                      <Sparkles size={12} /> Featured Memory
+                    </span>
+                    <span className="text-xs font-medium text-stone-300">{reelSlides[0].date}</span>
+                  </div>
+
+                  <h3 className="font-serif text-2xl sm:text-3xl font-medium text-white max-w-xl leading-tight">
+                    {reelSlides[0].title}
+                  </h3>
+
+                  <p className="text-stone-300 text-sm font-sans max-w-lg line-clamp-2">
+                    &ldquo;{reelSlides[0].quote}&rdquo;
+                  </p>
+
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-2">
+                    {reelSlides[0].people.length > 0 && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-stone-300 font-medium">Featuring:</span>
+                        <div className="flex items-center gap-1">
+                          {reelSlides[0].people.map((person, i) => (
+                            <div key={i} className="flex items-center gap-1 bg-white/20 backdrop-blur-md px-2.5 py-0.5 rounded-full text-xs text-white font-medium border border-white/30">
+                              <ArtisticAvatar name={person} size="sm" />
+                              <span>{person}</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    ))}
+                    )}
+
+                    <button
+                      onClick={() => {
+                        setReelIndex(0);
+                        setIsPlayingReel(true);
+                      }}
+                      className="flex items-center gap-2 px-5 py-2.5 bg-white text-[#1C1917] font-bold text-xs rounded-2xl border-[1.5px] border-[#1C1917] shadow-[2px_3px_0px_#1C1917] hover:bg-[#F5E5DC] transition-transform hover:scale-105 cursor-pointer"
+                    >
+                      <Play size={16} className="fill-[#1C1917]" /> Play Memory Reel
+                    </button>
                   </div>
                 </div>
-
-                <button
-                  onClick={() => {
-                    setReelIndex(0);
-                    setIsPlayingReel(true);
-                  }}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-white text-[#1C1917] font-bold text-xs rounded-2xl border-[1.5px] border-[#1C1917] shadow-[2px_3px_0px_#1C1917] hover:bg-[#F5E5DC] transition-transform hover:scale-105 cursor-pointer"
-                >
-                  <Play size={16} className="fill-[#1C1917]" /> Play Memory Reel
-                </button>
               </div>
-            </div>
-          </div>
 
-          {/* Grid of Secondary Memory Highlights */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
-            {[
-              {
-                title: "On This Day 1 Month Ago",
-                date: "August 2026",
-                summary: "First sketch of the Memoiary narrative engine.",
-                imgUrl: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&auto=format&fit=crop&q=80",
-                badge: "Flashback"
-              },
-              {
-                title: "Quiet Morning Reflections",
-                date: "August 30, 2026",
-                summary: "Coffee at Third Wave with notebook and pen.",
-                imgUrl: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=600&auto=format&fit=crop&q=80",
-                badge: "Thought"
-              },
-              {
-                title: "Evening Sunset Promenade",
-                date: "August 29, 2026",
-                summary: "Walking along Durgam Cheruvu lake after sunset.",
-                imgUrl: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&auto=format&fit=crop&q=80",
-                badge: "Moment"
-              }
-            ].map((card, i) => (
-              <div
-                key={i}
-                className="bg-white border-[1.5px] border-[#1C1917] rounded-3xl overflow-hidden shadow-[2px_3px_0px_#1C1917] hover:-translate-y-1 transition-all cursor-pointer group"
-                onClick={() => {
-                  setReelIndex(i % reelSlides.length);
-                  setIsPlayingReel(true);
-                }}
-              >
-                <div className="h-44 w-full relative overflow-hidden bg-stone-100">
-                  <img src={card.imgUrl} alt={card.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                  <span className="absolute top-3 left-3 bg-[#1C1917]/80 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-white/20">
-                    {card.badge}
-                  </span>
-                </div>
-                <div className="p-4 space-y-1">
-                  <span className="text-[10px] font-mono uppercase font-bold text-[#665F56]">{card.date}</span>
-                  <h4 className="font-serif text-lg font-medium text-[#1C1917]">{card.title}</h4>
-                  <p className="text-xs text-[#665F56] font-sans line-clamp-2">{card.summary}</p>
-                </div>
+              {/* Grid of All Captures as Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
+                {reelSlides.map((card, i) => (
+                  <div
+                    key={card.id || i}
+                    className="bg-white border-[1.5px] border-[#1C1917] rounded-3xl overflow-hidden shadow-[2px_3px_0px_#1C1917] hover:-translate-y-1 transition-all cursor-pointer group"
+                    onClick={() => {
+                      if (onSelectCapture && card.rawCapture) {
+                        onSelectCapture(card.rawCapture);
+                      } else {
+                        setReelIndex(i);
+                        setIsPlayingReel(true);
+                      }
+                    }}
+                  >
+                    <div className="h-44 w-full relative overflow-hidden bg-stone-100">
+                      <img src={card.imageUrl} alt={card.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      <span className="absolute top-3 left-3 bg-[#1C1917]/80 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-white/20">
+                        {card.location}
+                      </span>
+                    </div>
+                    <div className="p-4 space-y-1">
+                      <span className="text-[10px] font-mono uppercase font-bold text-[#665F56]">{card.date}</span>
+                      <h4 className="font-serif text-lg font-medium text-[#1C1917] line-clamp-1">{card.title}</h4>
+                      <p className="text-xs text-[#665F56] font-sans line-clamp-2">{card.quote}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </>
+          )}
         </div>
       )}
 
-      {/* ── TAB 2: PEOPLE & FACES CIRCLE GRID ── */}
+      {/* ── TAB 2: PEOPLE & FACES ── */}
       {activeTab === "people" && (
         <div className="space-y-5">
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-[#665F56] font-sans">
-              People detected across your memories. Click any person to explore memories featuring them.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-            {peopleList.map((person, idx) => (
-              <button
-                key={idx}
-                onClick={() => onSelectPerson?.(person.name)}
-                className="bg-white border-[1.5px] border-[#1C1917] p-5 rounded-3xl shadow-[2px_3px_0px_#1C1917] text-center space-y-3 hover:-translate-y-1 transition-all cursor-pointer group flex flex-col items-center justify-center"
-              >
-                <div className="relative">
-                  <div className="w-20 h-20 rounded-full border-2 border-[#1C1917] p-1 bg-[#F5F1E8] group-hover:scale-105 transition-transform">
-                    <ArtisticAvatar name={person.name} size="lg" className="w-full h-full rounded-full" />
+          {peopleList.length === 0 ? (
+            <div className="p-10 bg-white border-[1.5px] border-dashed border-[#1C1917]/30 rounded-3xl text-center space-y-3 font-sans">
+              <Users size={32} className="text-[#DE5239] mx-auto" />
+              <h3 className="font-serif text-xl font-medium text-[#1C1917]">No People Tagged Yet</h3>
+              <p className="text-xs text-[#665F56] max-w-sm mx-auto">
+                Mention friends or companions in your journal entries (e.g. &ldquo;Went for a walk with Maya&rdquo;) to automatically see them here!
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+              {peopleList.map((person, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => onSelectPerson?.(person.name)}
+                  className="bg-white border-[1.5px] border-[#1C1917] p-5 rounded-3xl shadow-[2px_3px_0px_#1C1917] text-center space-y-3 hover:-translate-y-1 transition-all cursor-pointer group flex flex-col items-center justify-center"
+                >
+                  <div className="relative">
+                    <div className="w-20 h-20 rounded-full border-2 border-[#1C1917] p-1 bg-[#F5F1E8] group-hover:scale-105 transition-transform">
+                      <ArtisticAvatar name={person.name} size="lg" className="w-full h-full rounded-full" />
+                    </div>
+                    <span className="absolute -bottom-1 -right-1 bg-[#DE5239] text-white font-mono text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#1C1917] shadow-xs">
+                      {person.count}
+                    </span>
                   </div>
-                  <span className="absolute -bottom-1 -right-1 bg-[#DE5239] text-white font-mono text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#1C1917] shadow-xs">
-                    {person.count}
-                  </span>
-                </div>
-                <div>
-                  <h4 className="font-serif font-semibold text-[#1C1917] text-base">{person.name}</h4>
-                  <p className="text-[11px] text-[#665F56] font-sans leading-tight mt-0.5 line-clamp-2">{person.role}</p>
-                </div>
-              </button>
-            ))}
-          </div>
+                  <div>
+                    <h4 className="font-serif font-semibold text-[#1C1917] text-base">{person.name}</h4>
+                    <p className="text-[11px] text-[#665F56] font-sans leading-tight mt-0.5 font-mono">{person.count} moments</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      {/* ── TAB 3: TRIPS & FEATURED PLACES GRID ── */}
+      {/* ── TAB 3: TRIPS & PLACES ── */}
       {activeTab === "trips" && (
         <div className="space-y-5">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {tripsList.map((trip) => (
-              <div
-                key={trip.id}
-                className="bg-white border-[1.5px] border-[#1C1917] rounded-3xl overflow-hidden shadow-[3px_4px_0px_#1C1917] hover:-translate-y-1 transition-all cursor-pointer group"
-              >
-                <div className="h-48 w-full relative overflow-hidden bg-stone-900">
-                  <img src={trip.coverUrl} alt={trip.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                  <span className="absolute top-3 left-3 bg-[#DE5239] text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-black/30 flex items-center gap-1">
-                    <MapPin size={10} /> Trip &amp; Location
-                  </span>
-                  <div className="absolute bottom-3 left-3 right-3 text-white">
-                    <span className="text-[10px] font-mono text-stone-300 block">{trip.dates}</span>
-                    <h4 className="font-serif text-lg font-medium text-white leading-snug">{trip.title}</h4>
+          {tripsList.length === 0 ? (
+            <div className="p-10 bg-white border-[1.5px] border-dashed border-[#1C1917]/30 rounded-3xl text-center space-y-3 font-sans">
+              <MapPin size={32} className="text-[#DE5239] mx-auto" />
+              <h3 className="font-serif text-xl font-medium text-[#1C1917]">No Locations Logged Yet</h3>
+              <p className="text-xs text-[#665F56] max-w-sm mx-auto">
+                Mention places or attach locations when capturing memories to group your entries into trip albums!
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              {tripsList.map((trip, idx) => (
+                <div
+                  key={idx}
+                  className="bg-white border-[1.5px] border-[#1C1917] rounded-3xl overflow-hidden shadow-[3px_4px_0px_#1C1917] hover:-translate-y-1 transition-all cursor-pointer group"
+                >
+                  <div className="h-44 w-full relative overflow-hidden bg-stone-900">
+                    <img src={trip.coverUrl || "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&auto=format&fit=crop&q=80"} alt={trip.location} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                    <span className="absolute top-3 left-3 bg-[#DE5239] text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-black/30 flex items-center gap-1 font-mono">
+                      <MapPin size={10} /> Location
+                    </span>
+                    <div className="absolute bottom-3 left-3 right-3 text-white">
+                      <h4 className="font-serif text-lg font-medium text-white leading-snug">{trip.location}</h4>
+                    </div>
+                  </div>
+
+                  <div className="p-4 flex items-center justify-between text-xs font-sans text-[#665F56]">
+                    <span className="font-medium">{trip.lastDate || "Recent"}</span>
+                    <span className="font-mono text-[11px] font-bold bg-[#F5F1E8] px-2 py-0.5 rounded-md border border-[#1C1917]/20">
+                      {trip.count} moments
+                    </span>
                   </div>
                 </div>
-
-                <div className="p-4 flex items-center justify-between text-xs font-sans text-[#665F56]">
-                  <span className="flex items-center gap-1 text-[#1C1917] font-semibold">
-                    <MapPin size={12} className="text-[#DE5239]" /> {trip.location}
-                  </span>
-                  <span className="font-mono text-[11px] font-bold bg-[#F5F1E8] px-2 py-0.5 rounded-md border border-[#1C1917]/20">
-                    {trip.momentsCount} moments
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      {/* ── TAB 4: CUSTOM ALBUMS & COLLECTIONS ── */}
+      {/* ── TAB 4: CUSTOM ALBUMS ── */}
       {activeTab === "albums" && (
         <div className="space-y-5">
           <div className="flex items-center justify-between">
             <p className="text-xs text-[#665F56] font-sans">
-              Organize your entries into custom collections and smart albums.
+              Organize your entries into custom personal collections.
             </p>
             <button
               onClick={() => setShowCreateModal(true)}
@@ -437,34 +373,43 @@ export function ApplePhotosGallery({
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
-            {customAlbums.map((album) => (
-              <div
-                key={album.id}
-                className="bg-white border-[1.5px] border-[#1C1917] rounded-3xl overflow-hidden shadow-[3px_4px_0px_#1C1917] hover:-translate-y-1 transition-all cursor-pointer group"
-              >
-                <div className="h-44 w-full relative overflow-hidden bg-stone-100">
-                  <img src={album.coverUrl} alt={album.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                  <span className="absolute top-3 left-3 bg-[#1C1917] text-white text-[10px] font-bold px-2 py-0.5 rounded-md uppercase font-mono">
-                    {album.category}
-                  </span>
-                </div>
-                <div className="p-4 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono text-[#665F56]">{album.dateRange}</span>
-                    <span className="text-xs font-bold text-[#DE5239] font-mono">{album.itemCount} entries</span>
+          {customAlbums.length === 0 ? (
+            <div className="p-10 bg-white border-[1.5px] border-dashed border-[#1C1917]/30 rounded-3xl text-center space-y-3 font-sans">
+              <Layers size={32} className="text-[#DE5239] mx-auto" />
+              <h3 className="font-serif text-xl font-medium text-[#1C1917]">No Custom Albums Created</h3>
+              <p className="text-xs text-[#665F56] max-w-sm mx-auto">
+                Click <strong>&ldquo;Create Album&rdquo;</strong> above to start organizing your personal memories into custom collections!
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
+              {customAlbums.map((album) => (
+                <div
+                  key={album.id}
+                  className="bg-white border-[1.5px] border-[#1C1917] rounded-3xl overflow-hidden shadow-[3px_4px_0px_#1C1917] hover:-translate-y-1 transition-all cursor-pointer group"
+                >
+                  <div className="h-44 w-full relative overflow-hidden bg-stone-100">
+                    <img src={album.coverUrl || "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&auto=format&fit=crop&q=80"} alt={album.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <span className="absolute top-3 left-3 bg-[#1C1917] text-white text-[10px] font-bold px-2 py-0.5 rounded-md uppercase font-mono">
+                      {album.category}
+                    </span>
                   </div>
-                  <h4 className="font-serif text-lg font-medium text-[#1C1917]">{album.title}</h4>
-                  {album.description && <p className="text-xs text-[#665F56] font-sans line-clamp-2">{album.description}</p>}
+                  <div className="p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono text-[#665F56]">{album.dateRange}</span>
+                      <span className="text-xs font-bold text-[#DE5239] font-mono">{album.itemCount} entries</span>
+                    </div>
+                    <h4 className="font-serif text-lg font-medium text-[#1C1917]">{album.title}</h4>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      {/* ── INTERACTIVE SLIDESHOW REEL MODAL (iOS Photos Memory Reel) ── */}
-      {isPlayingReel && (
+      {/* ── INTERACTIVE SLIDESHOW REEL MODAL ── */}
+      {isPlayingReel && reelSlides.length > 0 && (
         <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
           <div className="relative w-full max-w-2xl bg-[#1C1917] border-2 border-stone-700 rounded-3xl overflow-hidden shadow-2xl font-sans text-white">
             {/* Close Button */}
