@@ -73,19 +73,24 @@ export function useMediaCapture(options: UseMediaCaptureOptions = {}) {
   const startAudioRecording = useCallback(async () => {
     setError(null);
     try {
+      console.log("[mic] requesting getUserMedia...");
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: options.audio?.echoCancellation ?? true,
           noiseSuppression: options.audio?.noiseSuppression ?? true
         }
       });
+      console.log("[mic] got stream, tracks:", stream.getAudioTracks().length);
       streamRef.current = stream;
 
-      const recorder = new MediaRecorder(stream, {
-        mimeType: MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
-          ? "audio/webm;codecs=opus"
-          : "audio/webm"
-      });
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : MediaRecorder.isTypeSupported("audio/webm")
+        ? "audio/webm"
+        : "audio/mp4";
+      console.log("[mic] using mimeType:", mimeType);
+
+      const recorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = recorder;
       chunksRef.current = [];
 
@@ -93,14 +98,23 @@ export function useMediaCapture(options: UseMediaCaptureOptions = {}) {
         if (e.data.size > 0) chunksRef.current.push(e.data);
       };
 
-      recorder.start(1000); // collect data every second
+      recorder.onerror = (e) => {
+        console.error("[mic] MediaRecorder error:", e);
+        setError("Recording error occurred.");
+      };
+
+      recorder.start(1000);
+      console.log("[mic] recorder started, state:", recorder.state);
       mediaRecorderRef.current = recorder;
       setIsRecording(true);
       startTimer();
     } catch (err: any) {
+      console.error("[mic] startAudioRecording failed:", err?.name, err?.message);
       setError(err?.name === "NotAllowedError"
         ? "Microphone access denied. Please allow mic access in your browser settings."
-        : "Could not access microphone.");
+        : err?.name === "NotFoundError"
+        ? "No microphone found. Please connect a microphone."
+        : `Could not access microphone: ${err?.message || err?.name}`);
       throw err;
     }
   }, [options.audio, startTimer]);

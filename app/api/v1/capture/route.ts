@@ -35,84 +35,48 @@ export async function POST(req: Request) {
       status: "received"
     };
 
-    const extractor = new MemoryExtractor();
+    // Save immediately so the user gets instant feedback
+    await store.saveCapture(captureSession);
 
-    // Extract rich dimensions in parallel with structural extraction
-    const [extractedBundle, dimensions] = await Promise.all([
-      extractor.extract({
-        userId,
-        captureId,
-        rawText: content.trim(),
-        source,
-        timezone
-      }),
-      extractor.extractDimensions({
-        userId,
-        captureId,
-        rawText: content.trim(),
-        source,
-        timezone,
-        mediaContext
-      })
-    ]);
+    // Return right away — analysis happens in background
+    const analyzeInBackground = async () => {
+      try {
+        const extractor = new MemoryExtractor();
+        const [extractedBundle, dimensions] = await Promise.all([
+          extractor.extract({ userId, captureId, rawText: content.trim(), source, timezone }),
+          extractor.extractDimensions({ userId, captureId, rawText: content.trim(), source, timezone, mediaContext })
+        ]);
 
-    // Consistency & Clarification Check
-    const consistencyEngine = new ConsistencyEngine();
-    const consistencyResult = await consistencyEngine.checkConsistency({
-      userId,
-      captureId,
-      rawInput: content.trim(),
-      extractedBundle,
-      store
-    });
+        const consistencyEngine = new ConsistencyEngine();
+        const consistencyResult = await consistencyEngine.checkConsistency({
+          userId, captureId, rawInput: content.trim(), extractedBundle, store
+        });
 
-    const reconciler = new MemoryReconciler(userId, store);
+        const reconciler = new MemoryReconciler(userId, store);
+        const finalBundle = consistencyResult.adjustedBundle || extractedBundle;
+        const { reconciledEntities, reconciledEpisodes } = await reconciler.reconcile(finalBundle, captureId, content.trim());
 
-    if (consistencyResult.hasConflict && consistencyResult.clarifications.length > 0) {
-      for (const clar of consistencyResult.clarifications) {
-        await store.saveClarification(clar);
+        await store.saveCapture({
+          ...captureSession,
+          status: "reconciled",
+          dimensions,
+          episodes: reconciledEpisodes
+        });
+      } catch (err) {
+        console.error("[capture] background analysis failed:", err);
+        // Mark as saved but unanalyzed — still usable
+        await store.saveCapture({ ...captureSession, status: "saved_unanalyzed" }).catch(() => {});
       }
+    };
 
-      await store.saveCapture({
-        ...captureSession,
-        status: "clarification_needed",
-        dimensions,
-        episodes: extractedBundle.episodes
-      });
-
-      return NextResponse.json({
-        success: true,
-        status: "clarification_needed",
-        captureId,
-        clarifications: consistencyResult.clarifications,
-        extractedBundle,
-        dimensions
-      });
-    }
-
-    const finalBundle = consistencyResult.adjustedBundle || extractedBundle;
-    const { reconciledEntities, reconciledEpisodes } = await reconciler.reconcile(
-      finalBundle,
-      captureId,
-      content.trim()
-    );
-
-    await store.saveCapture({
-      ...captureSession,
-      status: "reconciled",
-      dimensions,
-      episodes: reconciledEpisodes
-    });
+    // Fire and don't await — client gets response in <100ms
+    analyzeInBackground();
 
     return NextResponse.json({
       success: true,
-      status: "reconciled",
+      status: "saved",
       captureId,
-      reconciledEntities,
-      reconciledEpisodes,
-      dimensions,
-      isDirectUserCorrection: consistencyResult.isDirectUserCorrection || false,
-      correctionDetails: consistencyResult.correctionDetails || null
+      capture: captureSession
     });
   } catch (error: any) {
     console.error("Capture pipeline error:", error);

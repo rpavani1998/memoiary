@@ -1116,6 +1116,8 @@ function CaptureOverlay({
   const [quickText, setQuickText] = useState("");
   const [text, setText] = useState("");
   const [location, setLocation] = useState<string>();
+  const [locationInput, setLocationInput] = useState("");
+  const [showLocationInput, setShowLocationInput] = useState(false);
   const [saving, setSaving] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
   const [analysisText, setAnalysisText] = useState("");
@@ -1156,7 +1158,10 @@ function CaptureOverlay({
   if (!mode) return null;
 
   const toggleLocation = () => {
-    if (location) { setLocation(undefined); return; }
+    if (location) { setLocation(undefined); setLocationInput(""); setShowLocationInput(false); return; }
+    setShowLocationInput(true);
+  };
+  const detectLocation = () => {
     if (!navigator.geolocation) { setLocation("Unknown location"); return; }
     setLocation("Getting location...");
     navigator.geolocation.getCurrentPosition(
@@ -1167,6 +1172,10 @@ function CaptureOverlay({
       () => { setLocation("Location unavailable"); },
       { enableHighAccuracy: true, timeout: 8000 }
     );
+  };
+  const applyLocationInput = () => {
+    if (locationInput.trim()) setLocation(locationInput.trim());
+    setShowLocationInput(false);
   };
   const memLoc = (kind: CapturedMemory["kind"], t: string): CapturedMemory =>
     location ? { kind, text: t, location } : { kind, text: t };
@@ -1345,8 +1354,8 @@ function CaptureOverlay({
               </button>
             </div>
             <label className="flex items-center justify-center gap-2 py-2.5 border border-dashed border-stone-300 rounded-2xl text-stone-500 text-xs cursor-pointer hover:bg-stone-50 hover:border-stone-400 transition-colors">
-              <Plus size={14} /> Upload a file (photo, audio, video)
-              <input type="file" accept="image/*,audio/*,video/*" className="hidden" onChange={handleFileUpload} />
+              <Plus size={14} /> Upload photo, video, audio, or document
+              <input type="file" accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.txt" className="hidden" onChange={handleFileUpload} />
             </label>
           </div>
         )}
@@ -1355,9 +1364,21 @@ function CaptureOverlay({
           <>
             <span className="memory-kicker">A thought, exactly as it is</span>
             <textarea autoFocus value={text} onChange={(e) => setText(e.target.value)} placeholder="What's on your mind?" />
-            <button className={`location-capture cursor-pointer ${location ? "active" : ""}`} onClick={toggleLocation}>
-              <MapPin size={15} /> {location ?? "Capture my location"} {location && <span>Added</span>}
-            </button>
+            <div className="flex items-center gap-2 mt-2">
+              <button className={`location-capture cursor-pointer flex-1 ${location ? "active" : ""}`} onClick={toggleLocation}>
+                <MapPin size={15} /> {location ?? "Add a place"} {location && <span>Added</span>}
+              </button>
+              {!location && showLocationInput && (
+                <div className="flex gap-1.5 flex-1">
+                  <input type="text" value={locationInput} onChange={(e) => setLocationInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") applyLocationInput(); }}
+                    placeholder="Type a place name..." autoFocus
+                    className="flex-1 px-3 py-1.5 text-xs border border-stone-200 rounded-xl focus:outline-none focus:border-amber-500" />
+                  <button onClick={applyLocationInput} className="px-2 py-1 text-xs bg-amber-100 text-amber-700 rounded-xl cursor-pointer">OK</button>
+                  <button onClick={detectLocation} className="px-2 py-1 text-xs bg-stone-100 text-stone-600 rounded-xl cursor-pointer" title="Use GPS"><MapPin size={12} /></button>
+                </div>
+              )}
+            </div>
             <p className="capture-reassurance text-xs text-muted-foreground mt-2">No title. No tags. Just this moment.</p>
             <button className="primary-action cursor-pointer mt-4" disabled={!text.trim() || saving}
               onClick={async () => { await persistCapture("written", text.trim()); onSaved(memLoc("written", text.trim())); }}>
@@ -1388,6 +1409,7 @@ function CaptureOverlay({
                 <p className="text-stone-500 text-sm mt-1">Tap the mic to start recording</p>
                 {startingMedia && <p className="text-amber-600 text-sm mt-2 animate-pulse">Requesting mic access...</p>}
                 {media.error && <p className="text-rose-600 text-sm mt-2">{media.error}</p>}
+                <p className="text-stone-300 text-[10px] mt-2 font-mono">rec={String(media.isRecording)} start={String(startingMedia)} save={String(saving)}</p>
               </>
             )}
             <div className={`voice-orbit ${media.isRecording ? "active" : ""}`}>
@@ -1395,15 +1417,28 @@ function CaptureOverlay({
             </div>
             <button className="record-button cursor-pointer" aria-label={media.isRecording ? "Stop recording" : "Start recording"}
               onClick={() => {
+                console.log("[voice-btn] clicked, isRecording:", media.isRecording, "saving:", saving, "startingMedia:", startingMedia);
                 if (media.isRecording) { handleVoiceSave(); }
-                else { setStartingMedia(true); media.startAudioRecording().finally(() => setStartingMedia(false)); }
+                else { setStartingMedia(true); media.startAudioRecording().catch((e) => console.warn("[voice-btn] startAudioRecording rejected:", e)).finally(() => setStartingMedia(false)); }
               }}
               disabled={saving || startingMedia}>
               {media.isRecording ? <Pause /> : <Mic />}
             </button>
-            <button className={`location-capture cursor-pointer ${location ? "active" : ""}`} onClick={toggleLocation}>
-              <MapPin size={15} /> {location ?? "Capture my location"} {location && <span>Added</span>}
-            </button>
+            <div className="flex items-center gap-2 mt-2">
+              <button className={`location-capture cursor-pointer flex-1 ${location ? "active" : ""}`} onClick={toggleLocation}>
+                <MapPin size={15} /> {location ?? "Add a place"} {location && <span>Added</span>}
+              </button>
+              {!location && showLocationInput && (
+                <div className="flex gap-1.5 flex-1">
+                  <input type="text" value={locationInput} onChange={(e) => setLocationInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") applyLocationInput(); }}
+                    placeholder="Type a place name..." autoFocus
+                    className="flex-1 px-3 py-1.5 text-xs border border-stone-200 rounded-xl focus:outline-none focus:border-amber-500" />
+                  <button onClick={applyLocationInput} className="px-2 py-1 text-xs bg-amber-100 text-amber-700 rounded-xl cursor-pointer">OK</button>
+                  <button onClick={detectLocation} className="px-2 py-1 text-xs bg-stone-100 text-stone-600 rounded-xl cursor-pointer" title="Use GPS"><MapPin size={12} /></button>
+                </div>
+              )}
+            </div>
             {!media.isRecording && !analysisText && (
               <button className="primary-action cursor-pointer mt-4" disabled onClick={() => {}}>
                 Tap mic to start recording
@@ -1438,9 +1473,21 @@ function CaptureOverlay({
                 <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileUpload} />
               </label>
             </div>
-            <button className={`location-capture cursor-pointer ${location ? "active" : ""}`} onClick={toggleLocation}>
-              <MapPin size={15} /> {location ?? "Capture my location"} {location && <span>Added</span>}
-            </button>
+            <div className="flex items-center gap-2 mt-2">
+              <button className={`location-capture cursor-pointer flex-1 ${location ? "active" : ""}`} onClick={toggleLocation}>
+                <MapPin size={15} /> {location ?? "Add a place"} {location && <span>Added</span>}
+              </button>
+              {!location && showLocationInput && (
+                <div className="flex gap-1.5 flex-1">
+                  <input type="text" value={locationInput} onChange={(e) => setLocationInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") applyLocationInput(); }}
+                    placeholder="Type a place name..." autoFocus
+                    className="flex-1 px-3 py-1.5 text-xs border border-stone-200 rounded-xl focus:outline-none focus:border-amber-500" />
+                  <button onClick={applyLocationInput} className="px-2 py-1 text-xs bg-amber-100 text-amber-700 rounded-xl cursor-pointer">OK</button>
+                  <button onClick={detectLocation} className="px-2 py-1 text-xs bg-stone-100 text-stone-600 rounded-xl cursor-pointer" title="Use GPS"><MapPin size={12} /></button>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -1464,9 +1511,21 @@ function CaptureOverlay({
                 {media.isRecording ? <Pause /> : <Video />}
               </button>
             </div>
-            <button className={`location-capture cursor-pointer ${location ? "active" : ""}`} onClick={toggleLocation}>
-              <MapPin size={15} /> {location ?? "Capture my location"} {location && <span>Added</span>}
-            </button>
+            <div className="flex items-center gap-2 mt-2">
+              <button className={`location-capture cursor-pointer flex-1 ${location ? "active" : ""}`} onClick={toggleLocation}>
+                <MapPin size={15} /> {location ?? "Add a place"} {location && <span>Added</span>}
+              </button>
+              {!location && showLocationInput && (
+                <div className="flex gap-1.5 flex-1">
+                  <input type="text" value={locationInput} onChange={(e) => setLocationInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") applyLocationInput(); }}
+                    placeholder="Type a place name..." autoFocus
+                    className="flex-1 px-3 py-1.5 text-xs border border-stone-200 rounded-xl focus:outline-none focus:border-amber-500" />
+                  <button onClick={applyLocationInput} className="px-2 py-1 text-xs bg-amber-100 text-amber-700 rounded-xl cursor-pointer">OK</button>
+                  <button onClick={detectLocation} className="px-2 py-1 text-xs bg-stone-100 text-stone-600 rounded-xl cursor-pointer" title="Use GPS"><MapPin size={12} /></button>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -1689,7 +1748,7 @@ export function MemoiaryAppShell() {
       case "onboarding":
         return <LifeHome go={go} openCapture={() => handleOpenCapture("menu")} newMemory={newMemory} onSelectCapture={(c) => { setSelectedCapture(c); go("memory"); }} />;
     }
-  }, [view, newMemory, user]);
+  }, [view, newMemory, user, selectedCapture]);
 
   const hideNav = ["story", "empty", "connections"].includes(view);
 

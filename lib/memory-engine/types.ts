@@ -198,7 +198,7 @@ export interface CaptureSession {
   mediaUrl?: string;
   timezone?: string;
   createdAt: string;
-  status: "received" | "extracted" | "clarification_needed" | "reconciled";
+  status: "received" | "extracted" | "clarification_needed" | "reconciled" | "saved_unanalyzed";
   dimensions?: CaptureDimensions;
   episodes?: Episode[];
 }
