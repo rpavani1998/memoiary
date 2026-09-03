@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   BookOpen,
@@ -32,6 +32,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { useJournal } from "@/lib/context/JournalContext";
+import { useMediaCapture } from "@/lib/hooks/useMediaCapture";
 import { BrandStoryBanner } from "@/components/BrandStoryBanner";
 import { ThoughtBubbleIcon } from "@/components/ThoughtBubbleIcon";
 import { CaptureSession } from "@/lib/memory-engine/types";
@@ -1126,56 +1127,174 @@ function CaptureOverlay({
   onSaved: (memory: CapturedMemory) => void;
 }) {
   const { submitCapture } = useJournal();
+  const media = useMediaCapture();
   const [quickText, setQuickText] = useState("");
   const [text, setText] = useState("");
-  const [recording, setRecording] = useState(true);
   const [location, setLocation] = useState<string>();
-  const [voicePrompt, setVoicePrompt] = useState("What happened that you don't want to lose?");
   const [saving, setSaving] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
+  const [analysisText, setAnalysisText] = useState("");
+  const videoElRef = useRef<HTMLVideoElement>(null);
+  const prevModeRef = useRef<CaptureMode>(null);
+
+  // Start/stop camera when entering/leaving photo or video mode
+  useEffect(() => {
+    const entering = mode === "photo" || mode === "video";
+    const wasActive = prevModeRef.current === "photo" || prevModeRef.current === "video";
+
+    if (entering && !wasActive) {
+      setCameraReady(false);
+      const el = videoElRef.current;
+      if (el) {
+        if (mode === "video") {
+          media.startVideoRecording(el).then(() => setCameraReady(true)).catch(() => {});
+        } else {
+          media.startCamera(el).then(() => setCameraReady(true)).catch(() => {});
+        }
+      }
+    } else if (!entering && wasActive) {
+      if (prevModeRef.current === "video" && media.isRecording) {
+        media.stopVideoRecording().catch(() => {});
+      } else {
+        media.stopCamera();
+      }
+      setCameraReady(false);
+    }
+    prevModeRef.current = mode;
+
+    return () => { if (!entering) media.cleanup(); };
+  }, [mode]); // eslint-disable-line
+
+  useEffect(() => () => media.cleanup(), []); // eslint-disable-line
 
   if (!mode) return null;
 
-  const toggleLocation = () => setLocation((current) => (current ? undefined : "Banjara Hills, Hyderabad"));
-  const memoryWithLocation = (kind: CapturedMemory["kind"], memoryText: string): CapturedMemory =>
-    location ? { kind, text: memoryText, location } : { kind, text: memoryText };
+  const toggleLocation = () => setLocation((c) => (c ? undefined : "Banjara Hills, Hyderabad"));
+  const memLoc = (kind: CapturedMemory["kind"], t: string): CapturedMemory =>
+    location ? { kind, text: t, location } : { kind, text: t };
 
-  const persistCapture = async (kind: CapturedMemory["kind"], content: string) => {
+  const persistCapture = async (kind: CapturedMemory["kind"], content: string, mediaCtx?: string) => {
     setSaving(true);
     try {
-      await submitCapture(content, kind === "voice" ? "voice" : kind === "photo" ? "image" : "text");
-    } catch {
-      // silently continue — local state still shows the memory
-    } finally {
-      setSaving(false);
-    }
+      const src = kind === "voice" ? "voice" : kind === "photo" ? "image" : kind === "video" ? "video" : "text";
+      await submitCapture(content, src, mediaCtx);
+    } catch {} finally { setSaving(false); }
   };
 
   const handleQuickTextSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (quickText.trim()) {
       await persistCapture("written", quickText.trim());
-      onSaved(memoryWithLocation("written", quickText.trim()));
+      onSaved(memLoc("written", quickText.trim()));
       setQuickText("");
     }
   };
 
+  const handleVoiceSave = async () => {
+    setSaving(true);
+    setAnalysisText("Recording audio...");
+    try {
+      const result = await media.stopAudioRecording();
+      setAnalysisText("Transcribing with Gemini Flash...");
+      const analysis = await media.analyzeMedia(result.base64, result.mimeType, "audio");
+      const transcript = analysis.transcription || analysis.summary || "Voice memory captured";
+      const ctx = [
+        analysis.speakerEmotion && `Emotion: ${analysis.speakerEmotion}`,
+        analysis.tone && `Tone: ${analysis.tone}`,
+        analysis.people?.length && `People: ${analysis.people.join(", ")}`,
+        analysis.summary && `Summary: ${analysis.summary}`
+      ].filter(Boolean).join(" | ");
+      await persistCapture("voice", transcript, ctx);
+      onSaved(memLoc("voice", transcript));
+    } catch (err) {
+      console.error("Voice capture failed:", err);
+      setAnalysisText("Failed. Try again.");
+      setTimeout(() => setAnalysisText(""), 2000);
+    } finally { setSaving(false); }
+  };
+
+  const handlePhotoCapture = async () => {
+    setSaving(true);
+    setAnalysisText("Capturing photo...");
+    try {
+      const result = media.capturePhoto();
+      if (!result) throw new Error("Camera not ready");
+      setAnalysisText("Analyzing with Gemini Flash...");
+      const analysis = await media.analyzeMedia(result.base64, result.mimeType, "image");
+      const desc = analysis.sceneDescription || analysis.summary || "Photo captured";
+      const ctx = [
+        analysis.mood && `Mood: ${analysis.mood}`,
+        analysis.people?.length && `People: ${analysis.people.join(", ")}`,
+        analysis.locationHints?.length && `Location: ${analysis.locationHints.join(", ")}`,
+        analysis.objects?.length && `Objects: ${analysis.objects.slice(0, 5).join(", ")}`,
+        analysis.textInImage?.length && `Text: ${analysis.textInImage.join(", ")}`
+      ].filter(Boolean).join(" | ");
+      await persistCapture("photo", desc, ctx);
+      onSaved(memLoc("photo", desc));
+    } catch (err) {
+      console.error("Photo capture failed:", err);
+      setAnalysisText("Failed. Try again.");
+      setTimeout(() => setAnalysisText(""), 2000);
+    } finally { setSaving(false); }
+  };
+
+  const handleVideoSave = async () => {
+    setSaving(true);
+    setAnalysisText("Processing video...");
+    try {
+      const result = await media.stopVideoRecording();
+      setAnalysisText("Analyzing with Gemini Flash...");
+      const analysis = await media.analyzeMedia(result.base64, result.mimeType, "video");
+      const desc = analysis.summary || analysis.sceneDescription || "Video captured";
+      const ctx = [
+        analysis.transcription && `Transcript: ${analysis.transcription}`,
+        analysis.mood && `Mood: ${analysis.mood}`,
+        analysis.people?.length && `People: ${analysis.people.join(", ")}`,
+        analysis.keyMoments?.length && `Moments: ${analysis.keyMoments.slice(0, 3).join("; ")}`
+      ].filter(Boolean).join(" | ");
+      await persistCapture("video", desc, ctx);
+      onSaved(memLoc("video", desc));
+    } catch (err) {
+      console.error("Video capture failed:", err);
+      setAnalysisText("Failed. Try again.");
+      setTimeout(() => setAnalysisText(""), 2000);
+    } finally { setSaving(false); }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setSaving(true);
+    setAnalysisText(`Processing ${file.type}...`);
+    try {
+      const base64 = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve((reader.result as string).split(",")[1]);
+        reader.readAsDataURL(file);
+      });
+      const mt = file.type.startsWith("video") ? "video" : file.type.startsWith("audio") ? "audio" : "image";
+      setAnalysisText("Analyzing with Gemini Flash...");
+      const analysis = await media.analyzeMedia(base64, file.type, mt);
+      const desc = analysis.transcription || analysis.sceneDescription || analysis.summary || `${mt} captured`;
+      const ctx = [
+        analysis.mood && `Mood: ${analysis.mood}`,
+        analysis.people?.length && `People: ${analysis.people.join(", ")}`
+      ].filter(Boolean).join(" | ");
+      const src = mt === "audio" ? "voice" : mt === "video" ? "video" : "image";
+      await persistCapture(src as any, desc, ctx);
+      onSaved(memLoc(src === "voice" ? "voice" : src === "video" ? "video" : "photo", desc));
+    } catch { setAnalysisText("Failed."); setTimeout(() => setAnalysisText(""), 2000); }
+    finally { setSaving(false); }
+  };
+
   return (
-    <div
-      className="capture-backdrop"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Capture a memory"
-      onMouseDown={(e) => {
-        if (e.currentTarget === e.target) setMode(null);
-      }}
-    >
+    <div className="capture-backdrop" role="dialog" aria-modal="true" aria-label="Capture a memory"
+      onMouseDown={(e) => { if (e.currentTarget === e.target) setMode(null); }}>
       <section className={`capture-sheet ${mode}`}>
         <div className="capture-handle" />
         <div className="capture-top">
           <Brand compact />
-          <IconButton label="Close capture" onClick={() => setMode(null)}>
-            <X size={18} />
-          </IconButton>
+          <IconButton label="Close capture" onClick={() => setMode(null)}><X size={18} /></IconButton>
         </div>
 
         {mode === "menu" && (
@@ -1185,130 +1304,65 @@ function CaptureOverlay({
               <h2 className="font-serif font-medium text-stone-900 text-2xl mt-1">What do you want to keep?</h2>
               <p className="text-stone-500 text-xs mt-1">No organizing. Start wherever the moment is.</p>
             </div>
-
-            {/* Conversation Hero Banner */}
-            <button
-              className="voice-invitation cursor-pointer hover:scale-[1.01] transition-transform shadow-sm"
-              onClick={() => setMode("voice")}
-            >
+            <button className="voice-invitation cursor-pointer hover:scale-[1.01] transition-transform shadow-sm" onClick={() => setMode("voice")}>
               <span className="voice-spark" aria-hidden="true">
-                {Array.from({ length: 10 }).map((_, i) => (
-                  <i key={i} style={{ "--i": i } as React.CSSProperties} />
-                ))}
+                {Array.from({ length: 10 }).map((_, i) => (<i key={i} style={{ "--i": i } as React.CSSProperties} />))}
               </span>
               <span>
                 <small className="text-amber-700 font-semibold tracking-wider">Memoiary is listening</small>
-                <strong className="font-serif text-base text-stone-900 font-medium">Tell me what happened…</strong>
+                <strong className="font-serif text-base text-stone-900 font-medium">Tell me what happened...</strong>
               </span>
-              <div className="w-10 h-10 rounded-full bg-amber-100/80 flex items-center justify-center text-amber-700">
-                <Mic size={20} />
-              </div>
+              <div className="w-10 h-10 rounded-full bg-amber-100/80 flex items-center justify-center text-amber-700"><Mic size={20} /></div>
             </button>
-
-            {/* Combined Sleek Modern Text + Voice Input Bar */}
             <form onSubmit={handleQuickTextSubmit} className="relative flex items-center mt-2">
-              <input
-                type="text"
-                value={quickText}
-                onChange={(e) => setQuickText(e.target.value)}
-                placeholder="What's on your mind? (type or tap mic)..."
-                className="w-full py-3.5 pl-4 pr-24 bg-white border border-stone-200 rounded-2xl text-stone-800 placeholder-stone-400 text-sm focus:outline-none focus:border-amber-500 shadow-2xs font-sans transition-all"
-              />
+              <input type="text" value={quickText} onChange={(e) => setQuickText(e.target.value)} placeholder="What's on your mind?"
+                className="w-full py-3.5 pl-4 pr-24 bg-white border border-stone-200 rounded-2xl text-stone-800 placeholder-stone-400 text-sm focus:outline-none focus:border-amber-500 shadow-2xs font-sans transition-all" />
               <div className="absolute right-2 flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setMode("voice")}
-                  className="p-2 text-stone-500 hover:text-amber-600 hover:bg-amber-50 rounded-xl transition-colors cursor-pointer"
-                  title="One-touch voice record"
-                >
+                <button type="button" onClick={() => setMode("voice")} className="p-2 text-stone-500 hover:text-amber-600 hover:bg-amber-50 rounded-xl transition-colors cursor-pointer" title="Voice record">
                   <Mic size={18} />
                 </button>
-                {quickText.trim() && (
-                  <button
-                    type="submit"
-                    className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-medium cursor-pointer shadow-2xs transition-colors"
-                  >
-                    Save
-                  </button>
-                )}
+                {quickText.trim() && (<button type="submit" className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-medium cursor-pointer shadow-2xs transition-colors">Save</button>)}
               </div>
             </form>
-
-            {/* 4 Clean Action Cards Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-              <button
-                onClick={() => setMode("write")}
-                className="flex flex-col items-center justify-center p-4 bg-white hover:bg-stone-50 border border-stone-200/80 rounded-2xl gap-2 transition-all hover:border-amber-400/60 shadow-2xs group cursor-pointer"
-              >
-                <div className="p-2.5 rounded-xl bg-amber-50 text-amber-700 group-hover:scale-110 transition-transform">
-                  <PenLine size={20} />
-                </div>
+              <button onClick={() => setMode("write")} className="flex flex-col items-center justify-center p-4 bg-white hover:bg-stone-50 border border-stone-200/80 rounded-2xl gap-2 transition-all hover:border-amber-400/60 shadow-2xs group cursor-pointer">
+                <div className="p-2.5 rounded-xl bg-amber-50 text-amber-700 group-hover:scale-110 transition-transform"><PenLine size={20} /></div>
                 <span className="text-sm font-semibold text-stone-800">Write</span>
                 <span className="text-xs text-stone-500 font-sans">Draft a thought</span>
               </button>
-
-              <button
-                onClick={() => setMode("voice")}
-                className="flex flex-col items-center justify-center p-4 bg-white hover:bg-stone-50 border border-stone-200/80 rounded-2xl gap-2 transition-all hover:border-amber-400/60 shadow-2xs group cursor-pointer"
-              >
-                <div className="p-2.5 rounded-xl bg-amber-50 text-amber-700 group-hover:scale-110 transition-transform">
-                  <Mic size={20} />
-                </div>
+              <button onClick={() => setMode("voice")} className="flex flex-col items-center justify-center p-4 bg-white hover:bg-stone-50 border border-stone-200/80 rounded-2xl gap-2 transition-all hover:border-amber-400/60 shadow-2xs group cursor-pointer">
+                <div className="p-2.5 rounded-xl bg-amber-50 text-amber-700 group-hover:scale-110 transition-transform"><Mic size={20} /></div>
                 <span className="text-sm font-semibold text-stone-800">Speak</span>
                 <span className="text-xs text-stone-500 font-sans">Record voice</span>
               </button>
-
-              <button
-                onClick={() => setMode("photo")}
-                className="flex flex-col items-center justify-center p-4 bg-white hover:bg-stone-50 border border-stone-200/80 rounded-2xl gap-2 transition-all hover:border-amber-400/60 shadow-2xs group cursor-pointer"
-              >
-                <div className="p-2.5 rounded-xl bg-amber-50 text-amber-700 group-hover:scale-110 transition-transform">
-                  <Camera size={20} />
-                </div>
+              <button onClick={() => setMode("photo")} className="flex flex-col items-center justify-center p-4 bg-white hover:bg-stone-50 border border-stone-200/80 rounded-2xl gap-2 transition-all hover:border-amber-400/60 shadow-2xs group cursor-pointer">
+                <div className="p-2.5 rounded-xl bg-amber-50 text-amber-700 group-hover:scale-110 transition-transform"><Camera size={20} /></div>
                 <span className="text-sm font-semibold text-stone-800">Photo</span>
                 <span className="text-xs text-stone-500 font-sans">Visual keepsake</span>
               </button>
-
-              <button
-                onClick={() => setMode("photo")}
-                className="flex flex-col items-center justify-center p-4 bg-white hover:bg-stone-50 border border-stone-200/80 rounded-2xl gap-2 transition-all hover:border-amber-400/60 shadow-2xs group cursor-pointer"
-              >
-                <div className="p-2.5 rounded-xl bg-amber-50 text-amber-700 group-hover:scale-110 transition-transform">
-                  <Video size={20} />
-                </div>
+              <button onClick={() => setMode("video")} className="flex flex-col items-center justify-center p-4 bg-white hover:bg-stone-50 border border-stone-200/80 rounded-2xl gap-2 transition-all hover:border-amber-400/60 shadow-2xs group cursor-pointer">
+                <div className="p-2.5 rounded-xl bg-amber-50 text-amber-700 group-hover:scale-110 transition-transform"><Video size={20} /></div>
                 <span className="text-sm font-semibold text-stone-800">Video</span>
                 <span className="text-xs text-stone-500 font-sans">Live moment</span>
               </button>
             </div>
+            <label className="flex items-center justify-center gap-2 py-2.5 border border-dashed border-stone-300 rounded-2xl text-stone-500 text-xs cursor-pointer hover:bg-stone-50 hover:border-stone-400 transition-colors">
+              <Plus size={14} /> Upload a file (photo, audio, video)
+              <input type="file" accept="image/*,audio/*,video/*" className="hidden" onChange={handleFileUpload} />
+            </label>
           </div>
         )}
 
         {mode === "write" && (
           <>
             <span className="memory-kicker">A thought, exactly as it is</span>
-            <textarea
-              autoFocus
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="What’s on your mind?"
-            />
-            <button
-              className={`location-capture cursor-pointer ${location ? "active" : ""}`}
-              onClick={toggleLocation}
-            >
-              <MapPin size={15} />
-              {location ?? "Capture my location"}
-              {location && <span>Added</span>}
+            <textarea autoFocus value={text} onChange={(e) => setText(e.target.value)} placeholder="What's on your mind?" />
+            <button className={`location-capture cursor-pointer ${location ? "active" : ""}`} onClick={toggleLocation}>
+              <MapPin size={15} /> {location ?? "Capture my location"} {location && <span>Added</span>}
             </button>
             <p className="capture-reassurance text-xs text-muted-foreground mt-2">No title. No tags. Just this moment.</p>
-            <button
-              className="primary-action cursor-pointer mt-4"
-              disabled={!text.trim() || saving}
-              onClick={async () => {
-                await persistCapture("written", text.trim());
-                onSaved(memoryWithLocation("written", text.trim()));
-              }}
-            >
+            <button className="primary-action cursor-pointer mt-4" disabled={!text.trim() || saving}
+              onClick={async () => { await persistCapture("written", text.trim()); onSaved(memLoc("written", text.trim())); }}>
               {saving ? "Saving..." : "Keep this memory"}
             </button>
           </>
@@ -1316,76 +1370,104 @@ function CaptureOverlay({
 
         {mode === "voice" && (
           <div className="voice-capture">
-            <span className="recording-dot" />
-            <h2 className="font-serif font-medium">{recording ? "Just speak." : "Your voice is here."}</h2>
-            <p>{recording ? "I’ll hold the thread while you remember." : "0:18 · Ready to keep"}</p>
-            <button
-              className="voice-chat cursor-pointer"
-              onClick={() => setVoicePrompt("What was her name again — and what made you smile?")}
-            >
-              <Sparkles size={14} />
-              <span>
-                <small>Memoiary asks</small>
-                {voicePrompt}
-              </span>
-            </button>
-            <div className={`voice-orbit ${recording ? "active" : ""}`}>
-              {Array.from({ length: 24 }).map((_, i) => (
-                <i key={i} style={{ "--i": i } as React.CSSProperties} />
-              ))}
+            {media.isRecording ? (
+              <>
+                <span className="recording-dot" />
+                <h2 className="font-serif font-medium text-stone-900 text-xl">Just speak.</h2>
+                <p className="text-stone-500 text-sm mt-1">I&apos;ll hold the thread while you remember.</p>
+                <p className="text-amber-600 font-mono text-xs mt-2">{media.duration}s recording</p>
+              </>
+            ) : analysisText ? (
+              <>
+                <div className="animate-pulse">
+                  <Sparkles className="text-amber-500 mx-auto" size={24} />
+                </div>
+                <h2 className="font-serif font-medium text-stone-900 text-xl mt-3">{analysisText}</h2>
+              </>
+            ) : (
+              <>
+                <h2 className="font-serif font-medium text-stone-900 text-xl">Ready to capture your voice</h2>
+                <p className="text-stone-500 text-sm mt-1">Tap the mic to start recording</p>
+              </>
+            )}
+            <div className={`voice-orbit ${media.isRecording ? "active" : ""}`}>
+              {Array.from({ length: 24 }).map((_, i) => (<i key={i} style={{ "--i": i } as React.CSSProperties} />))}
             </div>
-            <button
-              className="record-button cursor-pointer"
-              aria-label={recording ? "Pause recording" : "Continue recording"}
-              onClick={() => setRecording(!recording)}
-            >
-              {recording ? <Pause /> : <Mic />}
+            <button className="record-button cursor-pointer" aria-label={media.isRecording ? "Stop recording" : "Start recording"}
+              onClick={() => { if (media.isRecording) { handleVoiceSave(); } else { media.startAudioRecording(); } }}
+              disabled={saving}>
+              {media.isRecording ? <Pause /> : <Mic />}
             </button>
-            <button
-              className={`location-capture cursor-pointer ${location ? "active" : ""}`}
-              onClick={toggleLocation}
-            >
-              <MapPin size={15} />
-              {location ?? "Capture my location"}
-              {location && <span>Added</span>}
+            <button className={`location-capture cursor-pointer ${location ? "active" : ""}`} onClick={toggleLocation}>
+              <MapPin size={15} /> {location ?? "Capture my location"} {location && <span>Added</span>}
             </button>
-            {!recording && (
-              <button
-                className="primary-action cursor-pointer mt-4"
-                disabled={saving}
-                onClick={async () => {
-                  const voiceText = "That tiny laugh before she answered — I want to remember how light everything felt.";
-                  await persistCapture("voice", voiceText);
-                  onSaved(memoryWithLocation("voice", voiceText));
-                }}
-              >
-                {saving ? "Saving..." : "Keep this memory"}
+            {!media.isRecording && !analysisText && (
+              <button className="primary-action cursor-pointer mt-4" disabled onClick={() => {}}>
+                Tap mic to start recording
+              </button>
+            )}
+            {media.isRecording && (
+              <button className="primary-action cursor-pointer mt-4" onClick={handleVoiceSave} disabled={saving}>
+                {saving ? "Transcribing..." : "Save voice memory"}
               </button>
             )}
           </div>
         )}
 
         {mode === "photo" && (
-          <div className="photo-capture">
-            <div className="camera-frame">
-              <img src={imageAssets.rooftopChai} alt="Photo ready to capture" />
-              <span />
-              <i />
+          <div className="voice-capture">
+            <video ref={videoElRef} autoPlay playsInline muted className={`w-full max-h-64 rounded-2xl object-cover ${cameraReady ? "block" : "hidden"}`} />
+            {!cameraReady && !analysisText && (
+              <div className="text-stone-500 text-sm">Starting camera...</div>
+            )}
+            {analysisText && (
+              <div className="animate-pulse mt-4">
+                <Sparkles className="text-amber-500 mx-auto" size={24} />
+                <p className="text-stone-600 text-sm mt-2">{analysisText}</p>
+              </div>
+            )}
+            <div className="flex gap-3 mt-4">
+              <button className="record-button cursor-pointer" onClick={handlePhotoCapture} disabled={saving || !cameraReady}>
+                <Camera />
+              </button>
+              <label className="record-button cursor-pointer flex items-center justify-center">
+                <Plus size={20} />
+                <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileUpload} />
+              </label>
             </div>
-            <p className="font-serif">Keep the moment as it is.</p>
-            <button className="location-capture cursor-pointer" onClick={toggleLocation}>
-              <MapPin size={15} />
-              {location ?? "Capture my location"}
-            </button>
-            <button
-              className="shutter cursor-pointer"
-              onClick={() => onSaved(memoryWithLocation("photo", "Sunday chai on the rooftop"))}
-            >
-              <span />
+            <button className={`location-capture cursor-pointer ${location ? "active" : ""}`} onClick={toggleLocation}>
+              <MapPin size={15} /> {location ?? "Capture my location"} {location && <span>Added</span>}
             </button>
           </div>
         )}
-      </section>
+
+        {mode === "video" && (
+          <div className="voice-capture">
+            <video ref={videoElRef} autoPlay playsInline muted className={`w-full max-h-64 rounded-2xl object-cover ${cameraReady ? "block" : "hidden"}`} />
+            {!cameraReady && !analysisText && (
+              <div className="text-stone-500 text-sm">Starting camera...</div>
+            )}
+            {media.isRecording && <span className="recording-dot" />}
+            {analysisText ? (
+              <div className="animate-pulse mt-4">
+                <Sparkles className="text-amber-500 mx-auto" size={24} />
+                <p className="text-stone-600 text-sm mt-2">{analysisText}</p>
+              </div>
+            ) : media.isRecording ? (
+              <p className="text-amber-600 font-mono text-xs mt-2">{media.duration}s</p>
+            ) : null}
+            <div className="flex gap-3 mt-4">
+              <button className="record-button cursor-pointer" onClick={() => { if (media.isRecording) { handleVideoSave(); } else { setCameraReady(false); videoElRef.current && media.startVideoRecording(videoElRef.current).then(() => setCameraReady(true)); } }} disabled={saving}>
+                {media.isRecording ? <Pause /> : <Video />}
+              </button>
+            </div>
+            <button className={`location-capture cursor-pointer ${location ? "active" : ""}`} onClick={toggleLocation}>
+              <MapPin size={15} /> {location ?? "Capture my location"} {location && <span>Added</span>}
+            </button>
+          </div>
+        )}
+
+</section>
     </div>
   );
 }
