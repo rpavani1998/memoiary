@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Home, Clock, BookOpen, Search } from "lucide-react";
+import { ThoughtBubbleIcon } from "@/components/ThoughtBubbleIcon";
 
 export type NavTab = "home" | "timeline" | "memories" | "search" | "people" | "places" | "reflect";
 
@@ -22,8 +23,8 @@ export function BottomNavigation({ activeTab, onSelectTab, onOpenCapture }: Prop
             activeTab === "home" ? "text-[#E09885]" : "text-stone-500 hover:text-stone-800"
           }`}
         >
-          <Home className="w-5 h-5" />
-          <span className="text-[10px] font-sans-clean font-medium">Home</span>
+          <Home className="w-6 h-6" />
+          <span className="text-xs font-sans-clean font-semibold">Home</span>
         </button>
 
         {/* Timeline */}
@@ -33,18 +34,19 @@ export function BottomNavigation({ activeTab, onSelectTab, onOpenCapture }: Prop
             activeTab === "timeline" ? "text-[#E09885]" : "text-stone-500 hover:text-stone-800"
           }`}
         >
-          <Clock className="w-5 h-5" />
-          <span className="text-[10px] font-sans-clean font-medium">Timeline</span>
+          <Clock className="w-6 h-6" />
+          <span className="text-xs font-sans-clean font-semibold">Timeline</span>
         </button>
 
-        {/* Persistent Central Capture Elevated Action ◉ */}
+        {/* Persistent Central Action */}
         <div className="relative -top-4">
           <button
             onClick={onOpenCapture}
-            className="w-13 h-13 rounded-full bg-[#E09885] hover:bg-[#D48875] text-white flex items-center justify-center shadow-lg transition-transform active:scale-95 cursor-pointer"
-            title="Tap to talk"
+            className="w-14 h-14 rounded-full bg-[#E09885] hover:bg-[#D48875] text-white flex items-center justify-center shadow-lg transition-transform active:scale-95 cursor-pointer"
+            title="Add a thought"
+            aria-label="Add a thought"
           >
-            <span className="text-2xl font-bold select-none leading-none">◉</span>
+            <ThoughtBubbleIcon className="w-7 h-7 text-white" />
           </button>
         </div>
 
@@ -57,8 +59,8 @@ export function BottomNavigation({ activeTab, onSelectTab, onOpenCapture }: Prop
               : "text-stone-500 hover:text-stone-800"
           }`}
         >
-          <BookOpen className="w-5 h-5" />
-          <span className="text-[10px] font-sans-clean font-medium">Memories</span>
+          <BookOpen className="w-6 h-6" />
+          <span className="text-xs font-sans-clean font-semibold">Memories</span>
         </button>
 
         {/* Search */}
@@ -68,8 +70,8 @@ export function BottomNavigation({ activeTab, onSelectTab, onOpenCapture }: Prop
             activeTab === "search" ? "text-[#E09885]" : "text-stone-500 hover:text-stone-800"
           }`}
         >
-          <Search className="w-5 h-5" />
-          <span className="text-[10px] font-sans-clean font-medium">Search</span>
+          <Search className="w-6 h-6" />
+          <span className="text-xs font-sans-clean font-semibold">Search</span>
         </button>
       </div>
     </div>
