@@ -196,7 +196,7 @@ export function ReflectionChatboard({ captures = [], onMemoryUpdate }: Reflectio
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-7.5rem)] w-full max-w-4xl mx-auto font-sans">
+    <div className="flex flex-col h-[calc(100vh-11.5rem)] w-full max-w-4xl mx-auto font-sans pb-2">
       {/* ── FULL SCREEN CONVERSATION CANVAS ── */}
       <div className="flex-1 bg-[#FAF7F0] border-[1.5px] border-[#1C1917] rounded-3xl p-4 sm:p-6 shadow-[3px_4px_0px_#1C1917] space-y-4 overflow-y-auto min-h-0">
         {messages.map((msg) => (

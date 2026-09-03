@@ -2326,7 +2326,7 @@ export function MemoiaryAppShell() {
         return <CollectionsSection go={go} onSelectPerson={(name) => { setSelectedPersonName(name); go("person"); }} onSelectCapture={(c) => { setSelectedCapture(c); go("memory"); }} />;
       case "reflect":
         return (
-          <div className="px-3 sm:px-6 mt-1 flex-1 flex flex-col">
+          <div className="px-3 sm:px-6 mt-1 flex-1 flex flex-col pb-20">
             <ReflectionChatboard captures={captures} />
           </div>
         );
