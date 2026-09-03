@@ -17,16 +17,13 @@ import {
   deleteDoc,
   onSnapshot,
   query,
-  orderBy
+  orderBy,
+  getDoc,
+  increment
 } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
-
-// Clean object helper to strip undefined values to prevent Firestore crashes
-export function sanitizePayload<T>(obj: T): T {
-  return JSON.parse(JSON.stringify(obj, (key, value) => {
-    return value === undefined ? null : value;
-  }));
-}
+import { sanitizePayload } from "@/lib/memory-engine/store";
+import { CaptureSession, CaptureDimensions } from "@/lib/memory-engine/types";
 
 export interface MemoiaryCard {
   id: string;
@@ -112,11 +109,20 @@ export interface JournalInsights {
   gentleInspirations: string[];
 }
 
+export interface StreakData {
+  currentStreak: number;
+  longestStreak: number;
+  lastCaptureDate: string | null;
+  totalCaptures: number;
+  totalPoints: number;
+}
+
 interface JournalContextType {
   user: User | null;
   loading: boolean;
   entries: JournalEntry[];
   memories: UserMemory[];
+  captures: CaptureSession[];
   clarifications: ClarificationItem[];
   insights: JournalInsights | null;
   insightsLoading: boolean;
@@ -124,8 +130,10 @@ interface JournalContextType {
   isAnalyzing: boolean;
   isChatting: boolean;
   saveError: string | null;
-  
+  streak: StreakData;
+
   signIn: () => Promise<void>;
+  signInAsGuest: () => Promise<void>;
   logOut: () => Promise<void>;
   setActiveEntry: (entry: JournalEntry | null) => void;
   createEmptyEntry: () => Promise<JournalEntry>;
@@ -134,7 +142,7 @@ interface JournalContextType {
   analyzeActiveEntry: () => Promise<void>;
   sendMessageToActiveEntry: (message: string) => Promise<void>;
   fetchInsights: () => Promise<void>;
-  
+
   approveMemory: (content: string, sourceEntryId?: string) => Promise<void>;
   editMemory: (id: string, content: string) => Promise<void>;
   deleteMemory: (id: string) => Promise<void>;
@@ -145,57 +153,104 @@ interface JournalContextType {
     action: "confirm" | "reject" | "correct" | "dismiss",
     customCorrection?: string
   ) => Promise<void>;
-  submitCapture: (content: string, source?: string) => Promise<any>;
+  submitCapture: (content: string, source?: string, mediaContext?: string) => Promise<any>;
 }
 
 const JournalContext = createContext<JournalContextType | undefined>(undefined);
+
+const defaultStreak: StreakData = {
+  currentStreak: 0,
+  longestStreak: 0,
+  lastCaptureDate: null,
+  totalCaptures: 0,
+  totalPoints: 0
+};
+
+function computeStreak(lastDate: string | null, current: number): { currentStreak: number; longestStreak: number } {
+  if (!lastDate) return { currentStreak: 1, longestStreak: 1 };
+  const now = new Date();
+  const last = new Date(lastDate);
+  const diffDays = Math.floor((now.getTime() - last.getTime()) / (1000 * 60 * 60 * 24));
+  if (diffDays <= 1) {
+    const newStreak = current + 1;
+    return { currentStreak: newStreak, longestStreak: newStreak };
+  }
+  return { currentStreak: 1, longestStreak: current };
+}
 
 export function JournalProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [memories, setMemories] = useState<UserMemory[]>([]);
+  const [captures, setCaptures] = useState<CaptureSession[]>([]);
   const [clarifications, setClarifications] = useState<ClarificationItem[]>([]);
   const [insights, setInsights] = useState<JournalInsights | null>(null);
   const [insightsLoading, setInsightsLoading] = useState<boolean>(false);
   const [activeEntry, setActiveEntryState] = useState<JournalEntry | null>(null);
-  
+  const [streak, setStreak] = useState<StreakData>(defaultStreak);
+
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
   const [isChatting, setIsChatting] = useState<boolean>(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  // Synchronize activeEntry changes with updating its corresponding list item
   const setActiveEntry = (entry: JournalEntry | null) => {
     setActiveEntryState(entry);
     setSaveError(null);
   };
 
-  // Resilient Sign-In with automatic fallback to guest mode if Google OAuth domain is unauthorized
   const signIn = async () => {
     try {
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: "select_account" });
       await signInWithPopup(auth, provider);
+      setSaveError(null);
     } catch (error: any) {
-      console.warn("Google Auth popup bypassed/unauthorized. Switching to Guest Session:", error?.code || error?.message);
-      try {
-        await signInAnonymously(auth);
-      } catch (anonErr) {
-        // Fallback to local guest user if anonymous auth is also disabled in console
-        const guestUser = {
-          uid: "guest_user_" + Date.now().toString(36),
-          displayName: "Guest User",
-          email: "guest@journal.local",
-          photoURL: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80",
-          getIdToken: async () => "demo_guest_token",
-        };
-        setUser(guestUser as any);
+      console.warn("Google Auth error:", error?.code, error?.message);
+      if (error?.code === "auth/unauthorized-domain") {
+        console.warn("Domain unauthorized in Firebase Console. Falling back to Anonymous Auth...");
+        try {
+          await signInAnonymously(auth);
+          setSaveError("Google domain unauthorized in Firebase Console. Logged in via Anonymous Session.");
+          return;
+        } catch (anonErr) {
+          const guestUser = {
+            uid: "guest_user_" + Date.now().toString(36),
+            displayName: "Guest User",
+            email: "guest@journal.local",
+            photoURL: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80",
+            getIdToken: async () => "demo_guest_token",
+          };
+          setUser(guestUser as any);
+          setSaveError(null);
+          return;
+        }
+      } else if (error?.code === "auth/popup-closed-by-user") {
+        setSaveError("Sign in popup was closed. Please try again.");
+      } else {
+        setSaveError(error?.message || "Google Sign-In failed.");
       }
+      throw error;
+    }
+  };
+
+  const signInAsGuest = async () => {
+    try {
+      await signInAnonymously(auth);
+      setSaveError(null);
+    } catch (anonErr) {
+      const guestUser = {
+        uid: "guest_user_" + Date.now().toString(36),
+        displayName: "Guest User",
+        email: "guest@journal.local",
+        photoURL: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80",
+        getIdToken: async () => "demo_guest_token",
+      };
+      setUser(guestUser as any);
       setSaveError(null);
     }
   };
 
-  // Log out helper
   const logOut = async () => {
     try {
       if (user?.uid?.startsWith("guest_user_")) {
@@ -205,14 +260,16 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
       }
       setEntries([]);
       setMemories([]);
+      setCaptures([]);
       setInsights(null);
       setActiveEntry(null);
+      setStreak(defaultStreak);
     } catch (error) {
       console.error("Logout failed:", error);
     }
   };
 
-  // Handle Auth state change
+  // Auth state
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
@@ -223,61 +280,76 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  // Listen to entries and memories in real time once user is logged in
+  // Real-time listeners for entries, memories, captures, clarifications
   useEffect(() => {
     if (!user || user.uid.startsWith("guest_user_")) return;
 
-    // Real-time journal entries listener
     const entriesRef = collection(db, "users", user.uid, "entries");
-    const entriesQuery = query(entriesRef, orderBy("createdAt", "desc"));
     const unsubEntries = onSnapshot(entriesRef, (snapshot) => {
-      const loadedEntries: JournalEntry[] = [];
+      const loaded: JournalEntry[] = [];
       snapshot.forEach((doc) => {
-        loadedEntries.push({ id: doc.id, ...doc.data() } as JournalEntry);
+        loaded.push({ id: doc.id, ...doc.data() } as JournalEntry);
       });
-      setEntries(loadedEntries);
-
-      setActiveEntryState((prevActive) => {
-        if (!prevActive) return null;
-        const currentDoc = loadedEntries.find((e) => e.id === prevActive.id);
-        return currentDoc || null;
+      setEntries(loaded);
+      setActiveEntryState((prev) => {
+        if (!prev) return null;
+        return loaded.find((e) => e.id === prev.id) || null;
       });
     }, (error) => {
       console.warn("Firestore entries offline fallback:", error?.message);
     });
 
-    // Real-time memories listener
     const memoriesRef = collection(db, "users", user.uid, "memories");
     const unsubMemories = onSnapshot(memoriesRef, (snapshot) => {
-      const loadedMemories: UserMemory[] = [];
+      const loaded: UserMemory[] = [];
       snapshot.forEach((doc) => {
-        loadedMemories.push({ id: doc.id, ...doc.data() } as UserMemory);
+        loaded.push({ id: doc.id, ...doc.data() } as UserMemory);
       });
-      setMemories(loadedMemories);
+      setMemories(loaded);
     }, (error) => {
       console.warn("Firestore memories offline fallback:", error?.message);
     });
 
-    // Real-time clarifications listener
+    const capturesRef = collection(db, "users", user.uid, "captures");
+    const capturesQuery = query(capturesRef, orderBy("createdAt", "desc"));
+    const unsubCaptures = onSnapshot(capturesQuery, (snapshot) => {
+      const loaded: CaptureSession[] = [];
+      snapshot.forEach((doc) => {
+        loaded.push({ id: doc.id, ...doc.data() } as CaptureSession);
+      });
+      setCaptures(loaded);
+    }, (error) => {
+      console.warn("Firestore captures offline fallback:", error?.message);
+    });
+
     const clarRef = collection(db, "users", user.uid, "clarifications");
     const unsubClar = onSnapshot(clarRef, (snapshot) => {
-      const loadedClar: ClarificationItem[] = [];
+      const loaded: ClarificationItem[] = [];
       snapshot.forEach((doc) => {
-        loadedClar.push({ id: doc.id, ...doc.data() } as ClarificationItem);
+        loaded.push({ id: doc.id, ...doc.data() } as ClarificationItem);
       });
-      setClarifications(loadedClar);
+      setClarifications(loaded);
     }, (error) => {
       console.warn("Firestore clarifications offline fallback:", error?.message);
+    });
+
+    // Load streak
+    const streakRef = doc(db, "users", user.uid, "profile", "streak");
+    const unsubStreak = onSnapshot(streakRef, (snap) => {
+      if (snap.exists()) {
+        setStreak(snap.data() as StreakData);
+      }
     });
 
     return () => {
       unsubEntries();
       unsubMemories();
+      unsubCaptures();
       unsubClar();
+      unsubStreak();
     };
   }, [user]);
 
-  // Create empty journal entry
   const createEmptyEntry = async () => {
     const newEntry: JournalEntry = {
       id: `entry_${Date.now()}`,
@@ -304,11 +376,10 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
     return newEntry;
   };
 
-  // Autosave entry content as user writes
   const saveEntryContent = async (id: string, content: string) => {
     const cleanLine = content.trim().split("\n")[0] || "";
-    const suggestedTitle = cleanLine.length > 35 
-      ? cleanLine.substring(0, 32) + "..." 
+    const suggestedTitle = cleanLine.length > 35
+      ? cleanLine.substring(0, 32) + "..."
       : cleanLine || "Untitled Entry";
 
     setEntries((prev) =>
@@ -329,7 +400,6 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Delete journal entry
   const deleteJournalEntry = async (id: string) => {
     setEntries((prev) => prev.filter((e) => e.id !== id));
     if (activeEntry?.id === id) {
@@ -345,7 +415,6 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Get Auth Token from current user session
   const getIdToken = async () => {
     if (!user) return null;
     if (typeof user.getIdToken === "function") {
@@ -354,7 +423,6 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
     return "demo_guest_token";
   };
 
-  // Analyze the current active entry with Gemini
   const analyzeActiveEntry = async () => {
     if (!activeEntry) return;
     setIsAnalyzing(true);
@@ -397,7 +465,6 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Chat conversation inside the active entry
   const sendMessageToActiveEntry = async (message: string) => {
     if (!activeEntry) return;
     setIsChatting(true);
@@ -443,7 +510,6 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Fetch / synthesize aggregate insights
   const fetchInsights = async () => {
     setInsightsLoading(true);
     try {
@@ -468,7 +534,6 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // User Memory management hooks
   const approveMemory = async (content: string, sourceEntryId?: string) => {
     const newMem: UserMemory = {
       id: `mem_${Date.now()}`,
@@ -500,7 +565,7 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
     setClarifications((prev) => prev.filter((c) => c.id !== id));
   };
 
-  const submitCapture = async (content: string, source = "text") => {
+  const submitCapture = async (content: string, source = "text", mediaContext?: string) => {
     try {
       const idToken = await getIdToken();
       const response = await fetch("/api/v1/capture", {
@@ -512,12 +577,47 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({
           content,
           source,
-          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          mediaContext
         })
       });
 
       if (response.ok) {
-        return await response.json();
+        const data = await response.json();
+
+        // Update streak
+        if (user && !user.uid.startsWith("guest_user_")) {
+          try {
+            const streakRef = doc(db, "users", user.uid, "profile", "streak");
+            const streakSnap = await getDoc(streakRef);
+            const current = streakSnap.exists() ? (streakSnap.data() as StreakData) : defaultStreak;
+
+            const today = new Date().toISOString().split("T")[0];
+            const isSameDay = current.lastCaptureDate === today;
+
+            if (!isSameDay) {
+              const { currentStreak, longestStreak } = computeStreak(current.lastCaptureDate, current.currentStreak);
+              const pointsEarned = currentStreak >= 7 ? 15 : currentStreak >= 3 ? 10 : 5;
+
+              await setDoc(streakRef, {
+                currentStreak,
+                longestStreak: Math.max(longestStreak, current.longestStreak),
+                lastCaptureDate: today,
+                totalCaptures: increment(1),
+                totalPoints: increment(pointsEarned)
+              }, { merge: true });
+            } else {
+              await setDoc(streakRef, {
+                totalCaptures: increment(1),
+                totalPoints: increment(5)
+              }, { merge: true });
+            }
+          } catch (streakErr) {
+            console.warn("Streak update failed:", streakErr);
+          }
+        }
+
+        return data;
       }
     } catch (error) {
       console.warn("Capture submission fallback:", error);
@@ -531,6 +631,7 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
         loading,
         entries,
         memories,
+        captures,
         clarifications,
         insights,
         insightsLoading,
@@ -538,8 +639,10 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
         isAnalyzing,
         isChatting,
         saveError,
-        
+        streak,
+
         signIn,
+        signInAsGuest,
         logOut,
         setActiveEntry,
         createEmptyEntry,
@@ -548,7 +651,7 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
         analyzeActiveEntry,
         sendMessageToActiveEntry,
         fetchInsights,
-        
+
         approveMemory,
         editMemory,
         deleteMemory,

@@ -1,6 +1,7 @@
 import { generateContentWithFallback } from "@/lib/gemini";
 import {
   ExtractedBundle,
+  CaptureDimensions,
   EpistemicSource,
   Entity,
   Episode,
@@ -14,21 +15,23 @@ interface ExtractionOptions {
   userId: string;
   captureId: string;
   rawText: string;
+  source?: string;
   referenceDate?: string;
   timezone?: string;
+  mediaContext?: string;
 }
 
 export class MemoryExtractor {
   async extract(options: ExtractionOptions): Promise<ExtractedBundle> {
     const { userId, captureId, rawText, referenceDate = new Date().toISOString(), timezone = "UTC" } = options;
 
-    const systemPrompt = `You are the Extraction Engine of a Personal Memory System.
+    const systemPrompt = `You are the Extraction Engine of Memoiary, a Personal Memory System.
 Your job is to parse the user's autobiographical capture into structured memory components.
 
 CURRENT REFERENCE TIME: ${referenceDate} (${timezone})
 
 EXTRACTION RULES:
-1. ENTITIES: Extract distinct entities (PERSON, ORGANIZATION, PLACE, MEDIA, PROJECT, CONCEPT).
+1. ENTITIES: Extract distinct entities (PERSON, ORGANIZATION, PLACE, MEDIA, PROJECT, CONCEPT, EVENT).
    - For TV shows, movies, books, podcasts, categorize as MEDIA.
    - Note characters, actors, colleagues, friends, places.
 2. EPISODES: Autobiographical events or activities experienced or reported by the user.
@@ -36,13 +39,12 @@ EXTRACTION RULES:
    - Summary: Concise recap of the experience/reaction.
    - Date: Absolute ISO-8601 date resolved from relative words ("today", "yesterday", "last Thursday").
    - EntitiesInvolved: List of entity names mentioned.
-3. RELATIONSHIPS: Connections between entities (e.g. Rahul -> brother, Rahul -> colleague, CU -> works_at Google, user -> watched -> Friends).
+3. RELATIONSHIPS: Connections between entities (e.g. Rahul -> brother, Rahul -> colleague).
    - Distinguish active vs historical relationships if mentioned.
-   - Note: multiple roles (e.g. brother AND colleague) are both valid relationships!
 4. EMOTIONS: Emotional states mentioned.
-   - subjectType: "USER" if the user felt it, "OBSERVED_OTHER" if someone else exhibited it (e.g. "Alex seemed stressed").
+   - subjectType: "USER" if the user felt it, "OBSERVED_OTHER" if someone else exhibited it.
    - subjectName: The person who felt/exhibited it.
-5. LEARNINGS & STATES: Realizations, personal rules, or active states.
+5. LEARNINGS: Realizations, personal rules, or active states.
 
 Return valid JSON adhering to the exact schema.`;
 
@@ -87,9 +89,7 @@ Return valid JSON adhering to the exact schema.`;
               sourceName: { type: "string" },
               targetName: { type: "string" },
               predicate: { type: "string" },
-              status: { type: "string", enum: ["active", "historical", "tentative"] },
-              validFrom: { type: "string" },
-              validTo: { type: "string" }
+              status: { type: "string", enum: ["active", "historical", "tentative"] }
             },
             required: ["sourceName", "targetName", "predicate"]
           }
@@ -197,7 +197,6 @@ Return valid JSON adhering to the exact schema.`;
       };
     } catch (error) {
       console.error("Extraction error:", error);
-      // Resilient fallback: create a basic episode
       const timestamp = new Date().toISOString();
       return {
         entities: [],
@@ -222,6 +221,93 @@ Return valid JSON adhering to the exact schema.`;
       };
     }
   }
+
+  async extractDimensions(options: ExtractionOptions): Promise<CaptureDimensions> {
+    const { rawText, source = "text", referenceDate = new Date().toISOString(), mediaContext } = options;
+
+    const systemPrompt = `You are Memoiary's Dimension Extractor. Analyze the user's capture and extract rich metadata dimensions.
+
+CURRENT TIME: ${referenceDate}
+SOURCE TYPE: ${source}
+${mediaContext ? `MEDIA CONTEXT: ${mediaContext}` : ""}
+
+You must extract:
+1. SUMMARY: A 1-2 sentence evocative summary of the capture's essence.
+2. MOOD: The overall emotional atmosphere (e.g., "reflective", "excited", "melancholic", "hopeful", "anxious").
+3. TONE: The writing/speaking tone (e.g., "casual", "contemplative", "urgent", "playful", "vulnerable").
+4. EMOTIONS: Array of detected emotions with intensity (0-1) and valence.
+5. PEOPLE: Names of people mentioned or referenced.
+6. PLACES: Locations mentioned or implied.
+7. TOPICS: Key themes/topics (2-5 words each).
+8. TIME CONTEXT: When the event happened (e.g., "yesterday evening", "this morning", "last week").
+9. RAW ANALYSIS: A brief analytical observation about the capture (what's interesting, what pattern it fits).
+
+Return ONLY valid JSON matching this schema.`;
+
+    const schema = {
+      type: "object",
+      properties: {
+        summary: { type: "string" },
+        mood: { type: "string" },
+        tone: { type: "string" },
+        emotions: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              label: { type: "string" },
+              intensity: { type: "number" },
+              valence: { type: "string", enum: ["positive", "negative", "mixed", "neutral"] }
+            },
+            required: ["label", "intensity", "valence"]
+          }
+        },
+        people: { type: "array", items: { type: "string" } },
+        places: { type: "array", items: { type: "string" } },
+        topics: { type: "array", items: { type: "string" } },
+        timeContext: { type: "string" },
+        rawAnalysis: { type: "string" }
+      },
+      required: ["summary", "mood", "tone", "emotions", "people", "places", "topics", "timeContext", "rawAnalysis"]
+    };
+
+    try {
+      const response = await generateContentWithFallback(rawText, {
+        systemInstruction: systemPrompt,
+        responseMimeType: "application/json",
+        responseSchema: schema,
+        temperature: 0.2
+      });
+
+      const parsed = JSON.parse(response.text || "{}");
+
+      return {
+        summary: parsed.summary || rawText.substring(0, 100),
+        mood: parsed.mood || "neutral",
+        tone: parsed.tone || "casual",
+        emotions: Array.isArray(parsed.emotions) ? parsed.emotions : [],
+        people: Array.isArray(parsed.people) ? parsed.people : [],
+        places: Array.isArray(parsed.places) ? parsed.places : [],
+        topics: Array.isArray(parsed.topics) ? parsed.topics : [],
+        timeContext: parsed.timeContext || "recently",
+        rawAnalysis: parsed.rawAnalysis || "",
+        mediaInsights: mediaContext ? { sceneDescription: mediaContext } : undefined
+      };
+    } catch (error) {
+      console.error("Dimension extraction error:", error);
+      return {
+        summary: rawText.substring(0, 120),
+        mood: "neutral",
+        tone: "casual",
+        emotions: [],
+        people: [],
+        places: [],
+        topics: [],
+        timeContext: "recently",
+        rawAnalysis: ""
+      };
+    }
+  }
 }
 
 export async function extractMemoryBundle(content: string, referenceDate?: string): Promise<ExtractedBundle> {
@@ -233,4 +319,3 @@ export async function extractMemoryBundle(content: string, referenceDate?: strin
     referenceDate
   });
 }
-

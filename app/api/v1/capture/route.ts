@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     }
 
     const body = (await req.json().catch(() => ({}))) || {};
-    const { content, source = "text", mediaUrl, timezone = "UTC" } = body;
+    const { content, source = "text", mediaUrl, timezone = "UTC", mediaContext } = body;
 
     if (!content || typeof content !== "string" || !content.trim()) {
       return NextResponse.json({ error: "Capture content is required" }, { status: 400 });
@@ -34,18 +34,29 @@ export async function POST(req: Request) {
       createdAt: new Date().toISOString(),
       status: "received"
     };
-    await store.saveCapture(captureSession);
 
-    // 1. Extract raw memories
     const extractor = new MemoryExtractor();
-    const extractedBundle = await extractor.extract({
-      userId,
-      captureId,
-      rawText: content.trim(),
-      timezone
-    });
 
-    // 2. Consistency & Clarification Check
+    // Extract rich dimensions in parallel with structural extraction
+    const [extractedBundle, dimensions] = await Promise.all([
+      extractor.extract({
+        userId,
+        captureId,
+        rawText: content.trim(),
+        source,
+        timezone
+      }),
+      extractor.extractDimensions({
+        userId,
+        captureId,
+        rawText: content.trim(),
+        source,
+        timezone,
+        mediaContext
+      })
+    ]);
+
+    // Consistency & Clarification Check
     const consistencyEngine = new ConsistencyEngine();
     const consistencyResult = await consistencyEngine.checkConsistency({
       userId,
@@ -58,14 +69,15 @@ export async function POST(req: Request) {
     const reconciler = new MemoryReconciler(userId, store);
 
     if (consistencyResult.hasConflict && consistencyResult.clarifications.length > 0) {
-      // Save pending clarifications
       for (const clar of consistencyResult.clarifications) {
         await store.saveClarification(clar);
       }
 
       await store.saveCapture({
         ...captureSession,
-        status: "clarification_needed"
+        status: "clarification_needed",
+        dimensions,
+        episodes: extractedBundle.episodes
       });
 
       return NextResponse.json({
@@ -73,11 +85,11 @@ export async function POST(req: Request) {
         status: "clarification_needed",
         captureId,
         clarifications: consistencyResult.clarifications,
-        extractedBundle
+        extractedBundle,
+        dimensions
       });
     }
 
-    // Direct User Correction or Clean Path -> Reconcile & Persist
     const finalBundle = consistencyResult.adjustedBundle || extractedBundle;
     const { reconciledEntities, reconciledEpisodes } = await reconciler.reconcile(
       finalBundle,
@@ -87,7 +99,9 @@ export async function POST(req: Request) {
 
     await store.saveCapture({
       ...captureSession,
-      status: "reconciled"
+      status: "reconciled",
+      dimensions,
+      episodes: reconciledEpisodes
     });
 
     return NextResponse.json({
@@ -96,6 +110,7 @@ export async function POST(req: Request) {
       captureId,
       reconciledEntities,
       reconciledEpisodes,
+      dimensions,
       isDirectUserCorrection: consistencyResult.isDirectUserCorrection || false,
       correctionDetails: consistencyResult.correctionDetails || null
     });

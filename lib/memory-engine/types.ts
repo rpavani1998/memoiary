@@ -171,15 +171,36 @@ export interface MemoryProvenance {
   details?: Record<string, any>;
 }
 
+export interface CaptureDimensions {
+  summary: string;
+  mood: string;
+  tone: string;
+  emotions: Array<{ label: string; intensity: number; valence: "positive" | "negative" | "mixed" | "neutral" }>;
+  people: string[];
+  places: string[];
+  topics: string[];
+  timeContext: string;
+  mediaInsights?: {
+    transcription?: string;
+    sceneDescription?: string;
+    detectedObjects?: string[];
+    audioEmotion?: string;
+    faceCount?: number;
+  };
+  rawAnalysis: string;
+}
+
 export interface CaptureSession {
   id: string;
   userId: string;
   content: string;
-  source: "text" | "voice" | "image" | "document";
+  source: "text" | "voice" | "image" | "video" | "document";
   mediaUrl?: string;
   timezone?: string;
   createdAt: string;
   status: "received" | "extracted" | "clarification_needed" | "reconciled";
+  dimensions?: CaptureDimensions;
+  episodes?: Episode[];
 }
 
 export interface ExtractedBundle {
