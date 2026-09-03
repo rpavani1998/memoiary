@@ -576,23 +576,76 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
       mediaUrl,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       createdAt: nowIso,
-      status: "received",
+      status: "processing", // Processing until AI analysis completes
       episodes: parsedEpisodes,
-      dimensions: {
-        summary: mediaContext || content.substring(0, 120) || "Captured media moment",
-        mood: "Reflective & Present",
-        tone: "Warm & Personal",
-        emotions: [{ label: "Mindfulness", intensity: 0.85, valence: "positive" }],
-        people: detectedPeople,
-        places: [],
-        topics: ["Personal Memory"],
-        timeContext: "Now",
-        rawAnalysis: mediaContext || content
-      }
+      dimensions: undefined // undefined until AI completes
     };
 
     // Always optimistically update local state immediately so user sees their new capture!
     setCaptures((prev) => [newCap, ...prev]);
+
+    // Asynchronously perform AI analysis extraction
+    setTimeout(async () => {
+      try {
+        const analyzeRes = await fetch("/api/gemini/analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content: content || mediaContext || "Captured Media Memory" })
+        });
+        if (analyzeRes.ok) {
+          const aiData = await analyzeRes.json();
+          const extractedDims: CaptureDimensions = {
+            summary: aiData.witnessReflection || aiData.title || content.substring(0, 120),
+            mood: aiData.cards?.find((c: any) => c.type === "Moment" || c.type === "Thought")?.title || "Reflective",
+            tone: "Personal",
+            emotions: [{ label: "Mindfulness", intensity: 0.9, valence: "positive" }],
+            people: detectedPeople,
+            places: [],
+            topics: aiData.cards?.map((c: any) => c.title) || ["Personal Memory"],
+            timeContext: "Now",
+            rawAnalysis: aiData.witnessReflection || content
+          };
+          setCaptures((prev) =>
+            prev.map((c) =>
+              c.id === capId
+                ? { ...c, status: "reconciled", dimensions: extractedDims }
+                : c
+            )
+          );
+        } else {
+          // Fallback dimensions if API error
+          const fallbackDims: CaptureDimensions = {
+            summary: content.substring(0, 120),
+            mood: "Reflective",
+            tone: "Personal",
+            emotions: [{ label: "Presence", intensity: 0.8, valence: "positive" }],
+            people: detectedPeople,
+            places: [],
+            topics: ["Personal Memory"],
+            timeContext: "Now",
+            rawAnalysis: content
+          };
+          setCaptures((prev) =>
+            prev.map((c) => (c.id === capId ? { ...c, status: "reconciled", dimensions: fallbackDims } : c))
+          );
+        }
+      } catch (err) {
+        const fallbackDims: CaptureDimensions = {
+          summary: content.substring(0, 120),
+          mood: "Reflective",
+          tone: "Personal",
+          emotions: [{ label: "Presence", intensity: 0.8, valence: "positive" }],
+          people: detectedPeople,
+          places: [],
+          topics: ["Personal Memory"],
+          timeContext: "Now",
+          rawAnalysis: content
+        };
+        setCaptures((prev) =>
+          prev.map((c) => (c.id === capId ? { ...c, status: "reconciled", dimensions: fallbackDims } : c))
+        );
+      }
+    }, 1500);
 
     try {
       const idToken = await getIdToken();
@@ -670,13 +723,59 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateCapture = async (captureId: string, updates: Partial<{ content: string; source: string }>) => {
-    if (!user || user.uid.startsWith("guest_user_")) return;
-    try {
-      const { updateDoc, doc } = await import("firebase/firestore");
-      await updateDoc(doc(db, "users", user.uid, "captures", captureId), updates);
-      setCaptures((prev) => prev.map((c) => c.id === captureId ? { ...c, ...updates } as CaptureSession : c));
-    } catch (err) {
-      console.warn("Update capture failed:", err);
+    setCaptures((prev) =>
+      prev.map((c) =>
+        c.id === captureId
+          ? { ...c, ...updates, status: updates.content ? "processing" : c.status } as CaptureSession
+          : c
+      )
+    );
+
+    if (updates.content) {
+      setTimeout(async () => {
+        try {
+          const res = await fetch("/api/gemini/analyze", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ content: updates.content })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setCaptures((prev) =>
+              prev.map((c) =>
+                c.id === captureId
+                  ? {
+                      ...c,
+                      status: "reconciled",
+                      dimensions: {
+                        summary: data.witnessReflection || data.title || updates.content!.substring(0, 120),
+                        mood: data.cards?.find((card: any) => card.type === "Thought" || card.type === "Moment")?.title || "Reflective",
+                        tone: "Personal",
+                        emotions: [{ label: "Edited Thought", intensity: 0.9, valence: "positive" }],
+                        people: [],
+                        places: [],
+                        topics: data.cards?.map((card: any) => card.title) || ["Edited Memory"],
+                        timeContext: "Updated",
+                        rawAnalysis: data.witnessReflection || updates.content!
+                      }
+                    }
+                  : c
+              )
+            );
+          }
+        } catch (err) {
+          console.warn("Re-analysis error:", err);
+        }
+      }, 1000);
+    }
+
+    if (user && !user.uid.startsWith("guest_user_")) {
+      try {
+        const { updateDoc, doc } = await import("firebase/firestore");
+        await updateDoc(doc(db, "users", user.uid, "captures", captureId), updates);
+      } catch (err) {
+        console.warn("Update capture Firestore failed:", err);
+      }
     }
   };
 

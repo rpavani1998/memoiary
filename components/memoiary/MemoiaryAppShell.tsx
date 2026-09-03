@@ -45,9 +45,11 @@ import { useArtStyle, ART_STYLES, ArtStyle } from "@/lib/context/ArtStyleContext
 import { getPersonVisualIdentity } from "@/lib/memory-engine/person-graph";
 import { TimelineViewSwitcher, TimelineMode } from "@/components/TimelineViewSwitcher";
 import { MonthlyCollageGrid } from "@/components/MonthlyCollageGrid";
+import { ApplePhotosGallery } from "@/components/ApplePhotosGallery";
 
 export type View =
   | "life"
+  | "collections"
   | "people"
   | "person"
   | "explore"
@@ -337,9 +339,22 @@ function LifeHome({
       <header className="px-5 pt-6 sm:px-8 sm:pt-8">
         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
           <Brand />
-          <IconButton label="Search your life" onClick={() => go("search")}>
-            <Search size={18} />
-          </IconButton>
+          <div className="flex items-center gap-2">
+            <IconButton label="Search your life" onClick={() => go("search")}>
+              <Search size={18} />
+            </IconButton>
+            <button
+              onClick={() => go("you")}
+              className="w-8 h-8 rounded-full overflow-hidden border border-stone-200 hover:border-amber-400 transition-colors cursor-pointer flex-shrink-0"
+              title="You"
+            >
+              <img
+                src={user?.photoURL || imageAssets.logo}
+                alt="You"
+                className="w-full h-full object-cover"
+              />
+            </button>
+          </div>
         </div>
 
         {/* Timeline View Mode Switcher: DAY | WEEK | MONTH */}
@@ -1218,190 +1233,265 @@ function ConnectionsViewSection({ go }: { go: (view: View) => void }) {
 }
 
 function MemoryDetailSection({ go, capture }: { go: (view: View) => void; capture: any }) {
+  const { updateCapture } = useJournal();
   const [activeTab, setActiveTab] = useState<"raw" | "analyzed">("analyzed");
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedContent, setEditedContent] = useState(capture?.content || "");
+
+  useEffect(() => {
+    setEditedContent(capture?.content || "");
+  }, [capture?.content]);
 
   const dims = capture?.dimensions;
   const episodes = capture?.episodes || [];
+  const isAiProcessing = capture?.status === "processing" || (!dims && capture?.status !== "reconciled");
   const date = capture?.createdAt ? new Date(capture.createdAt) : new Date();
   const timeStr = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
   const dateStr = date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
   
   const titleText = dims?.summary || capture?.content?.substring(0, 50) || "Memory Detail";
 
+  const handleSaveEdit = async () => {
+    if (!editedContent.trim()) return;
+    await updateCapture(capture.id, { content: editedContent.trim() });
+    setIsEditing(false);
+  };
+
   return (
     <div className="pb-32 font-sans">
       <PageHeader
         title={titleText}
-        eyebrow={`${capture?.source === "voice" ? "Voice Recording" : capture?.source === "image" ? "Photo Memory" : "Written Memory"} · ${dateStr}`}
+        eyebrow={`${capture?.source === "video" ? "Recorded Video" : capture?.source === "voice" ? "Voice Recording" : capture?.source === "image" ? "Photo Memory" : "Written Memory"} · ${dateStr}`}
         onBack={() => go("life")}
         action={
-          <IconButton label="More options">
-            <MoreHorizontal size={18} />
-          </IconButton>
+          <button
+            onClick={() => setIsEditing(!isEditing)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#FAF7F0] border-[1.5px] border-[#1C1917] rounded-xl text-xs font-bold text-[#1C1917] shadow-[1px_2px_0px_#1C1917] hover:bg-[#F5E5DC] cursor-pointer"
+          >
+            <PenLine size={14} className="text-[#DE5239]" />
+            <span>{isEditing ? "Cancel" : "Edit Memory"}</span>
+          </button>
         }
       />
       <main className="px-5 sm:px-8 mt-4 space-y-5">
-        {/* Dual Tab Switcher: RAW vs ANALYZED */}
-        <div className="flex border-b border-[#1C1917]/15 pb-1 gap-4">
-          <button
-            onClick={() => setActiveTab("analyzed")}
-            className={`flex items-center gap-1.5 pb-2 text-xs font-sans font-semibold border-b-2 cursor-pointer transition-colors ${
-              activeTab === "analyzed"
-                ? "border-[#DE5239] text-[#DE5239]"
-                : "border-transparent text-[#665F56] hover:text-[#1C1917]"
-            }`}
-          >
-            <Sparkles size={14} /> Understood &amp; Analyzed
-          </button>
-          <button
-            onClick={() => setActiveTab("raw")}
-            className={`flex items-center gap-1.5 pb-2 text-xs font-sans font-semibold border-b-2 cursor-pointer transition-colors ${
-              activeTab === "raw"
-                ? "border-[#DE5239] text-[#DE5239]"
-                : "border-transparent text-[#665F56] hover:text-[#1C1917]"
-            }`}
-          >
-            <PenLine size={14} /> RAW Input
-          </button>
+        {/* AI Analysis Status Banner */}
+        <div className={`p-3.5 border-[1.5px] border-[#1C1917] rounded-2xl shadow-[2px_3px_0px_#1C1917] flex items-center justify-between gap-3 text-xs font-sans font-bold ${
+          isAiProcessing ? "bg-[#FDF2D0] text-[#D97706]" : "bg-[#FAF7F0] text-[#1C1917]"
+        }`}>
+          <div className="flex items-center gap-2">
+            <Sparkles size={16} className={isAiProcessing ? "animate-spin text-[#D97706]" : "text-[#DE5239]"} />
+            <span>
+              {isAiProcessing
+                ? "⏳ AI Processing in Progress... Extracting mood & timeline"
+                : "✨ AI Analysis Complete & Grounded"}
+            </span>
+          </div>
+          {isAiProcessing && (
+            <span className="text-[10px] font-mono uppercase bg-[#D97706] text-white px-2 py-0.5 rounded-md">
+              Analyzing
+            </span>
+          )}
         </div>
 
-        {/* TAB 1: RAW INPUT (Exact original user capture) */}
-        {activeTab === "raw" && (
-          <div className="space-y-4">
-            <div className="p-5 bg-white border-[1.5px] border-[#1C1917] rounded-2xl shadow-[2px_3px_0px_#1C1917] space-y-2">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-[#665F56] font-sans block">
-                Exact Captured Words · {dateStr} at {timeStr}
-              </span>
-              <p className="font-serif text-lg text-[#1C1917] leading-relaxed italic">
-                &ldquo;{capture?.content || "No raw text recorded"}&rdquo;
-              </p>
+        {/* In-App Edit Memory View */}
+        {isEditing ? (
+          <div className="p-5 bg-white border-[1.5px] border-[#1C1917] rounded-3xl shadow-[3px_4px_0px_#1C1917] space-y-4 font-sans">
+            <h3 className="font-serif text-xl font-medium text-[#1C1917]">Edit Your Memory Entry</h3>
+            <textarea
+              value={editedContent}
+              onChange={(e) => setEditedContent(e.target.value)}
+              className="w-full min-h-[10rem] p-4 border-[1.5px] border-[#1C1917] bg-[#FBF9F4] rounded-2xl text-[#1C1917] font-serif text-base focus:outline-none resize-none shadow-[2px_3px_0px_#1C1917]"
+              placeholder="Update what was captured…"
+            />
+            <div className="flex items-center justify-end gap-2">
+              <button
+                onClick={() => setIsEditing(false)}
+                className="px-4 py-2 bg-stone-100 border border-[#1C1917]/20 rounded-xl text-xs font-bold text-[#665F56] hover:bg-stone-200 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveEdit}
+                className="px-5 py-2 bg-[#DE5239] border-[1.5px] border-[#1C1917] rounded-xl text-xs font-bold text-white shadow-[2px_3px_0px_#1C1917] hover:bg-[#c9452d] cursor-pointer"
+              >
+                Save Changes &amp; Re-Analyze
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Dual Tab Switcher: RAW vs ANALYZED */}
+            <div className="flex border-b border-[#1C1917]/15 pb-1 gap-4">
+              <button
+                onClick={() => setActiveTab("analyzed")}
+                className={`flex items-center gap-1.5 pb-2 text-xs font-sans font-semibold border-b-2 cursor-pointer transition-colors ${
+                  activeTab === "analyzed"
+                    ? "border-[#DE5239] text-[#DE5239]"
+                    : "border-transparent text-[#665F56] hover:text-[#1C1917]"
+                }`}
+              >
+                <Sparkles size={14} /> Understood &amp; Analyzed
+              </button>
+              <button
+                onClick={() => setActiveTab("raw")}
+                className={`flex items-center gap-1.5 pb-2 text-xs font-sans font-semibold border-b-2 cursor-pointer transition-colors ${
+                  activeTab === "raw"
+                    ? "border-[#DE5239] text-[#DE5239]"
+                    : "border-transparent text-[#665F56] hover:text-[#1C1917]"
+                }`}
+              >
+                <PenLine size={14} /> RAW Input
+              </button>
             </div>
 
-            {/* Video Player if video source */}
-            {(capture?.source === "video" || capture?.mediaUrl?.startsWith("data:video") || capture?.mediaUrl?.includes(".mp4")) && (
-              <div className="rounded-2xl overflow-hidden border-[1.5px] border-[#1C1917] shadow-[2px_3px_0px_#1C1917] bg-black">
-                <video controls src={capture.mediaUrl} className="w-full max-h-80 object-contain" />
-              </div>
-            )}
-
-            {/* Audio Player if voice source */}
-            {(capture?.source === "voice" || capture?.mediaUrl?.startsWith("data:audio")) && (
-              <div className="p-4 bg-[#F5E5DC] border-[1.5px] border-[#1C1917] rounded-2xl shadow-[2px_3px_0px_#1C1917] flex items-center justify-between">
-                <div className="flex items-center gap-3.5">
-                  <button
-                    onClick={() => setIsPlaying(!isPlaying)}
-                    className="w-10 h-10 rounded-full bg-[#DE5239] text-white flex items-center justify-center cursor-pointer border border-[#1C1917] shadow-xs hover:scale-105 transition-transform"
-                  >
-                    {isPlaying ? <Pause size={18} /> : <Play size={18} className="ml-0.5" />}
-                  </button>
-                  <div>
-                    <span className="text-xs font-bold text-[#1C1917] block">Original Audio Recording</span>
-                    <span className="text-[10px] text-[#665F56]">{timeStr} · Recorded Live</span>
+            {/* TAB 1: RAW INPUT */}
+            {activeTab === "raw" && (
+              <div className="space-y-4">
+                <div className="p-5 bg-white border-[1.5px] border-[#1C1917] rounded-2xl shadow-[2px_3px_0px_#1C1917] space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-[#665F56] font-sans block">
+                      Exact Captured Words · {dateStr} at {timeStr}
+                    </span>
+                    <button
+                      onClick={() => setIsEditing(true)}
+                      className="text-xs font-bold text-[#DE5239] hover:underline cursor-pointer"
+                    >
+                      Edit Text
+                    </button>
                   </div>
+                  <p className="font-serif text-lg text-[#1C1917] leading-relaxed italic">
+                    &ldquo;{capture?.content || "Voice recording captured without text"}&rdquo;
+                  </p>
                 </div>
-                <div className="flex gap-0.5 items-center h-5">
-                  {[10, 18, 14, 24, 20, 12, 22, 16, 26, 14].map((h, i) => (
-                    <span
-                      key={i}
-                      className={`w-1 rounded-full transition-all ${
-                        isPlaying ? "bg-[#DE5239] animate-pulse" : "bg-[#1C1917]/40"
-                      }`}
-                      style={{ height: `${h}px` }}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
 
-            {/* Photo if image source */}
-            {(capture?.source === "image" || (capture?.mediaUrl && capture?.mediaUrl?.startsWith("data:image"))) && (
-              <div className="rounded-2xl overflow-hidden border-[1.5px] border-[#1C1917] shadow-[2px_3px_0px_#1C1917]">
-                <img src={capture.mediaUrl} alt="Raw memory photo" className="w-full max-h-72 object-cover" />
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* TAB 2: UNDERSTOOD & ANALYZED (Extracted AI Dimensions & Multi-scenario Episodes) */}
-        {activeTab === "analyzed" && (
-          <div className="space-y-6">
-            {/* Extracted Context Dimensions */}
-            <div className="p-5 bg-white border-[1.5px] border-[#1C1917] rounded-2xl shadow-[2px_3px_0px_#1C1917] space-y-3">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-[#DE5239] block">
-                AI Extracted Dimensions
-              </span>
-              <p className="font-serif text-base text-[#1C1917] leading-relaxed">
-                {dims?.summary || "AI parsed memory dimensions."}
-              </p>
-
-              <div className="flex flex-wrap gap-2 text-xs font-sans pt-1">
-                {dims?.mood && (
-                  <span className="flex items-center gap-1 px-3 py-1 bg-[#F5E5DC] border border-[#DE5239]/30 rounded-full font-semibold text-[#DE5239]">
-                    <Heart size={12} /> {dims.mood}
-                  </span>
+                {/* Video Player if video source */}
+                {(capture?.source === "video" || capture?.mediaUrl?.startsWith("data:video") || capture?.mediaUrl?.includes(".mp4")) && (
+                  <div className="rounded-2xl overflow-hidden border-[1.5px] border-[#1C1917] shadow-[2px_3px_0px_#1C1917] bg-black">
+                    <video controls src={capture.mediaUrl} className="w-full max-h-80 object-contain" />
+                  </div>
                 )}
-                {dims?.places?.map((place: string, i: number) => (
-                  <span key={i} className="flex items-center gap-1 px-3 py-1 bg-[#F5F1E8] border border-[#1C1917]/30 rounded-full font-medium text-[#1C1917]">
-                    <MapPin size={12} className="text-[#DE5239]" /> {place}
-                  </span>
-                ))}
-                {dims?.people?.map((person: string, i: number) => (
-                  <span key={i} className="flex items-center gap-1.5 px-3 py-1 bg-[#F5F1E8] border border-[#1C1917]/30 rounded-full font-medium text-[#1C1917]">
-                    <ArtisticAvatar name={person} size="sm" />
-                    <span>{person}</span>
-                  </span>
-                ))}
-                {dims?.emotions?.map((e: any, i: number) => (
-                  <span key={i} className="flex items-center gap-1 px-3 py-1 bg-[#F5E5DC] border border-[#DE5239]/30 rounded-full font-medium text-[#DE5239]">
-                    ✨ {e.label}
-                  </span>
-                ))}
-                {dims?.topics?.map((topic: string, i: number) => (
-                  <span key={i} className="flex items-center gap-1 px-3 py-1 bg-[#F5F1E8] border border-[#1C1917]/30 rounded-full font-medium text-[#1C1917]">
-                    <PenLine size={12} /> {topic}
-                  </span>
-                ))}
-              </div>
-            </div>
 
-            {/* If Multi-Scenario Episodes exist (e.g. End-of-Day Journaling) */}
-            {episodes.length > 0 ? (
-              <DailyStoryboard
-                dateStr={dateStr}
-                scenes={episodes.map((ep: any, idx: number) => ({
-                  id: ep.id || `sc_${idx}`,
-                  panelNumber: idx + 1,
-                  time: idx === 0 ? "11:00 AM" : idx === 1 ? "1:30 PM" : "7:30 PM",
-                  title: ep.title,
-                  summary: ep.summary,
-                  location: ep.location,
-                  people: ep.entitiesInvolved,
-                  imageUrl:
-                    idx === 0
-                      ? "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&auto=format&fit=crop&q=80"
-                      : idx === 1
-                      ? "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&auto=format&fit=crop&q=80"
-                      : "https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=600&auto=format&fit=crop&q=80"
-                }))}
-              />
-            ) : (
-              <div className="p-4 bg-[#F5E5DC]/60 border border-[#DE5239]/20 rounded-2xl">
-                <span className="text-xs font-semibold text-[#DE5239] flex items-center gap-1.5 font-sans">
-                  <Sparkles size={14} /> AI Processing Complete
-                </span>
-                <p className="text-xs text-[#665F56] mt-1 font-sans">
-                  This memory has been analyzed and linked to your overall personal graph.
-                </p>
+                {/* Audio Player if voice source */}
+                {(capture?.source === "voice" || capture?.mediaUrl?.startsWith("data:audio")) && (
+                  <div className="p-4 bg-[#F5E5DC] border-[1.5px] border-[#1C1917] rounded-2xl shadow-[2px_3px_0px_#1C1917] flex items-center justify-between">
+                    <div className="flex items-center gap-3.5">
+                      <button
+                        onClick={() => setIsPlaying(!isPlaying)}
+                        className="w-10 h-10 rounded-full bg-[#DE5239] text-white flex items-center justify-center cursor-pointer border border-[#1C1917] shadow-xs hover:scale-105 transition-transform"
+                      >
+                        {isPlaying ? <Pause size={18} /> : <Play size={18} className="ml-0.5" />}
+                      </button>
+                      <div>
+                        <span className="text-xs font-bold text-[#1C1917] block">Original Audio Recording</span>
+                        <span className="text-[10px] text-[#665F56]">{timeStr} · Recorded Live</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-0.5 items-center h-5">
+                      {[10, 18, 14, 24, 20, 12, 22, 16, 26, 14].map((h, i) => (
+                        <span
+                          key={i}
+                          className={`w-1 rounded-full transition-all ${
+                            isPlaying ? "bg-[#DE5239] animate-pulse" : "bg-[#1C1917]/40"
+                          }`}
+                          style={{ height: `${h}px` }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Photo if image source */}
+                {(capture?.source === "image" || (capture?.mediaUrl && capture?.mediaUrl?.startsWith("data:image"))) && (
+                  <div className="rounded-2xl overflow-hidden border-[1.5px] border-[#1C1917] shadow-[2px_3px_0px_#1C1917]">
+                    <img src={capture.mediaUrl} alt="Raw memory photo" className="w-full max-h-72 object-cover" />
+                  </div>
+                )}
               </div>
             )}
-          </div>
+
+            {/* TAB 2: UNDERSTOOD & ANALYZED */}
+            {activeTab === "analyzed" && (
+              <div className="space-y-6">
+                {isAiProcessing ? (
+                  <div className="p-8 bg-white border-[1.5px] border-dashed border-[#1C1917]/30 rounded-2xl text-center space-y-3">
+                    <Sparkles size={24} className="text-[#D97706] animate-spin mx-auto" />
+                    <h4 className="font-serif text-lg font-medium text-[#1C1917]">AI Analysis in progress</h4>
+                    <p className="text-xs text-[#665F56] max-w-sm mx-auto font-sans">
+                      Gemini AI is currently processing this entry. Extracted mood, emotions, and timeline will populate here shortly!
+                    </p>
+                  </div>
+                ) : (
+                  <div className="p-5 bg-white border-[1.5px] border-[#1C1917] rounded-2xl shadow-[2px_3px_0px_#1C1917] space-y-3">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-[#DE5239] block">
+                      AI Extracted Dimensions
+                    </span>
+                    <p className="font-serif text-base text-[#1C1917] leading-relaxed">
+                      {dims?.summary || "AI parsed memory dimensions."}
+                    </p>
+
+                    <div className="flex flex-wrap gap-2 text-xs font-sans pt-1">
+                      {dims?.mood && (
+                        <span className="flex items-center gap-1 px-3 py-1 bg-[#F5E5DC] border border-[#DE5239]/30 rounded-full font-semibold text-[#DE5239]">
+                          <Heart size={12} /> {dims.mood}
+                        </span>
+                      )}
+                      {dims?.places?.map((place: string, i: number) => (
+                        <span key={i} className="flex items-center gap-1 px-3 py-1 bg-[#F5F1E8] border border-[#1C1917]/30 rounded-full font-medium text-[#1C1917]">
+                          <MapPin size={12} className="text-[#DE5239]" /> {place}
+                        </span>
+                      ))}
+                      {dims?.people?.map((person: string, i: number) => (
+                        <span key={i} className="flex items-center gap-1.5 px-3 py-1 bg-[#F5F1E8] border border-[#1C1917]/30 rounded-full font-medium text-[#1C1917]">
+                          <ArtisticAvatar name={person} size="sm" />
+                          <span>{person}</span>
+                        </span>
+                      ))}
+                      {dims?.emotions?.map((e: any, i: number) => (
+                        <span key={i} className="flex items-center gap-1 px-3 py-1 bg-[#F5E5DC] border border-[#DE5239]/30 rounded-full font-medium text-[#DE5239]">
+                          ✨ {e.label}
+                        </span>
+                      ))}
+                      {dims?.topics?.map((topic: string, i: number) => (
+                        <span key={i} className="flex items-center gap-1 px-3 py-1 bg-[#F5F1E8] border border-[#1C1917]/30 rounded-full font-medium text-[#1C1917]">
+                          <PenLine size={12} /> {topic}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </>
         )}
       </main>
     </div>
   );
 }
 
+function ApplePhotosGallerySection({
+  go,
+  onSelectPerson,
+  onSelectCapture
+}: {
+  go: (view: View) => void;
+  onSelectPerson?: (name: string) => void;
+  onSelectCapture?: (c: any) => void;
+}) {
+  const { captures } = useJournal();
+  return (
+    <div className="pb-32 font-sans">
+      <PageHeader title="Collections &amp; Memories" eyebrow="Apple Photos Style Gallery" onBack={() => go("life")} />
+      <main className="px-5 sm:px-8 mt-4">
+        <ApplePhotosGallery
+          captures={captures}
+          onSelectPerson={onSelectPerson}
+          onSelectCapture={onSelectCapture}
+        />
+      </main>
+    </div>
+  );
+}
 
 function ProfileViewSection({ go }: { go: (view: View) => void }) {
   const { user, logOut, streak, captures, clearAllData } = useJournal();
@@ -2129,6 +2219,10 @@ function BottomNav({
         </button>
       </div>
 
+      <button className={`cursor-pointer ${active === "collections" ? "active" : ""}`} onClick={() => go("collections")}>
+        <ImageIcon size={20} />
+        <span>Collections</span>
+      </button>
       <button className={`cursor-pointer ${active === "explore" ? "active" : ""}`} onClick={() => go("explore")}>
         <Compass />
         <span>Explore</span>
@@ -2208,6 +2302,8 @@ export function MemoiaryAppShell() {
     switch (view) {
       case "life":
         return <LifeHome go={go} openCapture={(prompt) => handleOpenCapture(prompt || "menu")} newMemory={newMemory} onSelectCapture={(c) => { setSelectedCapture(c); go("memory"); }} />;
+      case "collections":
+        return <ApplePhotosGallerySection go={go} onSelectPerson={(name) => { setSelectedPersonName(name); go("person"); }} onSelectCapture={(c) => { setSelectedCapture(c); go("memory"); }} />;
       case "people":
         return <PeopleViewSection go={go} onSelectPerson={(name) => setSelectedPersonName(name)} />;
       case "person":
