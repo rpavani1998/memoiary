@@ -348,36 +348,36 @@ function LifeHome({
           </div>
         )}
 
-        {!user && !bannerDismissed && (
-          <BrandStoryBanner onClose={() => setBannerDismissed(true)} />
-        )}
       </header>
 
       <main className="life-mosaic mt-8 px-5 sm:px-8">
         {/* New memory from current session */}
         {newMemory && (
-          <section className="new-memory-cluster" aria-label="Your newest memory">
+          <section className="new-memory-cluster border-[1.5px] border-[#1C1917] bg-[#F5E5DC] rounded-3xl p-5 shadow-[3px_4px_0px_#1C1917]" aria-label="Your newest memory">
             <div className="new-memory-thread" aria-hidden="true">
               <i /><i /><i /><span />
             </div>
-            <button className="new-memory-card cursor-pointer" onClick={() => go("memory")}>
+            <button className="new-memory-card cursor-pointer border-[1.5px] border-[#1C1917] bg-[#FBF9F4] rounded-2xl p-4" onClick={() => go("memory")}>
               <span className="flex items-center justify-between">
-                <span className="memory-kicker">Just captured</span>
-                <span className="memory-meta">Now</span>
+                <span className="memory-kicker flex items-center gap-1.5 text-[#DE5239]">
+                  <span className="node-dot" />
+                  Just captured
+                </span>
+                <span className="memory-meta text-[#665F56]">Now</span>
               </span>
-              <p>{newMemory.text}</p>
-              <span className="new-memory-context">
+              <p className="font-serif text-[#1C1917] text-lg leading-relaxed mt-2">{newMemory.text}</p>
+              <span className="new-memory-context text-xs text-[#665F56] mt-3">
                 {getSourceIcon(newMemory.kind)}
                 {newMemory.location && (
                   <>
-                    <MapPin size={13} />
+                    <MapPin size={13} className="text-[#DE5239]" />
                     {newMemory.location}
                   </>
                 )}
               </span>
             </button>
-            <p>
-              <Sparkles size={13} /> It&apos;s already finding its place in your memory graph.
+            <p className="flex items-center gap-1.5 text-xs text-[#665F56] mt-3 font-sans">
+              <Sparkles size={14} className="text-[#DE5239]" /> It&apos;s already finding its place in your memory graph.
             </p>
           </section>
         )}
@@ -388,45 +388,46 @@ function LifeHome({
           return (
             <button
               key={capture.id}
-              className="thought-memory cursor-pointer"
+              className="w-full text-left p-4 sm:p-5 border-[1.5px] border-[#1C1917] bg-[#FBF9F4] rounded-2xl shadow-[2px_3px_0px_rgba(28,25,23,0.08)] hover:shadow-[3px_5px_12px_-2px_rgba(28,25,23,0.15)] hover:-translate-y-0.5 transition-all cursor-pointer"
               onClick={() => onSelectCapture(capture)}
             >
-              <span className="flex items-center justify-between">
-                <span className="memory-kicker">
+              <span className="flex items-center justify-between mb-2">
+                <span className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider font-semibold text-[#DE5239]">
+                  <span className="node-dot" />
                   {getSourceIcon(capture.source)}
                   {" "}
                   {capture.source === "voice" ? "Voice memory" : capture.source === "image" ? "Photo" : "Capture"}
                 </span>
-                <span className="memory-meta">{formatTime(capture.createdAt)}</span>
+                <span className="text-xs text-[#665F56] font-sans">{formatTime(capture.createdAt)}</span>
               </span>
               {(capture.episodes?.[0]?.title || dims?.summary) && (
-                <h3 className="font-serif font-medium text-stone-900 text-base mt-1 leading-snug">
+                <h3 className="font-serif font-medium text-[#1C1917] text-lg leading-snug mb-1">
                   {capture.episodes?.[0]?.title || dims?.summary?.substring(0, 50)}
                 </h3>
               )}
               {dims ? (
                 <>
-                  <blockquote className="font-serif text-stone-600 text-sm">&ldquo;{dims.summary}&rdquo;</blockquote>
-                  <div className="flex flex-wrap gap-1.5 mt-2">
+                  <blockquote className="font-serif text-[#665F56] text-sm italic border-l-2 border-[#DE5239]/40 pl-2.5 my-2">&ldquo;{dims.summary}&rdquo;</blockquote>
+                  <div className="flex flex-wrap gap-1.5 mt-3">
                     {dims.mood && (
-                      <span className="text-[0.65rem] px-2 py-0.5 bg-stone-100 rounded-full text-stone-600">
+                      <span className="text-[10px] px-2.5 py-0.5 bg-[#F5F1E8] border border-[#1C1917]/20 rounded-full font-sans font-medium text-[#1C1917]">
                         {dims.mood}
                       </span>
                     )}
                     {dims.emotions?.slice(0, 2).map((e, i) => (
-                      <span key={i} className="text-[0.65rem] px-2 py-0.5 bg-amber-50 rounded-full text-amber-700">
+                      <span key={i} className="text-[10px] px-2.5 py-0.5 bg-[#F5E5DC] border border-[#DE5239]/30 rounded-full font-sans font-medium text-[#DE5239]">
                         {e.label}
                       </span>
                     ))}
                     {dims.people?.slice(0, 2).map((p, i) => (
-                      <span key={i} className="text-[0.65rem] px-2 py-0.5 bg-blue-50 rounded-full text-blue-700">
+                      <span key={i} className="text-[10px] px-2.5 py-0.5 bg-[#F5F1E8] border border-[#1C1917]/20 rounded-full font-sans font-medium text-[#1C1917]">
                         {p}
                       </span>
                     ))}
                   </div>
                 </>
               ) : (
-                <blockquote className="font-serif">&ldquo;{capture.content.substring(0, 120)}{capture.content.length > 120 ? "..." : ""}&rdquo;</blockquote>
+                <blockquote className="font-serif text-[#1C1917] text-sm italic">&ldquo;{capture.content.substring(0, 120)}{capture.content.length > 120 ? "..." : ""}&rdquo;</blockquote>
               )}
             </button>
           );
@@ -1394,7 +1395,7 @@ function CaptureOverlay({
                 <span className="recording-dot" />
                 <h2 className="font-serif font-medium text-stone-900 text-xl">Just speak.</h2>
                 <p className="text-stone-500 text-sm mt-1">I&apos;ll hold the thread while you remember.</p>
-                <p className="text-amber-600 font-mono text-xs mt-2">{media.duration}s recording</p>
+                <p className="text-amber-600 font-mono text-xs mt-2">{media.duration}s</p>
               </>
             ) : analysisText ? (
               <>
@@ -1409,21 +1410,22 @@ function CaptureOverlay({
                 <p className="text-stone-500 text-sm mt-1">Tap the mic to start recording</p>
                 {startingMedia && <p className="text-amber-600 text-sm mt-2 animate-pulse">Requesting mic access...</p>}
                 {media.error && <p className="text-rose-600 text-sm mt-2">{media.error}</p>}
-                <p className="text-stone-300 text-[10px] mt-2 font-mono">rec={String(media.isRecording)} start={String(startingMedia)} save={String(saving)}</p>
               </>
             )}
             <div className={`voice-orbit ${media.isRecording ? "active" : ""}`}>
               {Array.from({ length: 24 }).map((_, i) => (<i key={i} style={{ "--i": i } as React.CSSProperties} />))}
             </div>
-            <button className="record-button cursor-pointer" aria-label={media.isRecording ? "Stop recording" : "Start recording"}
-              onClick={() => {
-                console.log("[voice-btn] clicked, isRecording:", media.isRecording, "saving:", saving, "startingMedia:", startingMedia);
-                if (media.isRecording) { handleVoiceSave(); }
-                else { setStartingMedia(true); media.startAudioRecording().catch((e) => console.warn("[voice-btn] startAudioRecording rejected:", e)).finally(() => setStartingMedia(false)); }
-              }}
-              disabled={saving || startingMedia}>
-              {media.isRecording ? <Pause /> : <Mic />}
-            </button>
+            <div style={{display:"flex",justifyContent:"center",margin:"0.5rem 0",position:"relative",zIndex:10}}>
+              <button className="record-button" aria-label={media.isRecording ? "Stop recording" : "Start recording"}
+                onClick={() => {
+                  console.log("[voice-btn] clicked, isRecording:", media.isRecording, "saving:", saving, "startingMedia:", startingMedia);
+                  if (media.isRecording) { handleVoiceSave(); }
+                  else { setStartingMedia(true); media.startAudioRecording().catch((e) => console.warn("[voice-btn] rejected:", e)).finally(() => setStartingMedia(false)); }
+                }}
+                disabled={saving || startingMedia}>
+                {media.isRecording ? <Pause size={24} /> : <Mic size={24} />}
+              </button>
+            </div>
             <div className="flex items-center gap-2 mt-2">
               <button className={`location-capture cursor-pointer flex-1 ${location ? "active" : ""}`} onClick={toggleLocation}>
                 <MapPin size={15} /> {location ?? "Add a place"} {location && <span>Added</span>}
@@ -1439,11 +1441,6 @@ function CaptureOverlay({
                 </div>
               )}
             </div>
-            {!media.isRecording && !analysisText && (
-              <button className="primary-action cursor-pointer mt-4" disabled onClick={() => {}}>
-                Tap mic to start recording
-              </button>
-            )}
             {media.isRecording && (
               <button className="primary-action cursor-pointer mt-4" onClick={handleVoiceSave} disabled={saving}>
                 {saving ? "Transcribing..." : "Save voice memory"}
