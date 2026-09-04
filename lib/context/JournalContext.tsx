@@ -154,9 +154,10 @@ interface JournalContextType {
     action: "confirm" | "reject" | "correct" | "dismiss",
     customCorrection?: string
   ) => Promise<void>;
-  submitCapture: (content: string, source?: string, mediaContext?: string, mediaUrl?: string, dateOverride?: string) => Promise<any>;
+  submitCapture: (content: string, source?: string, mediaContext?: string, mediaUrl?: string, dateOverride?: string, customTitle?: string) => Promise<any>;
   deleteCapture: (captureId: string) => Promise<void>;
-  updateCapture: (captureId: string, updates: Partial<{ content: string; source: string }>) => Promise<void>;
+  updateCapture: (captureId: string, updates: Partial<{ content: string; source: string; title: string }>) => Promise<void>;
+  reanalyzeCapture: (captureId: string) => Promise<void>;
   clearAllData: () => Promise<void>;
 }
 
@@ -187,7 +188,71 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState<boolean>(true);
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [memories, setMemories] = useState<UserMemory[]>([]);
-  const [captures, setCaptures] = useState<CaptureSession[]>(getSeededCaptures());
+  const sanitizeCaptures = (caps: CaptureSession[]): CaptureSession[] => {
+    return caps.map((c) => ({
+      ...c,
+      status: "reconciled",
+      dimensions: c.dimensions || {
+        summary: c.content ? (c.content.substring(0, 120) + (c.content.length > 120 ? "..." : "")) : "Captured memory moment.",
+        mood: "Reflective",
+        tone: "Personal",
+        emotions: [{ label: "Presence", intensity: 0.9, valence: "positive" }],
+        people: [],
+        places: [],
+        topics: ["Personal Memory"],
+        timeContext: "Now",
+        rawAnalysis: c.content
+      }
+    }));
+  };
+
+  const [captures, setCapturesState] = useState<CaptureSession[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("memoiary_local_captures");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) return sanitizeCaptures(parsed);
+        }
+      } catch (e) {
+        console.warn("Failed to load initial captures from localStorage:", e);
+      }
+    }
+    return getSeededCaptures();
+  });
+
+  // Sync captures with localStorage so voice/text recordings survive page reloads and site restarts
+  const setCaptures = (updater: React.SetStateAction<CaptureSession[]>) => {
+    setCapturesState((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      try {
+        if (typeof window !== "undefined") {
+          localStorage.setItem("memoiary_local_captures", JSON.stringify(next));
+        }
+      } catch (e) {
+        console.warn("Failed to save captures to localStorage:", e);
+      }
+      return next;
+    });
+  };
+
+  // Load saved captures on client mount as fail-safe
+  useEffect(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const stored = localStorage.getItem("memoiary_local_captures");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setCapturesState(sanitizeCaptures(parsed));
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to load captures from localStorage:", e);
+    }
+  }, []);
+
   const [clarifications, setClarifications] = useState<ClarificationItem[]>([]);
   const [insights, setInsights] = useState<JournalInsights | null>(null);
   const [insightsLoading, setInsightsLoading] = useState<boolean>(false);
@@ -298,7 +363,13 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
         loaded.push({ id: docSnap.id, ...docSnap.data() } as CaptureSession);
       });
 
-      setCaptures(loaded);
+      if (loaded.length > 0) {
+        setCaptures((prev) => {
+          const existingIds = new Set(loaded.map((c) => c.id));
+          const localOnly = prev.filter((c) => !existingIds.has(c.id));
+          return [...loaded, ...localOnly];
+        });
+      }
     }, (error) => {
       console.warn("Firestore captures offline fallback:", error?.message);
     });
@@ -546,7 +617,7 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
     setClarifications((prev) => prev.filter((c) => c.id !== id));
   };
 
-  const submitCapture = async (content: string, source = "text", mediaContext?: string, mediaUrl?: string, dateOverride?: string) => {
+  const submitCapture = async (content: string, source = "text", mediaContext?: string, mediaUrl?: string, dateOverride?: string, customTitle?: string) => {
     const knownPeople = ["Maya", "Kabir", "Ananya", "Priya", "Rohan", "Sanya", "Sarah", "Vikram"];
     const textToSearch = `${content} ${mediaContext || ""}`;
     const detectedPeople = knownPeople.filter((p) => textToSearch.toLowerCase().includes(p.toLowerCase()));
@@ -559,7 +630,7 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
         id: `ep_${Date.now()}_1`,
         userId: user?.uid || "guest_user",
         captureId: capId,
-        title: content ? (content.substring(0, 45) + (content.length > 45 ? "..." : "")) : (mediaContext || "Captured Memory"),
+        title: customTitle || (content ? (content.substring(0, 45) + (content.length > 45 ? "..." : "")) : (mediaContext || "Captured Memory")),
         summary: content || mediaContext || "Captured memory moment",
         date: nowIso,
         entitiesInvolved: detectedPeople,
@@ -571,21 +642,33 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
     const newCap: CaptureSession = {
       id: capId,
       userId: user?.uid || "guest_user",
+      title: customTitle,
       content: content.trim() || mediaContext || "Captured Media Memory",
       source: source as any,
       mediaUrl,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       createdAt: nowIso,
-      status: "processing", // Processing until AI analysis completes
+      status: "received", // Received until AI analysis completes
       episodes: parsedEpisodes,
-      dimensions: undefined // undefined until AI completes
+      dimensions: customTitle ? {
+        title: customTitle,
+        summary: content.substring(0, 120),
+        mood: "Reflective",
+        tone: "Personal",
+        emotions: [{ label: "Presence", intensity: 0.9, valence: "positive" }],
+        people: detectedPeople,
+        places: [],
+        topics: ["Personal Memory"],
+        timeContext: "Now",
+        rawAnalysis: content
+      } : undefined
     };
 
     // Always optimistically update local state immediately so user sees their new capture!
     setCaptures((prev) => [newCap, ...prev]);
 
-    // Asynchronously perform AI analysis extraction
-    setTimeout(async () => {
+    // Asynchronously perform AI analysis extraction immediately (zero artificial delay)
+    (async () => {
       try {
         const analyzeRes = await fetch("/api/gemini/analyze", {
           method: "POST",
@@ -593,22 +676,29 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
           body: JSON.stringify({ content: content || mediaContext || "Captured Media Memory" })
         });
         if (analyzeRes.ok) {
-          const aiData = await analyzeRes.json();
+          const resObj = await analyzeRes.json();
+          const analysis = resObj.analysis || resObj;
+          const aiGeneratedTitle = analysis.title || analysis.cards?.find((c: any) => c.title)?.title;
           const extractedDims: CaptureDimensions = {
-            summary: aiData.witnessReflection || aiData.title || content.substring(0, 120),
-            mood: aiData.cards?.find((c: any) => c.type === "Moment" || c.type === "Thought")?.title || "Reflective",
+            title: customTitle || aiGeneratedTitle,
+            summary: analysis.summary || analysis.witnessReflection || analysis.title || content.substring(0, 120),
+            mood: analysis.mood || analysis.cards?.find((c: any) => c.type === "Moment" || c.type === "Thought")?.title || "Reflective",
             tone: "Personal",
-            emotions: [{ label: "Mindfulness", intensity: 0.9, valence: "positive" }],
+            emotions: Array.isArray(analysis.emotions) && analysis.emotions.length > 0
+              ? analysis.emotions.map((e: any) => typeof e === "string" ? { label: e, intensity: 0.9, valence: "positive" } : { label: e.label || "Presence", intensity: e.intensity || 0.9, valence: "positive" })
+              : [{ label: "Presence", intensity: 0.9, valence: "positive" }],
             people: detectedPeople,
             places: [],
-            topics: aiData.cards?.map((c: any) => c.title) || ["Personal Memory"],
+            topics: Array.isArray(analysis.topics) && analysis.topics.length > 0
+              ? analysis.topics
+              : analysis.cards?.map((c: any) => c.title) || ["Personal Memory"],
             timeContext: "Now",
-            rawAnalysis: aiData.witnessReflection || content
+            rawAnalysis: analysis.witnessReflection || content
           };
           setCaptures((prev) =>
             prev.map((c) =>
               c.id === capId
-                ? { ...c, status: "reconciled", dimensions: extractedDims }
+                ? { ...c, title: c.title || customTitle || aiGeneratedTitle, status: "reconciled", dimensions: extractedDims }
                 : c
             )
           );
@@ -645,7 +735,7 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
           prev.map((c) => (c.id === capId ? { ...c, status: "reconciled", dimensions: fallbackDims } : c))
         );
       }
-    }, 1500);
+    })();
 
     try {
       const idToken = await getIdToken();
@@ -712,61 +802,87 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
   };
 
   const deleteCapture = async (captureId: string) => {
-    if (!user || user.uid.startsWith("guest_user_")) return;
-    try {
-      const { deleteDoc, doc } = await import("firebase/firestore");
-      await deleteDoc(doc(db, "users", user.uid, "captures", captureId));
-      setCaptures((prev) => prev.filter((c) => c.id !== captureId));
-    } catch (err) {
-      console.warn("Delete capture failed:", err);
+    setCaptures((prev) => prev.filter((c) => c.id !== captureId));
+    if (user && !user.uid.startsWith("guest_user_")) {
+      try {
+        const { deleteDoc, doc } = await import("firebase/firestore");
+        await deleteDoc(doc(db, "users", user.uid, "captures", captureId));
+      } catch (err) {
+        console.warn("Delete capture Firestore failed:", err);
+      }
     }
   };
 
-  const updateCapture = async (captureId: string, updates: Partial<{ content: string; source: string }>) => {
+  const reanalyzeCapture = async (captureId: string) => {
+    const target = captures.find((c) => c.id === captureId);
+    if (!target) return;
+
+    setCaptures((prev) =>
+      prev.map((c) => (c.id === captureId ? { ...c, status: "processing" } : c))
+    );
+
+    try {
+      const res = await fetch("/api/gemini/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: target.content })
+      });
+      if (res.ok) {
+        const resObj = await res.json();
+        const analysis = resObj.analysis || resObj;
+        const aiGeneratedTitle = analysis.title || analysis.cards?.find((c: any) => c.title)?.title;
+        const extractedDims: CaptureDimensions = {
+          title: target.title || aiGeneratedTitle,
+          summary: analysis.summary || analysis.witnessReflection || analysis.title || target.content.substring(0, 120),
+          mood: analysis.mood || analysis.cards?.find((c: any) => c.type === "Moment" || c.type === "Thought")?.title || "Reflective",
+          tone: "Personal",
+          emotions: Array.isArray(analysis.emotions) && analysis.emotions.length > 0
+            ? analysis.emotions.map((e: any) => typeof e === "string" ? { label: e, intensity: 0.9, valence: "positive" } : { label: e.label || "Presence", intensity: e.intensity || 0.9, valence: "positive" })
+            : [{ label: "Presence", intensity: 0.9, valence: "positive" }],
+          people: target.dimensions?.people || [],
+          places: target.dimensions?.places || [],
+          topics: Array.isArray(analysis.topics) && analysis.topics.length > 0
+            ? analysis.topics
+            : analysis.cards?.map((c: any) => c.title) || ["Personal Memory"],
+          timeContext: "Now",
+          rawAnalysis: analysis.witnessReflection || target.content
+        };
+        setCaptures((prev) =>
+          prev.map((c) =>
+            c.id === captureId
+              ? {
+                  ...c,
+                  title: c.title || aiGeneratedTitle,
+                  status: "reconciled",
+                  dimensions: extractedDims
+                }
+              : c
+          )
+        );
+      } else {
+        setCaptures((prev) =>
+          prev.map((c) => (c.id === captureId ? { ...c, status: "reconciled" } : c))
+        );
+      }
+    } catch (err) {
+      console.warn("Re-analysis error:", err);
+      setCaptures((prev) =>
+        prev.map((c) => (c.id === captureId ? { ...c, status: "reconciled" } : c))
+      );
+    }
+  };
+
+  const updateCapture = async (captureId: string, updates: Partial<{ content: string; source: string; title: string }>) => {
     setCaptures((prev) =>
       prev.map((c) =>
         c.id === captureId
-          ? { ...c, ...updates, status: updates.content ? "processing" : c.status } as CaptureSession
+          ? ({ ...c, ...updates, status: updates.content ? "processing" : "reconciled" } as CaptureSession)
           : c
       )
     );
 
     if (updates.content) {
-      setTimeout(async () => {
-        try {
-          const res = await fetch("/api/gemini/analyze", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ content: updates.content })
-          });
-          if (res.ok) {
-            const data = await res.json();
-            setCaptures((prev) =>
-              prev.map((c) =>
-                c.id === captureId
-                  ? {
-                      ...c,
-                      status: "reconciled",
-                      dimensions: {
-                        summary: data.witnessReflection || data.title || updates.content!.substring(0, 120),
-                        mood: data.cards?.find((card: any) => card.type === "Thought" || card.type === "Moment")?.title || "Reflective",
-                        tone: "Personal",
-                        emotions: [{ label: "Edited Thought", intensity: 0.9, valence: "positive" }],
-                        people: [],
-                        places: [],
-                        topics: data.cards?.map((card: any) => card.title) || ["Edited Memory"],
-                        timeContext: "Updated",
-                        rawAnalysis: data.witnessReflection || updates.content!
-                      }
-                    }
-                  : c
-              )
-            );
-          }
-        } catch (err) {
-          console.warn("Re-analysis error:", err);
-        }
-      }, 1000);
+      await reanalyzeCapture(captureId);
     }
 
     if (user && !user.uid.startsWith("guest_user_")) {
@@ -787,8 +903,10 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
     setInsights(null);
     if (user && !user.uid.startsWith("guest_user_")) {
       try {
-        const { getDocs, collection, deleteDoc, doc } = await import("firebase/firestore");
-        for (const colName of ["captures", "entries", "memories", "clarifications"]) {
+        const { deleteDoc, doc, collection, getDocs } = await import("firebase/firestore");
+        const capturesSnap = await getDocs(collection(db, "users", user.uid, "captures"));
+        capturesSnap.forEach(async (d) => await deleteDoc(d.ref));
+        for (const colName of ["entries", "memories", "clarifications"]) {
           const snap = await getDocs(collection(db, "users", user.uid, colName));
           for (const d of snap.docs) {
             await deleteDoc(doc(db, "users", user.uid, colName, d.id));
@@ -836,6 +954,7 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
         submitCapture,
         deleteCapture,
         updateCapture,
+        reanalyzeCapture,
         clearAllData,
       }}
     >

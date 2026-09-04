@@ -6,10 +6,8 @@ import {
   Send,
   Mic,
   MicOff,
-  BookOpen,
   RefreshCw,
   CheckCircle2,
-  Volume2
 } from "lucide-react";
 import { CaptureSession } from "@/lib/memory-engine/types";
 
@@ -196,9 +194,20 @@ export function ReflectionChatboard({ captures = [], onMemoryUpdate }: Reflectio
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-11.5rem)] w-full max-w-4xl mx-auto font-sans pb-2">
-      {/* ── FULL SCREEN CONVERSATION CANVAS ── */}
-      <div className="flex-1 bg-[#FAF7F0] border-[1.5px] border-[#1C1917] rounded-3xl p-4 sm:p-6 shadow-[3px_4px_0px_#1C1917] space-y-4 overflow-y-auto min-h-0">
+    <div className="flex flex-col h-full w-full max-w-4xl mx-auto font-sans overflow-hidden">
+      {/* ── CHAT TOP HEADER BAR (Stationary) ── */}
+      <div className="px-4 py-2 border-b border-[#1C1917]/10 flex items-center justify-between shrink-0 bg-[#FAF7F0]">
+        <div className="flex items-center gap-2">
+          <Sparkles size={18} className="text-[#DE5239]" />
+          <h2 className="font-serif font-medium text-base sm:text-lg text-[#1C1917]">Your AI Diary Companion</h2>
+        </div>
+        <span className="text-[10px] font-mono uppercase font-bold text-[#DE5239] bg-[#F5E5DC] border border-[#DE5239]/20 px-2.5 py-0.5 rounded-full">
+          Private Dialogue
+        </span>
+      </div>
+
+      {/* ── SCROLLABLE MESSAGES CONTAINER ONLY (WhatsApp / iMessage Style) ── */}
+      <div className="flex-1 bg-[#FAF7F0] p-4 sm:p-5 space-y-4 overflow-y-auto min-h-0 scroll-smooth">
         {messages.map((msg) => (
           <div
             key={msg.id}
@@ -214,7 +223,7 @@ export function ReflectionChatboard({ captures = [], onMemoryUpdate }: Reflectio
             </div>
 
             <div
-              className={`p-4 rounded-2xl max-w-lg text-sm sm:text-base leading-relaxed border-[1.5px] border-[#1C1917] shadow-[2px_3px_0px_#1C1917] ${
+              className={`p-3.5 sm:p-4 rounded-2xl max-w-lg text-sm sm:text-base leading-relaxed border-[1.5px] border-[#1C1917] shadow-[2px_3px_0px_#1C1917] ${
                 msg.sender === "user"
                   ? "bg-[#DE5239] text-white font-sans"
                   : "bg-white text-[#1C1917] font-serif whitespace-pre-line"
@@ -256,13 +265,13 @@ export function ReflectionChatboard({ captures = [], onMemoryUpdate }: Reflectio
         <div ref={messagesEndRef} />
       </div>
 
-      {/* ── BOTTOM CHAT BAR WITH TEXT + MIC BUTTON ── */}
+      {/* ── STATIONARY BOTTOM CHAT BAR WITH INPUT + SEND BUTTON (WhatsApp Style) ── */}
       <form
         onSubmit={(e) => {
           e.preventDefault();
           handleSend();
         }}
-        className="mt-3 flex items-center gap-2 p-2 bg-white border-[1.5px] border-[#1C1917] rounded-2xl shadow-[3px_4px_0px_#1C1917]"
+        className="mt-1 mb-0.5 shrink-0 flex items-center gap-2 p-2 bg-white border-[1.5px] border-[#1C1917] rounded-2xl shadow-[3px_4px_0px_#1C1917]"
       >
         <input
           type="text"

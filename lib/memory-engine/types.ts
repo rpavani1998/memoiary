@@ -172,6 +172,7 @@ export interface MemoryProvenance {
 }
 
 export interface CaptureDimensions {
+  title?: string;
   summary: string;
   mood: string;
   tone: string;
@@ -193,12 +194,13 @@ export interface CaptureDimensions {
 export interface CaptureSession {
   id: string;
   userId: string;
+  title?: string;
   content: string;
   source: "text" | "voice" | "image" | "video" | "document";
   mediaUrl?: string;
   timezone?: string;
   createdAt: string;
-  status: "received" | "extracted" | "clarification_needed" | "reconciled" | "saved_unanalyzed";
+  status: "received" | "extracted" | "clarification_needed" | "reconciled" | "saved_unanalyzed" | "processing";
   dimensions?: CaptureDimensions;
   episodes?: Episode[];
 }

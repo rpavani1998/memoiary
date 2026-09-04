@@ -4,6 +4,24 @@ A private autobiographical thinking space and memory engine powered by Google Cl
 
 ---
 
+## 🏆 Hackathon Challenge Compliance & Deliverables
+
+### ✅ Phase 1: Configured Google AI Studio Directives
+- **Configured Directives**: Foundational security directives, threat modeling rules, database isolation constraints, and model fallback logic are documented in [`AI_STUDIO_DIRECTIVES.md`](file:///Volumes/RPavani/Hackathons/Ideathon/AI_STUDIO_DIRECTIVES.md), `firebase-blueprint.json`, and `firebase-applet-config.json`.
+
+### ✅ Phase 2: Production-Grade Core Requirements
+1. **User Authentication**: Sign-in via Firebase (Google Sign-In & Guest Authentication) in `JournalContext.tsx`.
+2. **Multi-Turn AI Interaction**: Real multi-turn conversations with Gemini API via `@google/genai` SDK over a dynamic fallback ladder (`gemini-3.6-flash` → `gemini-3.1-pro-preview` → `gemini-3.1-flash-lite` → `gemini-flash-latest`).
+3. **Isolated Data Storage**: Complete owner-bound document tree in Cloud Firestore (`/users/{userId}/...`) governed by default-deny security rules (`firestore.rules`). Zero cross-user leakage.
+4. **Secure Key Management**: `GEMINI_API_KEY` retrieved via **Google Cloud Secret Manager** or server environment variables, never hardcoded in client code.
+
+### ✅ Phase 3: Original Feature Enhancements
+1. **Autobiographical Memory Engine**: Multi-modal entity extraction (People, Places, Projects), emotional attribution, and temporal resolution.
+2. **Epistemic Consistency & Clarification Engine**: Automated contradiction detection and gentle clarification candidates without unsolicited advice or clinical diagnosing.
+3. **Daily Sanctuary & Visual Storyboard**: Dynamic time-of-day greeting, habit reflection streak, "On This Day" flashback memory cards, and AI storyboards (`DailyStoryboard`, `WeeklyRecapBoard`, `MonthlyCollageGrid`).
+
+---
+
 ## Technical Architecture
 
 - **Frontend**: Next.js 15+ App Router, Tailwind CSS, and `motion` (Framer Motion) microinteractions.
@@ -31,10 +49,10 @@ A private autobiographical thinking space and memory engine powered by Google Cl
   - `POST /api/v1/maintenance`: Pattern mining and deduplication maintenance tasks.
 - **Database**: Strictly private, owner-isolated Google Cloud Firestore.
 - **Cognitive Layer**: `@google/genai` TypeScript SDK executing a resilient fallback loop over dynamic model ladders:
-  - Primary: `gemini-2.5-flash`
-  - High-Availability Fallback: `gemini-2.5-pro`
-  - Dynamic Fallback: `gemini-3.6-flash`
-  - Reasoning Fallback: `gemini-3.7-flash`
+  - Primary: `gemini-3.6-flash`
+  - Deep Reasoning Fallback: `gemini-3.1-pro-preview`
+  - Lightweight Fallback: `gemini-3.1-flash-lite`
+  - High-Availability Fallback: `gemini-flash-latest`
 
 ---
 

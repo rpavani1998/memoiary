@@ -120,7 +120,10 @@ export function TimelineViewSwitcher({
             {Array.from({ length: daysInMonth }).map((_, i) => {
               const dayNum = i + 1;
               const dateObj = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), dayNum);
-              const isoStr = dateObj.toISOString().split("T")[0];
+              const yr = dateObj.getFullYear();
+              const mo = String(dateObj.getMonth() + 1).padStart(2, "0");
+              const dy = String(dateObj.getDate()).padStart(2, "0");
+              const isoStr = `${yr}-${mo}-${dy}`;
               const hasMemories = availableDates.includes(isoStr);
               const isSelected = dateObj.toDateString() === selectedDate.toDateString();
 
@@ -129,7 +132,7 @@ export function TimelineViewSwitcher({
                   key={dayNum}
                   onClick={() => {
                     onSelectDate(dateObj);
-                    setShowFullCalendar(false);
+                    if (onToggleCalendar) onToggleCalendar();
                   }}
                   className={`h-8 rounded-lg text-xs font-semibold flex flex-col items-center justify-center relative transition-all cursor-pointer ${
                     isSelected

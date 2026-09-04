@@ -225,12 +225,14 @@ export function CollectionsExploreView({
               onClick={() => onSelectCapture?.(filteredCaptures[0])}
               className="relative rounded-3xl overflow-hidden border-[1.5px] border-[#1C1917] shadow-[4px_6px_0px_#1C1917] group min-h-[20rem] flex flex-col justify-end bg-stone-900 cursor-pointer"
             >
-              <img
-                src={filteredCaptures[0].mediaUrl || "/collages/daily_collage_sketch_sep2.jpg"}
-                alt="Featured Memory"
-                className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-700"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#1C1917] via-[#1C1917]/40 to-transparent" />
+              {filteredCaptures[0].mediaUrl && (
+                <img
+                  src={filteredCaptures[0].mediaUrl}
+                  alt="Featured Memory"
+                  className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-700"
+                />
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-[#1C1917] via-[#1C1917]/70 to-transparent" />
 
               <div className="relative z-10 p-6 sm:p-8 space-y-3">
                 <div className="flex items-center gap-2">

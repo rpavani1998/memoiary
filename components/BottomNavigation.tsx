@@ -1,10 +1,10 @@
 "use client";
 
 import React from "react";
-import { Home, Clock, BookOpen, Search } from "lucide-react";
+import { Home, Clock, Layers, MessageSquare, Search } from "lucide-react";
 import { ThoughtBubbleIcon } from "@/components/ThoughtBubbleIcon";
 
-export type NavTab = "home" | "timeline" | "memories" | "search" | "people" | "places" | "reflect";
+export type NavTab = "home" | "timeline" | "memories" | "search" | "people" | "places" | "reflect" | "collections";
 
 interface Props {
   activeTab: NavTab;
@@ -14,64 +14,87 @@ interface Props {
 
 export function BottomNavigation({ activeTab, onSelectTab, onOpenCapture }: Props) {
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#F5F1E8]/95 backdrop-blur-md border-t-[1.5px] border-[#1C1917] px-4 py-2">
-      <div className="max-w-md mx-auto flex items-center justify-around relative">
-        {/* Home */}
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#FAF7F0]/95 backdrop-blur-lg border-t-[1.5px] border-[#1C1917] px-6 py-3 shadow-lg">
+      <div className="max-w-md mx-auto flex items-center justify-between relative px-2">
+        {/* 1. Home / Daily Sanctuary */}
         <button
           onClick={() => onSelectTab("home")}
-          className={`flex flex-col items-center gap-1 p-2 cursor-pointer transition-colors ${
-            activeTab === "home" ? "text-[#DE5239]" : "text-[#665F56] hover:text-[#1C1917]"
+          title="Home Sanctuary"
+          aria-label="Home Sanctuary"
+          className={`flex flex-col items-center justify-center w-11 h-11 rounded-full cursor-pointer transition-all relative ${
+            activeTab === "home"
+              ? "text-[#DE5239] bg-[#F5E5DC] border border-[#DE5239]/20 scale-105"
+              : "text-[#665F56] hover:text-[#1C1917] hover:bg-[#F5F1E8]"
           }`}
         >
-          <Home className="w-6 h-6" />
-          <span className="text-xs font-sans font-semibold">Home</span>
+          <Home className="w-5.5 h-5.5" />
+          {activeTab === "home" && (
+            <span className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-[#DE5239]" />
+          )}
         </button>
 
-        {/* Timeline */}
+        {/* 2. Timeline */}
         <button
           onClick={() => onSelectTab("timeline")}
-          className={`flex flex-col items-center gap-1 p-2 cursor-pointer transition-colors ${
-            activeTab === "timeline" ? "text-[#DE5239]" : "text-[#665F56] hover:text-[#1C1917]"
+          title="Timeline"
+          aria-label="Timeline"
+          className={`flex flex-col items-center justify-center w-11 h-11 rounded-full cursor-pointer transition-all relative ${
+            activeTab === "timeline"
+              ? "text-[#DE5239] bg-[#F5E5DC] border border-[#DE5239]/20 scale-105"
+              : "text-[#665F56] hover:text-[#1C1917] hover:bg-[#F5F1E8]"
           }`}
         >
-          <Clock className="w-6 h-6" />
-          <span className="text-xs font-sans font-semibold">Timeline</span>
+          <Clock className="w-5.5 h-5.5" />
+          {activeTab === "timeline" && (
+            <span className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-[#DE5239]" />
+          )}
         </button>
 
-        {/* Persistent Central Action */}
-        <div className="relative -top-4">
+        {/* 3. Persistent Central Capture Action */}
+        <div className="relative -top-3">
+          <div className="absolute inset-0 rounded-full bg-[#DE5239]/20 blur-md animate-pulse" />
           <button
             onClick={onOpenCapture}
-            className="w-14 h-14 rounded-full bg-[#DE5239] hover:bg-[#C6422A] text-white border-[1.5px] border-[#1C1917] flex items-center justify-center shadow-[2px_3px_0px_#1C1917] transition-transform active:scale-95 cursor-pointer"
+            className="relative w-13 h-13 rounded-full bg-[#DE5239] hover:bg-[#C6422A] text-white border-[1.5px] border-[#1C1917] flex items-center justify-center shadow-[2px_3px_0px_#1C1917] transition-transform active:scale-90 cursor-pointer"
             title="Add a thought"
             aria-label="Add a thought"
           >
-            <ThoughtBubbleIcon className="w-7 h-7 text-white" />
+            <ThoughtBubbleIcon className="w-6.5 h-6.5 text-white" />
           </button>
         </div>
 
-        {/* Memories */}
+        {/* 4. Elements (People, Places, Wishlist & Intentions) */}
         <button
           onClick={() => onSelectTab("memories")}
-          className={`flex flex-col items-center gap-1 p-2 cursor-pointer transition-colors ${
+          title="Elements (People, Places & Wishlist)"
+          aria-label="Elements"
+          className={`flex flex-col items-center justify-center w-11 h-11 rounded-full cursor-pointer transition-all relative ${
             activeTab === "memories" || activeTab === "people" || activeTab === "places"
-              ? "text-[#DE5239]"
-              : "text-[#665F56] hover:text-[#1C1917]"
+              ? "text-[#DE5239] bg-[#F5E5DC] border border-[#DE5239]/20 scale-105"
+              : "text-[#665F56] hover:text-[#1C1917] hover:bg-[#F5F1E8]"
           }`}
         >
-          <BookOpen className="w-6 h-6" />
-          <span className="text-xs font-sans font-semibold">Memories</span>
+          <Layers className="w-5.5 h-5.5" />
+          {(activeTab === "memories" || activeTab === "people" || activeTab === "places") && (
+            <span className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-[#DE5239]" />
+          )}
         </button>
 
-        {/* Search */}
+        {/* 5. Talk AI / Reflect */}
         <button
-          onClick={() => onSelectTab("search")}
-          className={`flex flex-col items-center gap-1 p-2 cursor-pointer transition-colors ${
-            activeTab === "search" ? "text-[#DE5239]" : "text-[#665F56] hover:text-[#1C1917]"
+          onClick={() => onSelectTab("reflect")}
+          title="AI Reflect & Chat"
+          aria-label="AI Reflect & Chat"
+          className={`flex flex-col items-center justify-center w-11 h-11 rounded-full cursor-pointer transition-all relative ${
+            activeTab === "reflect"
+              ? "text-[#DE5239] bg-[#F5E5DC] border border-[#DE5239]/20 scale-105"
+              : "text-[#665F56] hover:text-[#1C1917] hover:bg-[#F5F1E8]"
           }`}
         >
-          <Search className="w-6 h-6" />
-          <span className="text-xs font-sans font-semibold">Search</span>
+          <MessageSquare className="w-5.5 h-5.5" />
+          {activeTab === "reflect" && (
+            <span className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-[#DE5239]" />
+          )}
         </button>
       </div>
     </div>

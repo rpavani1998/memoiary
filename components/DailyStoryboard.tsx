@@ -55,7 +55,7 @@ export function DailyStoryboard({ dateStr, scenes }: Props) {
           <div className="flex items-center gap-2">
             <Users size={16} className="text-[#D97706]" />
             <span className="text-xs font-bold text-[#1C1917] font-serif uppercase tracking-wider">
-              People Tagged in Today's Story:
+              People Tagged in Today&apos;s Story:
             </span>
           </div>
           <div className="flex items-center gap-3">
@@ -72,27 +72,19 @@ export function DailyStoryboard({ dateStr, scenes }: Props) {
         </div>
       )}
 
-      {/* AI GENERATED DATE-MATCHED PENCIL & GRAPHITE SKETCH COLLAGE POSTER */}
-      <div className="mb-6 border-[1.5px] border-[#1C1917] bg-[#262320] rounded-2xl overflow-hidden shadow-[3px_4px_0px_#1C1917] group relative">
-        <div className="relative aspect-video w-full overflow-hidden">
-          <img
-            src="/collages/daily_collage_sketch_sep2.jpg"
-            alt={`Pencil and graphite journal sketch daily story collage for ${dateStr}`}
-            className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-700"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 pointer-events-none" />
-
-          <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between text-white">
-            <div>
-              <span className="text-[10px] font-mono uppercase tracking-widest bg-[#D97706] px-2.5 py-0.5 rounded-md font-bold border border-white/20">
-                DATE-MATCHED AI HAND-DRAWN COLLAGE
-              </span>
-              <p className="font-serif text-lg sm:text-xl font-medium mt-1 text-stone-100">
-                {dateStr}: 11:00 AM Team Launch, 1:30 PM Rooftop Lunch & 7:30 PM Sunset Walk
-              </p>
-            </div>
-          </div>
+      {/* DYNAMICALLY GENERATED USER-ENTRY STORYBOARD COLLAGE POSTER */}
+      <div className="mb-6 border-[1.5px] border-[#1C1917] bg-[#FAF7F0] rounded-2xl p-5 shadow-[3px_4px_0px_#1C1917] space-y-3 font-sans">
+        <div className="flex items-center justify-between border-b border-[#1C1917]/15 pb-2">
+          <span className="text-[10px] font-mono uppercase tracking-widest bg-[#D97706] text-white px-2.5 py-0.5 rounded-md font-bold shadow-xs">
+            GENERATED FROM DAILY ENTRIES
+          </span>
+          <span className="text-xs font-mono font-bold text-[#665F56]">{dateStr}</span>
         </div>
+        <p className="font-serif text-lg sm:text-xl font-bold text-[#1C1917] leading-snug">
+          {scenes && scenes.length > 0
+            ? scenes.map((s) => s.title).filter(Boolean).join(" · ")
+            : "Daily Chapter Moments"}
+        </p>
       </div>
 
       {/* Multi-Panel Scene Cards Breakdown with Avatars */}

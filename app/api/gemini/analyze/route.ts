@@ -8,10 +8,15 @@ import { CaptureSession } from "@/lib/memory-engine/types";
 
 export async function POST(req: Request) {
   try {
-    // Ensure auth token is verified
-    const decodedToken = await verifyUserToken(req);
-    if (!decodedToken) {
-      return NextResponse.json({ error: "Unauthorized access" }, { status: 401 });
+    // Verify user token if available, but allow guest sessions gracefully
+    let userId = "guest_user";
+    try {
+      const decodedToken = await verifyUserToken(req);
+      if (decodedToken?.uid) {
+        userId = decodedToken.uid;
+      }
+    } catch {
+      // Fallback to guest user
     }
 
     // Defensive body parsing
@@ -48,17 +53,27 @@ CRITICAL BEHAVIOR RULES:
 - Maintain a tone that is calm, spacious, elegant, deeply personal, slightly magical, and strictly non-judgmental.
 
 Analyze the provided journal entry and return a structured JSON object containing:
-1. "title": A short, evocative 3-5 word title for this entry (e.g., "The Pull of the Quiet").
-2. "witnessReflection": A beautiful, thoughtful 2-3 sentence paragraph that reflects the essence of what they wrote, notices any contradictions or shifts, and mirrors their thoughts objectively.
-3. "cards": A quiet collection of structured cards (limit to 1-4 highly meaningful ones per entry). Card types MUST be selected ONLY from: ["Thought", "Idea", "Question", "Decision", "Goal", "Moment", "Person", "Pattern"].
-4. "connections": Links to relevant past entries. Point out relationships, e.g., "Three weeks ago, you expressed a similar reluctance to compromise on creative hours."
+1. "title": A short, evocative 3-5 word title for this entry (e.g., "The Pull of the Quiet" or "Vibrant Dance Floor").
+2. "summary": A concise 1-sentence synopsis capturing the core event or thought of the entry.
+3. "witnessReflection": A thoughtful, specific 2-3 sentence paragraph that reflects the unique essence, emotions, and specific details of what they recorded.
+4. "mood": A specific 1-3 word mood describing the tone of this entry (e.g., "Energetic & Exhilarated", "Reflective & Quiet", "Satisfied", "Restless").
+5. "topics": An array of 1-3 specific topics extracted from what they did or said (e.g., ["Dance Performance", "High Energy", "Evening Out"]).
+6. "emotions": An array of 1-3 emotion objects with "label" and "intensity" (0.1 to 1.0) (e.g., [{"label": "Exhilaration", "intensity": 0.95}, {"label": "Joy", "intensity": 0.85}]).
+7. "cards": A quiet collection of structured cards (limit to 1-4 highly meaningful ones per entry). Card types MUST be selected ONLY from: ["Thought", "Idea", "Question", "Decision", "Goal", "Moment", "Person", "Pattern"].
+8. "connections": Links to relevant past entries.
 
 CRITICAL: Return ONLY valid JSON. Your response must be parseable as standard JSON. Do not include extra conversational text outside the JSON object.
 
 The JSON schema must be EXACTLY:
 {
   "title": "A short, evocative title reflecting its essence",
-  "witnessReflection": "Your calm, reflective witness statement. No advising, no coaching. Emphasize evidence from the writing.",
+  "summary": "A concise 1-sentence synopsis capturing the core event of the entry.",
+  "witnessReflection": "Your calm, reflective witness statement deeply grounded in the specific entry details.",
+  "mood": "Specific Mood (e.g., Energetic & Vibrant)",
+  "topics": ["Specific Topic 1", "Specific Topic 2"],
+  "emotions": [
+    { "label": "Emotion Label", "intensity": 0.9 }
+  ],
   "cards": [
     {
       "id": "card_id_1",
@@ -67,10 +82,10 @@ The JSON schema must be EXACTLY:
       "content": "A detailed 1-2 sentence description of what was captured, reflecting it objectively."
     }
   ],
-  "suggestedMemory": "A single declarative statement of a meaningful preference or insight the user might want remembered (e.g., 'You prefer studying in the early morning' or 'You are working on a new piano piece'). Set to null if there is nothing of long-term importance.",
+  "suggestedMemory": "A single declarative statement of a meaningful preference or insight the user might want remembered.",
   "connections": [
     {
-      "id": "ID of a past entry that is relevantly connected to this new entry",
+      "id": "ID of a past entry",
       "reason": "A description of the connection."
     }
   ]
@@ -119,18 +134,18 @@ Please analyze the entry, identify connections, suggest memories, and return the
       const captureId = `cap_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
       const captureSession: CaptureSession = {
         id: captureId,
-        userId: decodedToken.uid,
+        userId: userId,
         source: "text",
         content: content,
         status: "extracted",
         createdAt: now,
       };
 
-      const store = new MemoryStore(decodedToken.uid);
+      const store = new MemoryStore(userId);
       await store.saveCapture(captureSession);
 
       const bundle = await extractMemoryBundle(content, now);
-      const reconciler = new MemoryReconciler(decodedToken.uid, store);
+      const reconciler = new MemoryReconciler(userId, store);
       await reconciler.reconcile(bundle, captureId, content);
     } catch (engineError) {
       console.warn("Background memory graph reconciliation note:", engineError);

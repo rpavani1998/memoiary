@@ -29,6 +29,7 @@ export interface MemoryDetailData {
   topic?: string;
   photoUrl?: string;
   voiceUrl?: string;
+  videoUrl?: string;
   hasAudio?: boolean;
   mood?: string;
   tone?: string;
@@ -167,34 +168,22 @@ export function MemoryDetailModal({ memory, onClose }: Props) {
 
               {/* Raw Audio Player if audio present */}
               {(memory.hasAudio || memory.voiceUrl) && (
-                <div className="p-4 bg-[#F5E5DC] border-[1.5px] border-[#1C1917] rounded-2xl shadow-[2px_3px_0px_#1C1917] flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => setIsPlaying(!isPlaying)}
-                      className="w-10 h-10 rounded-full bg-[#DE5239] text-white flex items-center justify-center cursor-pointer border border-[#1C1917] shadow-xs"
-                    >
-                      {isPlaying ? <Pause size={18} /> : <Play size={18} className="ml-0.5" />}
-                    </button>
-                    <div>
-                      <span className="text-xs font-bold text-[#1C1917] block font-sans">
-                        Original Voice Note
-                      </span>
-                      <span className="text-[10px] text-[#665F56] font-sans">
-                        0:42 • Recorded live
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex gap-0.5 items-center h-5">
-                    {[12, 20, 16, 28, 22, 14, 24, 18, 10, 26, 16].map((h, i) => (
-                      <span
-                        key={i}
-                        className={`w-1 rounded-full transition-all ${
-                          isPlaying ? "bg-[#DE5239] animate-pulse" : "bg-[#1C1917]/30"
-                        }`}
-                        style={{ height: `${h}px` }}
-                      />
-                    ))}
-                  </div>
+                <div className="p-4 bg-[#F5E5DC] border-[1.5px] border-[#1C1917] rounded-2xl shadow-[2px_3px_0px_#1C1917] space-y-2">
+                  <span className="text-xs font-bold text-[#1C1917] block font-sans">
+                    Original Voice Note &amp; Recording
+                  </span>
+                  {memory.voiceUrl ? (
+                    <audio controls src={memory.voiceUrl} className="w-full h-10 rounded-xl border border-[#1C1917]" />
+                  ) : (
+                    <p className="text-xs text-[#665F56] italic">Audio recording saved with memory transcript.</p>
+                  )}
+                </div>
+              )}
+
+              {/* Raw Video if video present */}
+              {memory.videoUrl && (
+                <div className="rounded-2xl overflow-hidden border-[1.5px] border-[#1C1917] shadow-[2px_3px_0px_#1C1917] bg-black">
+                  <video controls src={memory.videoUrl} className="w-full max-h-72 object-contain" />
                 </div>
               )}
 

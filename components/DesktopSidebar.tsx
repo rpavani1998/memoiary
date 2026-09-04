@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Home, Clock, BookOpen, User, MapPin, MessageSquare, Search } from "lucide-react";
+import { Home, Clock, Layers, Sparkles, MessageSquare, Search, ShieldCheck } from "lucide-react";
 import { NavTab } from "./BottomNavigation";
 import { ThoughtBubbleIcon } from "./ThoughtBubbleIcon";
 
@@ -13,18 +13,17 @@ interface Props {
 
 export function DesktopSidebar({ activeTab, onSelectTab, onOpenCapture }: Props) {
   const links: { id: NavTab; label: string; icon: React.ReactNode }[] = [
-    { id: "home", label: "Home", icon: <Home className="w-5 h-5" /> },
+    { id: "home", label: "Home Sanctuary", icon: <Home className="w-5 h-5" /> },
     { id: "timeline", label: "Timeline", icon: <Clock className="w-5 h-5" /> },
-    { id: "memories", label: "Memories", icon: <BookOpen className="w-5 h-5" /> },
-    { id: "people", label: "People", icon: <User className="w-5 h-5" /> },
-    { id: "places", label: "Places", icon: <MapPin className="w-5 h-5" /> },
-    { id: "reflect", label: "Reflect", icon: <MessageSquare className="w-5 h-5" /> },
+    { id: "memories", label: "Elements", icon: <Layers className="w-5 h-5" /> },
+    { id: "collections", label: "Mind Map & Themes", icon: <Sparkles className="w-5 h-5" /> },
+    { id: "reflect", label: "Talk with AI", icon: <MessageSquare className="w-5 h-5" /> },
     { id: "search", label: "Search", icon: <Search className="w-5 h-5" /> },
   ];
 
   return (
-    <aside className="hidden md:flex flex-col justify-between w-64 h-screen sticky top-0 bg-[#F5F1E8] border-r-[1.5px] border-[#1C1917] p-6 shrink-0 font-sans">
-      <div className="space-y-8">
+    <aside className="hidden md:flex flex-col justify-between w-64 h-screen sticky top-0 bg-[#F5F1E8] border-r-[1.5px] border-[#1C1917] p-6 shrink-0 font-sans z-30">
+      <div className="space-y-7">
         {/* Brand Header */}
         <div className="flex items-center gap-3">
           <img src="/logo-mark.png" alt="Memoiary Icon" className="h-13 w-auto object-contain shrink-0 scale-110 -my-1" />
@@ -39,7 +38,7 @@ export function DesktopSidebar({ activeTab, onSelectTab, onOpenCapture }: Props)
         </div>
 
         {/* Navigation Items */}
-        <nav className="space-y-2">
+        <nav className="space-y-1.5">
           {links.map((link) => {
             const isActive = activeTab === link.id;
             return (
@@ -62,15 +61,21 @@ export function DesktopSidebar({ activeTab, onSelectTab, onOpenCapture }: Props)
         </nav>
       </div>
 
-      {/* Primary Capture Action Button */}
-      <div className="pt-4">
+      {/* Primary Capture Action Button & Security Badge */}
+      <div className="pt-4 space-y-3">
         <button
           onClick={onOpenCapture}
-          className="w-full flex items-center justify-center gap-2.5 py-3.5 px-4 bg-[#DE5239] hover:bg-[#C6422A] text-white border-[1.5px] border-[#1C1917] rounded-2xl text-sm font-semibold shadow-[2px_3px_0px_#1C1917] transition-colors cursor-pointer"
+          className="w-full flex items-center justify-center gap-2.5 py-3.5 px-4 bg-[#DE5239] hover:bg-[#C6422A] text-white border-[1.5px] border-[#1C1917] rounded-2xl text-sm font-semibold shadow-[2px_3px_0px_#1C1917] transition-all active:scale-[0.98] cursor-pointer group"
         >
-          <ThoughtBubbleIcon className="w-5 h-5 text-white" />
+          <ThoughtBubbleIcon className="w-5 h-5 text-white transition-transform group-hover:scale-110" />
           <span>Add Thought</span>
         </button>
+
+        {/* Private Vault Badge */}
+        <div className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-[#FAF7F0] border border-[#1C1917]/10 text-[11px] font-sans font-medium text-[#665F56]">
+          <ShieldCheck className="w-3.5 h-3.5 text-[#DE5239] shrink-0" />
+          <span className="truncate">100% Private &amp; Vault Encrypted</span>
+        </div>
       </div>
     </aside>
   );

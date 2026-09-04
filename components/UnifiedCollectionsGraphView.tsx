@@ -104,9 +104,9 @@ export function UnifiedCollectionsGraphView({
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#1C1917]/15 pb-4">
         <div>
           <span className="text-[11px] font-bold uppercase tracking-wider text-[#DE5239] flex items-center gap-1.5 font-sans">
-            <Sparkles size={14} /> Visual Synthesis &amp; Themes
+            <Sparkles size={14} /> Visual Synthesis &amp; Constellations
           </span>
-          <h1 className="font-serif text-2xl sm:text-3xl font-medium text-[#1C1917] mt-0.5">Collections &amp; Memory Graph</h1>
+          <h1 className="font-serif text-2xl sm:text-3xl font-medium text-[#1C1917] mt-0.5">Life Themes &amp; Mind Map</h1>
         </div>
 
         {/* Tab Switcher */}
@@ -119,7 +119,7 @@ export function UnifiedCollectionsGraphView({
                 : "text-[#665F56] hover:text-[#1C1917]"
             }`}
           >
-            <Share2 size={14} /> Memory Graph Canvas
+            <Share2 size={14} /> Mind Map Canvas
           </button>
           <button
             onClick={() => setActiveTab("topics")}
@@ -129,7 +129,7 @@ export function UnifiedCollectionsGraphView({
                 : "text-[#665F56] hover:text-[#1C1917]"
             }`}
           >
-            <Sparkles size={14} /> Topics &amp; Themes ({dynamicTopics.length})
+            <Sparkles size={14} /> Life Themes ({dynamicTopics.length})
           </button>
         </div>
       </div>

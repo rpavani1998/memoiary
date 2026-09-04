@@ -12,6 +12,8 @@ import {
   Heart,
   House,
   Image as ImageIcon,
+  Loader2,
+  CheckCircle2,
   LockKeyhole,
   Map,
   MapPin,
@@ -24,7 +26,10 @@ import {
   Search,
   ShieldCheck,
   Sparkles,
+  MessageSquare,
   MessageSquarePlus,
+  Layers,
+  Share2,
   UserRound,
   Users,
   Video,
@@ -48,6 +53,10 @@ import { MonthlyCollageGrid } from "@/components/MonthlyCollageGrid";
 import { UnifiedCollectionsGraphView } from "@/components/UnifiedCollectionsGraphView";
 import { ReflectionChatboard } from "@/components/ReflectionChatboard";
 import { EntitiesViewSection } from "@/components/EntitiesViewSection";
+import { WishlistIntentionsBoard } from "@/components/WishlistIntentionsBoard";
+import { Brand, IconButton } from "./Brand";
+import { GlobalAppHeader, PageHeader } from "./GlobalAppHeader";
+import { DailySanctuaryHero } from "./DailySanctuaryHero";
 
 export type View =
   | "life"
@@ -83,136 +92,7 @@ const imageAssets = {
   logo: "/logo-mark.png",
 };
 
-function Brand({ compact = false }: { compact?: boolean }) {
-  return (
-    <div className="flex items-center gap-2.5 select-none" aria-label="Memoiary">
-      <img
-        src="/logo-mark.png"
-        alt="Memoiary logo"
-        className={`${compact ? "h-12 sm:h-13" : "h-15 sm:h-16"} w-auto object-contain shrink-0 scale-110 -my-1`}
-      />
-      <span className={`font-serif ${compact ? "text-xl sm:text-2xl" : "text-2xl sm:text-3xl"} font-semibold tracking-tight text-stone-900`}>
-        Memoiary
-      </span>
-    </div>
-  );
-}
 
-function IconButton({
-  label,
-  onClick,
-  children,
-  className = "",
-}: {
-  label: string;
-  onClick?: () => void;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      onClick={onClick}
-      className={`icon-button cursor-pointer ${className}`}
-    >
-      {children}
-    </button>
-  );
-}
-
-function GlobalAppHeader({
-  activeView,
-  go,
-  streak,
-  user,
-  onBack
-}: {
-  activeView: View;
-  go: (view: View) => void;
-  streak: number;
-  user: any;
-  onBack?: () => void;
-}) {
-  const getSubTitle = () => {
-    switch (activeView) {
-      case "life": return "Timeline & Daily Moments";
-      case "entities": return "People, Places & Projects";
-      case "collections": return "Memory Graph & Topics";
-      case "reflect": return "Talk With Your Diary";
-      case "search": return "Semantic Memory Search";
-      case "person": return "Person Deep Dive";
-      case "place": return "Place Memories";
-      case "profile": return "Your Profile & Settings";
-      default: return "Memories Connected";
-    }
-  };
-
-  return (
-    <header className="sticky top-0 z-40 bg-[#FAF7F0]/95 backdrop-blur-md border-b border-[#1C1917]/15 px-4 sm:px-8 py-3 flex items-center justify-between shadow-xs mb-3">
-      <div className="flex items-center gap-3 min-w-0">
-        {onBack && (
-          <IconButton label="Go back" onClick={onBack} className="mr-1">
-            <ArrowLeft size={19} />
-          </IconButton>
-        )}
-        <Brand compact />
-        <div className="hidden sm:block h-6 w-px bg-stone-300" />
-        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#DE5239] bg-[#F5E5DC] px-2.5 py-0.5 rounded-full border border-[#DE5239]/20 hidden xs:inline-block truncate">
-          {getSubTitle()}
-        </span>
-      </div>
-
-      <div className="flex items-center gap-2 shrink-0">
-        <button
-          onClick={() => go("search")}
-          className="p-2 rounded-xl bg-white border border-[#1C1917]/20 text-[#1C1917] hover:bg-[#F5E5DC] transition-colors cursor-pointer"
-          title="Search Memories"
-        >
-          <Search size={16} />
-        </button>
-
-        {streak > 0 && (
-          <div className="flex items-center gap-1 bg-[#F5E5DC] border border-[#DE5239]/20 px-2.5 py-1 rounded-full text-xs font-mono font-bold text-[#DE5239]">
-            <Flame size={14} className="fill-[#DE5239]" />
-            <span>{streak}d</span>
-          </div>
-        )}
-
-        <button
-          onClick={() => go("profile")}
-          className="w-8 h-8 rounded-full border border-[#1C1917] overflow-hidden bg-stone-200 cursor-pointer"
-          title="Your Profile"
-        >
-          <img src={user?.photoURL || "/logo-mark.png"} alt="User avatar" className="w-full h-full object-cover" />
-        </button>
-      </div>
-    </header>
-  );
-}
-
-function PageHeader({
-  title,
-  eyebrow,
-  onBack,
-  action,
-}: {
-  title: string;
-  eyebrow?: string;
-  onBack?: () => void;
-  action?: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-center justify-between border-b border-[#1C1917]/10 pb-2 mb-3">
-      <div>
-        {eyebrow && <p className="text-[10px] uppercase tracking-wider text-[#DE5239] font-bold font-sans">{eyebrow}</p>}
-        <h2 className="font-serif text-xl font-medium text-[#1C1917]">{title}</h2>
-      </div>
-      {action}
-    </div>
-  );
-}
 
 function SplashScreen() {
   return (
@@ -357,6 +237,8 @@ function AuthLoginModal({
   );
 }
 
+
+
 function LifeHome({
   go,
   openCapture,
@@ -369,7 +251,7 @@ function LifeHome({
   onSelectCapture: (c: any) => void;
 }) {
   const { user, streak, captures } = useJournal();
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date("2026-09-02T12:00:00Z"));
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [timelineMode, setTimelineMode] = useState<TimelineMode>("day");
   const [showFullCalendar, setShowFullCalendar] = useState(false);
 
@@ -388,19 +270,39 @@ function LifeHome({
   const isToday = selectedDate.toDateString() === new Date().toDateString();
 
   const uniqueDaysLogged = new Set(captures.map((c) => new Date(c.createdAt).toDateString())).size;
-  const availableDates = Array.from(new Set(captures.map((c) => new Date(c.createdAt).toISOString().split("T")[0])));
+  const availableDates = Array.from(
+    new Set(
+      captures.map((c) => {
+        const d = new Date(c.createdAt);
+        const yr = d.getFullYear();
+        const mo = String(d.getMonth() + 1).padStart(2, "0");
+        const dy = String(d.getDate()).padStart(2, "0");
+        return `${yr}-${mo}-${dy}`;
+      })
+    )
+  );
 
   const selectedDateStr = selectedDate.toDateString();
   const dayCaptures = captures.filter((c) => {
     const cDate = new Date(c.createdAt).toDateString();
     return cDate === selectedDateStr;
   });
-  const recentCaptures = dayCaptures.length > 0 ? dayCaptures : captures.slice(0, 6);
+  const recentCaptures = dayCaptures;
 
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
 
   return (
-    <div className="pb-32 font-sans px-5 sm:px-8 pt-2 space-y-4">
+    <div className="pb-32 font-sans px-4 sm:px-8 pt-2 space-y-4">
+      {/* Daily Sanctuary Hero Section (Sleek Compact Top Bar) */}
+      <DailySanctuaryHero
+        user={user}
+        streak={streak}
+        openCapture={openCapture}
+        go={go}
+        capturesCount={dayCaptures.length}
+        captures={captures}
+      />
+
       {/* Timeline View Mode Switcher: DAY | WEEK | MONTH */}
       <TimelineViewSwitcher
         selectedDate={selectedDate}
@@ -461,19 +363,6 @@ function LifeHome({
           </div>
         )}
 
-        {/* Streak Banner */}
-        {user && streak.currentStreak > 0 && (
-          <div className="flex items-center gap-2 mt-4 px-3 py-2 bg-amber-50 border border-amber-200/60 rounded-xl w-fit">
-            <Flame size={16} className="text-amber-600" />
-            <span className="text-xs font-medium text-amber-800">
-              {streak.currentStreak} day streak
-            </span>
-            <span className="text-xs text-amber-600">
-              · {streak.totalPoints} pts
-            </span>
-          </div>
-        )}
-
       {/* Main Feed Content depending on Timeline Mode */}
       <main className="mt-6 px-5 sm:px-8 space-y-4">
         
@@ -496,13 +385,15 @@ function LifeHome({
                     dayLabel: new Date(c.createdAt).toLocaleDateString("en-US", { weekday: "short" }),
                     title: c.dimensions?.summary || c.content.substring(0, 30),
                     summary: c.content,
-                    imageUrl: c.mediaUrl || "/collages/daily_collage_sketch_sep2.jpg",
+                    imageUrl: c.mediaUrl,
                     people: c.dimensions?.people || [],
                     mood: c.dimensions?.mood
                   }))
                 : []
             }
             onSelectHighlight={() => setTimelineMode("day")}
+            onOpenCapture={openCapture}
+            onGoReflect={go}
           />
         )}
 
@@ -513,54 +404,40 @@ function LifeHome({
             uniqueDaysLogged={uniqueDaysLogged}
             isUnlocked={uniqueDaysLogged >= 30}
             monthlyPeople={Array.from(new Set(captures.flatMap((c) => c.dimensions?.people || [])))}
+            monthlySummary={
+              captures.length > 0
+                ? Array.from(new Set(captures.map((c) => c.dimensions?.summary || c.content.substring(0, 35)).filter(Boolean))).slice(0, 3).join(" · ")
+                : undefined
+            }
             onSelectCollage={() => setTimelineMode("day")}
+            onOpenCapture={openCapture}
+            onGoReflect={go}
           />
         )}
 
-        {/* DAY MODE VIEW */}
+        {/* DAY MODE VIEW: Clean single timeline feed of your captures */}
         {timelineMode === "day" && (
           <div className="space-y-4 relative before:absolute before:left-9 sm:before:left-12 before:top-4 before:bottom-4 before:w-0.5 before:bg-[#1C1917]/15">
-            {/* New memory from current session */}
-            {newMemory && (
-              <section className="relative z-10 border-[1.5px] border-[#1C1917] bg-[#F5E5DC] rounded-3xl p-5 shadow-[3px_4px_0px_#1C1917]" aria-label="Your newest memory">
-                <button className="w-full text-left cursor-pointer border-[1.5px] border-[#1C1917] bg-[#FBF9F4] rounded-2xl p-4 shadow-[1px_2px_0px_#1C1917]" onClick={() => go("memory")}>
-                  <span className="flex items-center justify-between">
-                    <span className="memory-kicker flex items-center gap-1.5 text-[#DE5239] font-bold text-xs uppercase">
-                      <span className="node-dot" />
-                      Just captured
-                    </span>
-                    <span className="memory-meta text-[#665F56] text-xs">Now</span>
-                  </span>
-                  <p className="font-serif text-[#1C1917] text-lg leading-relaxed mt-2">{newMemory.text}</p>
-                </button>
-              </section>
-            )}
-
-            {/* Featured Date-Matched Daily Visual Storyboard */}
-            {(() => {
-              const storyboardCapture = captures.find((c) => c.episodes && c.episodes.length > 0);
-              if (!storyboardCapture || !storyboardCapture.episodes) return null;
-              return (
-                <DailyStoryboard
-                  dateStr={selectedDate.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
-                  scenes={storyboardCapture.episodes.map((ep: any, idx: number) => ({
-                    id: ep.id || `sc_${idx}`,
-                    panelNumber: idx + 1,
-                    time: idx === 0 ? "11:00 AM" : idx === 1 ? "1:30 PM" : "7:30 PM",
-                    title: ep.title,
-                    summary: ep.summary,
-                    location: ep.location || (idx === 0 ? "Engineering Office" : idx === 1 ? "Olive Bistro, Jubilee Hills" : "Durgam Cheruvu Lake"),
-                    people: ep.entitiesInvolved && ep.entitiesInvolved.length > 0 ? ep.entitiesInvolved : (idx === 0 ? ["Kabir", "Ananya"] : idx === 1 ? ["Kabir", "Ananya"] : ["Maya"]),
-                    imageUrl: "/collages/daily_collage_sketch_sep2.jpg"
-                  }))}
-                />
-              );
-            })()}
 
             {/* Real captures from Firestore or Mock cards */}
             {recentCaptures.length > 0 ? (
               recentCaptures.map((capture) => {
                 const dims = capture.dimensions;
+                const isAnalyzing = capture.status === "processing";
+                const displayTitle = capture.title || dims?.title || (capture.content ? (capture.content.substring(0, 45) + (capture.content.length > 45 ? "..." : "")) : "Memory Entry");
+
+                const aiStatusBadge = isAnalyzing ? (
+                  <span className="inline-flex items-center gap-1.5 text-[10px] font-sans font-bold text-[#D97706] bg-[#FEF3C7] border border-[#D97706]/40 px-2.5 py-0.5 rounded-full shadow-xs">
+                    <Loader2 size={11} className="animate-spin text-[#D97706]" />
+                    Analyzing by AI…
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 text-[10px] font-sans font-semibold text-emerald-800 bg-emerald-50 border border-emerald-600/30 px-2.5 py-0.5 rounded-full">
+                    <CheckCircle2 size={11} className="text-emerald-600" />
+                    AI Analyzed
+                  </span>
+                );
+
                 return (
                   <div key={capture.id} className="relative z-10 space-y-3">
                     {capture.source === "video" || capture.mediaUrl?.startsWith("data:video") ? (
@@ -576,12 +453,15 @@ function LifeHome({
                             className="w-full max-h-72 object-contain"
                           />
                         </div>
-                        <div className="p-4 sm:p-5 space-y-1 bg-[#1C1917]">
-                          <span className="text-[10px] font-mono uppercase font-bold text-[#D97706] bg-[#D97706]/20 px-2 py-0.5 rounded-md border border-[#D97706]/40">
-                            Recorded Video
-                          </span>
-                          <h3 className="font-serif font-medium text-stone-100 text-xl leading-snug">
-                            {capture.content || "Video Recording"}
+                        <div className="p-4 sm:p-5 space-y-2 bg-[#1C1917]">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-mono uppercase font-bold text-[#D97706] bg-[#D97706]/20 px-2 py-0.5 rounded-md border border-[#D97706]/40">
+                              Recorded Video
+                            </span>
+                            {aiStatusBadge}
+                          </div>
+                          <h3 className="font-serif font-bold text-stone-100 text-xl leading-snug">
+                            {displayTitle}
                           </h3>
                         </div>
                       </button>
@@ -591,16 +471,19 @@ function LifeHome({
                         onClick={() => onSelectCapture(capture)}
                         className="w-full text-left border-[1.5px] border-[#1C1917] bg-white rounded-3xl overflow-hidden shadow-[2px_3px_0px_#1C1917] hover:-translate-y-0.5 transition-all cursor-pointer group"
                       >
-                        <div className="h-64 w-full overflow-hidden bg-stone-100">
+                        <div className="h-64 w-full overflow-hidden bg-stone-100 relative">
                           <img
                             src={capture.mediaUrl || "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&auto=format&fit=crop&q=80"}
                             alt="Memory photo"
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           />
+                          <div className="absolute top-3 right-3 z-10">
+                            {aiStatusBadge}
+                          </div>
                         </div>
                         <div className="p-4 sm:p-5 space-y-1">
-                          <h3 className="font-serif font-medium text-[#1C1917] text-xl leading-snug">
-                            {dims?.places?.[0] || capture.content?.substring(0, 30) || "Photo Memory"}
+                          <h3 className="font-serif font-bold text-[#1C1917] text-xl leading-snug">
+                            {displayTitle}
                           </h3>
                           {dims?.people && dims.people.length > 0 && (
                             <div className="flex items-center gap-1.5 pt-1">
@@ -619,42 +502,60 @@ function LifeHome({
                           )}
                         </div>
                       </button>
-                    ) : capture.source === "voice" ? (
-                      <button
+                    ) : capture.source === "voice" || capture.mediaUrl?.startsWith("data:audio") ? (
+                      <div
                         onClick={() => onSelectCapture(capture)}
-                        className="w-full text-left p-4 border-[1.5px] border-[#1C1917] bg-white rounded-2xl shadow-[2px_3px_0px_#1C1917] flex items-center justify-between hover:-translate-y-0.5 transition-all cursor-pointer"
+                        className="w-full text-left p-4 sm:p-5 border-[1.5px] border-[#1C1917] bg-[#FAF7F0] rounded-2xl shadow-[2px_3px_0px_#1C1917] hover:-translate-y-0.5 transition-all cursor-pointer space-y-3"
                       >
-                        <div className="flex items-center gap-3.5">
-                          <div
-                            onClick={(e) => { e.stopPropagation(); setIsPlayingAudio(!isPlayingAudio); }}
-                            className="w-10 h-10 rounded-full bg-[#1C1917] text-white flex items-center justify-center cursor-pointer hover:bg-[#DE5239] transition-colors shrink-0"
-                          >
-                            {isPlayingAudio ? <Pause size={16} /> : <Play size={16} className="ml-0.5" />}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#DE5239] bg-[#F5E5DC] px-2.5 py-0.5 rounded-md border border-[#DE5239]/30 flex items-center gap-1.5">
+                              <Mic size={12} /> Voice Memory Recording
+                            </span>
+                            {aiStatusBadge}
                           </div>
-                          <div>
-                            <div className="flex gap-0.5 items-center h-4 mb-1">
-                              {[8, 14, 18, 12, 22, 16, 20, 10, 18, 14].map((h, i) => (
-                                <span
-                                  key={i}
-                                  className={`w-1 rounded-full transition-all ${
-                                    isPlayingAudio ? "bg-[#DE5239] animate-pulse" : "bg-[#1C1917]/40"
-                                  }`}
-                                  style={{ height: `${h}px` }}
-                                />
-                              ))}
-                            </div>
-                            <p className="font-serif text-sm text-[#665F56] italic">
-                              &ldquo;{capture.content.substring(0, 45)}...&rdquo;
-                            </p>
-                          </div>
+                          <span className="text-xs text-[#665F56] font-mono">
+                            {new Date(capture.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          </span>
                         </div>
-                      </button>
+
+                        {/* Memory Title */}
+                        <h3 className="font-serif font-bold text-lg text-[#1C1917] leading-snug">
+                          {displayTitle}
+                        </h3>
+
+                        {/* Raw audio player */}
+                        {capture.mediaUrl && (
+                          <div className="pt-1" onClick={(e) => e.stopPropagation()}>
+                            <audio controls src={capture.mediaUrl} className="w-full h-10 rounded-xl border border-[#1C1917]" />
+                          </div>
+                        )}
+
+                        {/* Transcript script */}
+                        <div className="p-3.5 bg-white border border-[#1C1917]/20 rounded-xl">
+                          <span className="text-[10px] font-mono uppercase font-bold text-[#665F56] block mb-1">
+                            Transcript Script:
+                          </span>
+                          <p className="font-serif text-sm sm:text-base text-[#1C1917] leading-relaxed">
+                            &ldquo;{capture.content}&rdquo;
+                          </p>
+                        </div>
+                      </div>
                     ) : (
                       <button
                         onClick={() => onSelectCapture(capture)}
-                        className="w-full text-left p-5 border-[1.5px] border-[#1C1917] bg-white rounded-2xl shadow-[2px_3px_0px_#1C1917] hover:-translate-y-0.5 transition-all cursor-pointer"
+                        className="w-full text-left p-5 border-[1.5px] border-[#1C1917] bg-white rounded-2xl shadow-[2px_3px_0px_#1C1917] hover:-translate-y-0.5 transition-all cursor-pointer space-y-2"
                       >
-                        <p className="font-serif text-lg text-[#1C1917] leading-relaxed italic text-center sm:text-left">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs text-[#665F56] font-mono">
+                            {new Date(capture.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          </span>
+                          {aiStatusBadge}
+                        </div>
+                        <h3 className="font-serif font-bold text-lg text-[#1C1917] leading-snug">
+                          {displayTitle}
+                        </h3>
+                        <p className="font-serif text-base text-[#665F56] leading-relaxed italic text-center sm:text-left">
                           &ldquo;{capture.content}&rdquo;
                         </p>
                       </button>
@@ -670,7 +571,25 @@ function LifeHome({
                   </div>
                 );
               })
-            ) : null}
+            ) : (
+              <div className="text-center py-10 px-6 border-[1.5px] border-dashed border-[#1C1917]/30 bg-[#FBF9F4] rounded-3xl space-y-3 relative z-10">
+                <div className="w-12 h-12 rounded-2xl bg-[#FEF3C7] border border-[#D97706]/30 text-[#D97706] mx-auto flex items-center justify-center font-serif text-xl font-bold shadow-xs">
+                  ✨
+                </div>
+                <h3 className="font-serif font-bold text-xl text-[#1C1917]">
+                  No memories on {formattedSelectedDate}
+                </h3>
+                <p className="text-xs font-sans text-[#665F56] max-w-sm mx-auto leading-relaxed">
+                  You haven&apos;t recorded any moments for this day yet. Capture a voice note, photo, or thought to remember how it felt.
+                </p>
+                <button
+                  onClick={() => openCapture()}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#1C1917] hover:bg-[#DE5239] text-white text-xs font-bold rounded-2xl shadow-[2px_3px_0px_#1C1917] hover:shadow-[4px_5px_0px_#1C1917] transition-all cursor-pointer"
+                >
+                  <Plus size={14} /> Add memory for this day
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -1099,12 +1018,26 @@ function StoryViewSection({ go }: { go: (view: View) => void }) {
   );
 }
 
-function SearchViewSection({ go, onSelectCapture }: { go: (view: View) => void; onSelectCapture: (c: any) => void }) {
+function SearchViewSection({
+  go,
+  onSelectCapture,
+  initialQuery = "",
+  onQueryChange,
+}: {
+  go: (view: View) => void;
+  onSelectCapture: (c: any) => void;
+  initialQuery?: string;
+  onQueryChange?: (q: string) => void;
+}) {
   const { user } = useJournal();
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
   const [searchMessage, setSearchMessage] = useState("");
+
+  useEffect(() => {
+    setQuery(initialQuery);
+  }, [initialQuery]);
 
   const suggestions = [
     "When did I first think about starting something?",
@@ -1112,8 +1045,8 @@ function SearchViewSection({ go, onSelectCapture }: { go: (view: View) => void; 
     "Moments that made me smile",
   ];
 
-  const handleSearch = async () => {
-    if (!query.trim() || !user) return;
+  const handleSearch = async (searchTerm = query) => {
+    if (!searchTerm.trim() || !user) return;
     setSearching(true);
     setSearchMessage("");
     try {
@@ -1121,7 +1054,7 @@ function SearchViewSection({ go, onSelectCapture }: { go: (view: View) => void; 
       const res = await fetch("/api/v1/search", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
-        body: JSON.stringify({ query: query.trim() })
+        body: JSON.stringify({ query: searchTerm.trim() })
       });
       if (res.ok) {
         const data = await res.json();
@@ -1134,6 +1067,12 @@ function SearchViewSection({ go, onSelectCapture }: { go: (view: View) => void; 
       setSearching(false);
     }
   };
+
+  useEffect(() => {
+    if (initialQuery.trim()) {
+      handleSearch(initialQuery);
+    }
+  }, [initialQuery]);
 
   const getSourceIcon = (source?: string) => {
     switch (source) {
@@ -1153,11 +1092,14 @@ function SearchViewSection({ go, onSelectCapture }: { go: (view: View) => void; 
           <input
             autoFocus
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              if (onQueryChange) onQueryChange(e.target.value);
+            }}
             placeholder="That cafe you went to with Sarah..."
           />
           {query && (
-            <IconButton label="Clear" onClick={() => { setQuery(""); setResults([]); setSearchMessage(""); }}>
+            <IconButton label="Clear" onClick={() => { setQuery(""); if (onQueryChange) onQueryChange(""); setResults([]); setSearchMessage(""); }}>
               <X size={15} />
             </IconButton>
           )}
@@ -1248,49 +1190,99 @@ function ConnectionsViewSection({ go }: { go: (view: View) => void }) {
 }
 
 function MemoryDetailSection({ go, capture }: { go: (view: View) => void; capture: any }) {
-  const { updateCapture } = useJournal();
-  const [activeTab, setActiveTab] = useState<"raw" | "analyzed">("analyzed");
-  const [isPlaying, setIsPlaying] = useState(false);
+  const { updateCapture, reanalyzeCapture, deleteCapture } = useJournal();
   const [isEditing, setIsEditing] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [editedTitle, setEditedTitle] = useState(capture?.title || capture?.dimensions?.title || "");
   const [editedContent, setEditedContent] = useState(capture?.content || "");
+  const [copiedText, setCopiedText] = useState(false);
 
   useEffect(() => {
+    setEditedTitle(capture?.title || capture?.dimensions?.title || "");
     setEditedContent(capture?.content || "");
-  }, [capture?.content]);
+  }, [capture?.title, capture?.content, capture?.dimensions?.title]);
+
+  if (!capture) {
+    return (
+      <div className="pb-32 font-sans px-5 sm:px-8 mt-6">
+        <PageHeader title="Memory Not Found" eyebrow="Memoiary Entry" onBack={() => go("life")} />
+        <div className="mt-8 text-center p-8 bg-white border-[1.5px] border-[#1C1917] rounded-3xl shadow-[3px_4px_0px_#1C1917] space-y-4">
+          <p className="text-stone-500 font-serif text-lg">This memory entry is no longer available or was deleted.</p>
+          <button
+            onClick={() => go("life")}
+            className="px-5 py-2.5 bg-[#DE5239] border-[1.5px] border-[#1C1917] text-white font-bold text-xs rounded-xl shadow-[2px_3px_0px_#1C1917]"
+          >
+            Return to Sanctuary Feed
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const dims = capture?.dimensions;
-  const episodes = capture?.episodes || [];
-  const isAiProcessing = capture?.status === "processing" || (!dims && capture?.status !== "reconciled");
+  const isAiProcessing = capture?.status === "processing";
   const date = capture?.createdAt ? new Date(capture.createdAt) : new Date();
   const timeStr = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
   const dateStr = date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
   
-  const titleText = dims?.summary || capture?.content?.substring(0, 50) || "Memory Detail";
+  const displayTitle = capture?.title || dims?.title || dims?.summary || (capture?.content ? capture.content.substring(0, 45) + (capture.content.length > 45 ? "..." : "") : "Memory Moment");
 
   const handleSaveEdit = async () => {
-    if (!editedContent.trim()) return;
-    await updateCapture(capture.id, { content: editedContent.trim() });
+    if (!editedContent.trim() && !editedTitle.trim()) return;
+    await updateCapture(capture.id, { content: editedContent.trim(), title: editedTitle.trim() });
     setIsEditing(false);
   };
+
+  const handleCopyText = () => {
+    if (capture?.content) {
+      navigator.clipboard.writeText(capture.content);
+      setCopiedText(true);
+      setTimeout(() => setCopiedText(false), 2000);
+    }
+  };
+
+  const sourceTypeLabel = 
+    capture?.source === "video" ? "Recorded Video" :
+    capture?.source === "voice" ? "Voice Recording" :
+    capture?.source === "image" ? "Photo Memory" : "Written Memory";
 
   return (
     <div className="pb-32 font-sans">
       <PageHeader
-        title={titleText}
-        eyebrow={`${capture?.source === "video" ? "Recorded Video" : capture?.source === "voice" ? "Voice Recording" : capture?.source === "image" ? "Photo Memory" : "Written Memory"} · ${dateStr}`}
+        title={displayTitle}
+        eyebrow={`${sourceTypeLabel} · ${dateStr}`}
         onBack={() => go("life")}
         action={
-          <button
-            onClick={() => setIsEditing(!isEditing)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#FAF7F0] border-[1.5px] border-[#1C1917] rounded-xl text-xs font-bold text-[#1C1917] shadow-[1px_2px_0px_#1C1917] hover:bg-[#F5E5DC] cursor-pointer"
-          >
-            <PenLine size={14} className="text-[#DE5239]" />
-            <span>{isEditing ? "Cancel" : "Edit Memory"}</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => reanalyzeCapture(capture.id)}
+              disabled={isAiProcessing}
+              title="Re-run AI Analysis"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#FEF3C7] border-[1.5px] border-[#D97706] rounded-xl text-xs font-bold text-[#D97706] shadow-[1px_2px_0px_#D97706] hover:bg-[#FDE68A] cursor-pointer disabled:opacity-50 transition-all"
+            >
+              <Sparkles size={13} className={isAiProcessing ? "animate-spin text-[#D97706]" : "text-[#D97706]"} />
+              <span className="hidden sm:inline">{isAiProcessing ? "Analyzing…" : "Re-Analyze"}</span>
+            </button>
+            <button
+              onClick={() => setIsEditing(!isEditing)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#FAF7F0] border-[1.5px] border-[#1C1917] rounded-xl text-xs font-bold text-[#1C1917] shadow-[1px_2px_0px_#1C1917] hover:bg-[#F5E5DC] cursor-pointer transition-all"
+            >
+              <PenLine size={14} className="text-[#DE5239]" />
+              <span>{isEditing ? "Cancel Edit" : "Edit"}</span>
+            </button>
+            <button
+              onClick={() => setShowDeleteModal(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 border-[1.5px] border-rose-300 rounded-xl text-xs font-bold text-rose-700 shadow-[1px_2px_0px_#b91c1c] hover:bg-rose-100 cursor-pointer transition-all"
+              title="Delete Memory"
+            >
+              <Trash2 size={14} className="text-rose-600" />
+              <span className="hidden sm:inline">Delete</span>
+            </button>
+          </div>
         }
       />
-      <main className="px-5 sm:px-8 mt-4 space-y-5">
-        {/* AI Analysis Status Banner */}
+
+      <main className="px-5 sm:px-8 mt-4 space-y-6">
         <div className={`p-3.5 border-[1.5px] border-[#1C1917] rounded-2xl shadow-[2px_3px_0px_#1C1917] flex items-center justify-between gap-3 text-xs font-sans font-bold ${
           isAiProcessing ? "bg-[#FDF2D0] text-[#D97706]" : "bg-[#FAF7F0] text-[#1C1917]"
         }`}>
@@ -1298,188 +1290,289 @@ function MemoryDetailSection({ go, capture }: { go: (view: View) => void; captur
             <Sparkles size={16} className={isAiProcessing ? "animate-spin text-[#D97706]" : "text-[#DE5239]"} />
             <span>
               {isAiProcessing
-                ? "⏳ AI Processing in Progress... Extracting mood & timeline"
-                : "✨ AI Analysis Complete & Grounded"}
+                ? "⏳ AI Processing in Progress... Extracting mood, emotions & topics"
+                : "✨ AI Analysis Complete & Grounded in your context"}
             </span>
           </div>
-          {isAiProcessing && (
-            <span className="text-[10px] font-mono uppercase bg-[#D97706] text-white px-2 py-0.5 rounded-md">
-              Analyzing
-            </span>
-          )}
+          <button
+            onClick={() => reanalyzeCapture(capture.id)}
+            disabled={isAiProcessing}
+            className="flex items-center gap-1 px-2.5 py-1 bg-white border border-[#1C1917] rounded-lg text-[10px] uppercase font-mono font-bold text-[#DE5239] hover:bg-[#F5E5DC] shadow-xs cursor-pointer disabled:opacity-50"
+          >
+            <Sparkles size={11} className={isAiProcessing ? "animate-spin" : ""} />
+            <span>{isAiProcessing ? "Analyzing" : "Re-Analyze"}</span>
+          </button>
         </div>
 
-        {/* In-App Edit Memory View */}
         {isEditing ? (
-          <div className="p-5 bg-white border-[1.5px] border-[#1C1917] rounded-3xl shadow-[3px_4px_0px_#1C1917] space-y-4 font-sans">
-            <h3 className="font-serif text-xl font-medium text-[#1C1917]">Edit Your Memory Entry</h3>
-            <textarea
-              value={editedContent}
-              onChange={(e) => setEditedContent(e.target.value)}
-              className="w-full min-h-[10rem] p-4 border-[1.5px] border-[#1C1917] bg-[#FBF9F4] rounded-2xl text-[#1C1917] font-serif text-base focus:outline-none resize-none shadow-[2px_3px_0px_#1C1917]"
-              placeholder="Update what was captured…"
-            />
-            <div className="flex items-center justify-end gap-2">
+          <div className="p-6 bg-white border-[1.5px] border-[#1C1917] rounded-3xl shadow-[4px_5px_0px_#1C1917] space-y-5 font-sans animate-in fade-in duration-200">
+            <div className="flex items-center justify-between border-b border-[#1C1917]/15 pb-3">
+              <div className="flex items-center gap-2">
+                <PenLine size={20} className="text-[#DE5239]" />
+                <h3 className="font-serif text-xl font-bold text-[#1C1917]">Edit Memory Entry</h3>
+              </div>
+              <span className="text-[10px] font-mono uppercase bg-[#F5E5DC] text-[#DE5239] border border-[#DE5239]/30 px-2 py-0.5 rounded-md font-bold">
+                {sourceTypeLabel}
+              </span>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-[#1C1917] font-sans flex items-center justify-between">
+                <span>Memory Title</span>
+                <span className="text-[10px] text-[#665F56] font-normal">Optional (AI generates one if left blank)</span>
+              </label>
+              <input
+                type="text"
+                value={editedTitle}
+                onChange={(e) => setEditedTitle(e.target.value)}
+                className="w-full px-4 py-3 border-[1.5px] border-[#1C1917] bg-[#FBF9F4] rounded-xl text-[#1C1917] font-serif text-lg focus:outline-none shadow-[1px_2px_0px_#1C1917]"
+                placeholder="Title / Key Moment of this memory…"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-[#1C1917] font-sans flex items-center justify-between">
+                <span>Captured Content / Transcript</span>
+                <span className="text-[10px] text-[#665F56] font-mono">{editedContent.length} chars</span>
+              </label>
+              <textarea
+                value={editedContent}
+                onChange={(e) => setEditedContent(e.target.value)}
+                className="w-full min-h-[12rem] p-4 border-[1.5px] border-[#1C1917] bg-[#FBF9F4] rounded-2xl text-[#1C1917] font-serif text-base focus:outline-none resize-y leading-relaxed shadow-[2px_3px_0px_#1C1917]"
+                placeholder="What happened or what was spoken…"
+              />
+            </div>
+
+            <div className="flex items-center justify-between pt-2">
               <button
-                onClick={() => setIsEditing(false)}
-                className="px-4 py-2 bg-stone-100 border border-[#1C1917]/20 rounded-xl text-xs font-bold text-[#665F56] hover:bg-stone-200 cursor-pointer"
+                onClick={() => setShowDeleteModal(true)}
+                className="flex items-center gap-1 text-xs font-bold text-rose-600 hover:text-rose-700 hover:underline cursor-pointer"
               >
-                Cancel
+                <Trash2 size={14} /> Delete Entry
               </button>
-              <button
-                onClick={handleSaveEdit}
-                className="px-5 py-2 bg-[#DE5239] border-[1.5px] border-[#1C1917] rounded-xl text-xs font-bold text-white shadow-[2px_3px_0px_#1C1917] hover:bg-[#c9452d] cursor-pointer"
-              >
-                Save Changes &amp; Re-Analyze
-              </button>
+
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setIsEditing(false)}
+                  className="px-4 py-2.5 bg-stone-100 border border-[#1C1917]/20 rounded-xl text-xs font-bold text-[#665F56] hover:bg-stone-200 cursor-pointer transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveEdit}
+                  className="px-6 py-2.5 bg-[#DE5239] border-[1.5px] border-[#1C1917] rounded-xl text-xs font-bold text-white shadow-[2px_3px_0px_#1C1917] hover:bg-[#c9452d] cursor-pointer transition-all"
+                >
+                  Save &amp; Re-Analyze AI
+                </button>
+              </div>
             </div>
           </div>
         ) : (
-          <>
-            {/* Dual Tab Switcher: RAW vs ANALYZED */}
-            <div className="flex border-b border-[#1C1917]/15 pb-1 gap-4">
-              <button
-                onClick={() => setActiveTab("analyzed")}
-                className={`flex items-center gap-1.5 pb-2 text-xs font-sans font-semibold border-b-2 cursor-pointer transition-colors ${
-                  activeTab === "analyzed"
-                    ? "border-[#DE5239] text-[#DE5239]"
-                    : "border-transparent text-[#665F56] hover:text-[#1C1917]"
-                }`}
-              >
-                <Sparkles size={14} /> Understood &amp; Analyzed
-              </button>
-              <button
-                onClick={() => setActiveTab("raw")}
-                className={`flex items-center gap-1.5 pb-2 text-xs font-sans font-semibold border-b-2 cursor-pointer transition-colors ${
-                  activeTab === "raw"
-                    ? "border-[#DE5239] text-[#DE5239]"
-                    : "border-transparent text-[#665F56] hover:text-[#1C1917]"
-                }`}
-              >
-                <PenLine size={14} /> RAW Input
-              </button>
+          <div className="space-y-6">
+            <div className="p-6 bg-white border-[1.5px] border-[#1C1917] rounded-3xl shadow-[3px_4px_0px_#1C1917] space-y-4 font-sans relative overflow-hidden">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#DE5239] bg-[#F5E5DC] border border-[#DE5239]/30 px-3 py-1 rounded-full flex items-center gap-1.5">
+                    {capture?.source === "video" ? <Video size={13} /> : capture?.source === "voice" ? <Mic size={13} /> : capture?.source === "image" ? <Camera size={13} /> : <PenLine size={13} />}
+                    {sourceTypeLabel}
+                  </span>
+                </div>
+                <span className="text-xs text-[#665F56] font-mono font-medium">
+                  {dateStr} at {timeStr}
+                </span>
+              </div>
+
+              <div className="space-y-1">
+                <h2 className="font-serif text-2xl sm:text-3xl font-bold text-[#1C1917] leading-tight">
+                  {displayTitle}
+                </h2>
+              </div>
+
+              {(capture?.source === "video" || capture?.mediaUrl?.startsWith("data:video") || capture?.mediaUrl?.includes(".mp4")) && (
+                <div className="mt-4 rounded-2xl overflow-hidden border-[1.5px] border-[#1C1917] shadow-[2px_3px_0px_#1C1917] bg-black">
+                  <video controls src={capture.mediaUrl} className="w-full max-h-80 object-contain" />
+                </div>
+              )}
+
+              {(capture?.source === "voice" || capture?.mediaUrl?.startsWith("data:audio")) && (
+                <div className="mt-4 p-4 bg-[#F5E5DC] border-[1.5px] border-[#1C1917] rounded-2xl shadow-[2px_3px_0px_#1C1917] space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-[#1C1917] flex items-center gap-1.5">
+                      <Mic size={14} className="text-[#DE5239]" /> Original Audio Recording
+                    </span>
+                    <span className="text-[10px] font-mono text-[#665F56]">Original Clip</span>
+                  </div>
+                  {capture.mediaUrl ? (
+                    <audio controls src={capture.mediaUrl} className="w-full h-10 rounded-xl border border-[#1C1917] bg-white" />
+                  ) : (
+                    <p className="text-xs text-[#665F56] italic">Audio clip saved with transcript.</p>
+                  )}
+                </div>
+              )}
+
+              {(capture?.source === "image" || (capture?.mediaUrl && capture?.mediaUrl?.startsWith("data:image"))) && (
+                <div className="mt-4 rounded-2xl overflow-hidden border-[1.5px] border-[#1C1917] shadow-[2px_3px_0px_#1C1917]">
+                  <img src={capture.mediaUrl} alt="Raw memory photo" className="w-full max-h-80 object-cover" />
+                </div>
+              )}
             </div>
 
-            {/* TAB 1: RAW INPUT */}
-            {activeTab === "raw" && (
-              <div className="space-y-4">
-                <div className="p-5 bg-white border-[1.5px] border-[#1C1917] rounded-2xl shadow-[2px_3px_0px_#1C1917] space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-[#665F56] font-sans block">
-                      Exact Captured Words · {dateStr} at {timeStr}
-                    </span>
-                    <button
-                      onClick={() => setIsEditing(true)}
-                      className="text-xs font-bold text-[#DE5239] hover:underline cursor-pointer"
-                    >
-                      Edit Text
-                    </button>
+            <div className="p-6 bg-[#FAF7F0] border-[1.5px] border-[#1C1917] rounded-3xl shadow-[3px_4px_0px_#1C1917] space-y-4">
+              <div className="flex items-center justify-between border-b border-[#1C1917]/15 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-[#FEF3C7] border border-[#D97706]/40 rounded-lg">
+                    <Sparkles size={16} className="text-[#D97706]" />
                   </div>
-                  <p className="font-serif text-lg text-[#1C1917] leading-relaxed italic">
-                    &ldquo;{capture?.content || "Voice recording captured without text"}&rdquo;
-                  </p>
+                  <h3 className="font-serif text-lg font-bold text-[#1C1917]">AI Witness Reflection &amp; Understanding</h3>
                 </div>
-
-                {/* Video Player if video source */}
-                {(capture?.source === "video" || capture?.mediaUrl?.startsWith("data:video") || capture?.mediaUrl?.includes(".mp4")) && (
-                  <div className="rounded-2xl overflow-hidden border-[1.5px] border-[#1C1917] shadow-[2px_3px_0px_#1C1917] bg-black">
-                    <video controls src={capture.mediaUrl} className="w-full max-h-80 object-contain" />
-                  </div>
-                )}
-
-                {/* Audio Player if voice source */}
-                {(capture?.source === "voice" || capture?.mediaUrl?.startsWith("data:audio")) && (
-                  <div className="p-4 bg-[#F5E5DC] border-[1.5px] border-[#1C1917] rounded-2xl shadow-[2px_3px_0px_#1C1917] flex items-center justify-between">
-                    <div className="flex items-center gap-3.5">
-                      <button
-                        onClick={() => setIsPlaying(!isPlaying)}
-                        className="w-10 h-10 rounded-full bg-[#DE5239] text-white flex items-center justify-center cursor-pointer border border-[#1C1917] shadow-xs hover:scale-105 transition-transform"
-                      >
-                        {isPlaying ? <Pause size={18} /> : <Play size={18} className="ml-0.5" />}
-                      </button>
-                      <div>
-                        <span className="text-xs font-bold text-[#1C1917] block">Original Audio Recording</span>
-                        <span className="text-[10px] text-[#665F56]">{timeStr} · Recorded Live</span>
-                      </div>
-                    </div>
-                    <div className="flex gap-0.5 items-center h-5">
-                      {[10, 18, 14, 24, 20, 12, 22, 16, 26, 14].map((h, i) => (
-                        <span
-                          key={i}
-                          className={`w-1 rounded-full transition-all ${
-                            isPlaying ? "bg-[#DE5239] animate-pulse" : "bg-[#1C1917]/40"
-                          }`}
-                          style={{ height: `${h}px` }}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Photo if image source */}
-                {(capture?.source === "image" || (capture?.mediaUrl && capture?.mediaUrl?.startsWith("data:image"))) && (
-                  <div className="rounded-2xl overflow-hidden border-[1.5px] border-[#1C1917] shadow-[2px_3px_0px_#1C1917]">
-                    <img src={capture.mediaUrl} alt="Raw memory photo" className="w-full max-h-72 object-cover" />
-                  </div>
-                )}
+                <span className="text-[10px] font-mono uppercase font-bold text-[#D97706] bg-[#FEF3C7] px-2.5 py-0.5 rounded-full border border-[#D97706]/40">
+                  Single-Pass Gemini
+                </span>
               </div>
-            )}
 
-            {/* TAB 2: UNDERSTOOD & ANALYZED */}
-            {activeTab === "analyzed" && (
-              <div className="space-y-6">
-                {isAiProcessing ? (
-                  <div className="p-8 bg-white border-[1.5px] border-dashed border-[#1C1917]/30 rounded-2xl text-center space-y-3">
-                    <Sparkles size={24} className="text-[#D97706] animate-spin mx-auto" />
-                    <h4 className="font-serif text-lg font-medium text-[#1C1917]">AI Analysis in progress</h4>
-                    <p className="text-xs text-[#665F56] max-w-sm mx-auto font-sans">
-                      Gemini AI is currently processing this entry. Extracted mood, emotions, and timeline will populate here shortly!
-                    </p>
-                  </div>
-                ) : (
-                  <div className="p-5 bg-white border-[1.5px] border-[#1C1917] rounded-2xl shadow-[2px_3px_0px_#1C1917] space-y-3">
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-[#DE5239] block">
-                      AI Extracted Dimensions
+              {isAiProcessing ? (
+                <div className="p-6 text-center space-y-2">
+                  <Sparkles size={24} className="text-[#D97706] animate-spin mx-auto" />
+                  <p className="text-sm font-serif text-[#1C1917]">Gemini is analyzing mood &amp; context…</p>
+                </div>
+              ) : (
+                <div className="space-y-4 font-sans">
+                  <p className="font-serif text-lg text-[#1C1917] leading-relaxed italic bg-white p-4 rounded-2xl border border-[#1C1917]/15">
+                    &ldquo;{dims?.summary || dims?.rawAnalysis || "AI captured and reconciled memory moment."}&rdquo;
+                  </p>
+
+                  <div className="space-y-2 pt-1">
+                    <span className="text-[10px] uppercase font-mono font-bold tracking-wider text-[#665F56] block">
+                      Extracted Dimensions &amp; Entities:
                     </span>
-                    <p className="font-serif text-base text-[#1C1917] leading-relaxed">
-                      {dims?.summary || "AI parsed memory dimensions."}
-                    </p>
 
-                    <div className="flex flex-wrap gap-2 text-xs font-sans pt-1">
+                    <div className="flex flex-wrap gap-2 text-xs font-sans">
                       {dims?.mood && (
-                        <span className="flex items-center gap-1 px-3 py-1 bg-[#F5E5DC] border border-[#DE5239]/30 rounded-full font-semibold text-[#DE5239]">
-                          <Heart size={12} /> {dims.mood}
+                        <span className="flex items-center gap-1 px-3 py-1.5 bg-[#F5E5DC] border border-[#DE5239]/40 rounded-full font-bold text-[#DE5239]">
+                          <Heart size={13} /> Mood: {dims.mood}
                         </span>
                       )}
-                      {dims?.places?.map((place: string, i: number) => (
-                        <span key={i} className="flex items-center gap-1 px-3 py-1 bg-[#F5F1E8] border border-[#1C1917]/30 rounded-full font-medium text-[#1C1917]">
-                          <MapPin size={12} className="text-[#DE5239]" /> {place}
+                      {dims?.emotions?.map((e: any, i: number) => (
+                        <span key={i} className="flex items-center gap-1 px-3 py-1.5 bg-amber-50 border border-amber-300 rounded-full font-medium text-amber-800">
+                          ✨ {typeof e === "string" ? e : e.label}
                         </span>
                       ))}
                       {dims?.people?.map((person: string, i: number) => (
-                        <span key={i} className="flex items-center gap-1.5 px-3 py-1 bg-[#F5F1E8] border border-[#1C1917]/30 rounded-full font-medium text-[#1C1917]">
+                        <span key={i} className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#1C1917]/30 rounded-full font-semibold text-[#1C1917] shadow-xs">
                           <ArtisticAvatar name={person} size="sm" />
                           <span>{person}</span>
                         </span>
                       ))}
-                      {dims?.emotions?.map((e: any, i: number) => (
-                        <span key={i} className="flex items-center gap-1 px-3 py-1 bg-[#F5E5DC] border border-[#DE5239]/30 rounded-full font-medium text-[#DE5239]">
-                          ✨ {e.label}
+                      {dims?.places?.map((place: string, i: number) => (
+                        <span key={i} className="flex items-center gap-1 px-3 py-1.5 bg-white border border-[#1C1917]/30 rounded-full font-medium text-[#1C1917] shadow-xs">
+                          <MapPin size={13} className="text-[#DE5239]" /> {place}
                         </span>
                       ))}
                       {dims?.topics?.map((topic: string, i: number) => (
-                        <span key={i} className="flex items-center gap-1 px-3 py-1 bg-[#F5F1E8] border border-[#1C1917]/30 rounded-full font-medium text-[#1C1917]">
-                          <PenLine size={12} /> {topic}
+                        <span key={i} className="flex items-center gap-1 px-3 py-1.5 bg-[#F5F1E8] border border-[#1C1917]/20 rounded-full font-medium text-[#1C1917]">
+                          # {topic}
                         </span>
                       ))}
                     </div>
                   </div>
-                )}
+                </div>
+              )}
+            </div>
+
+            {/* RAW CAPTURED CONTENT & TRANSCRIPT */}
+            <div className="p-6 bg-white border-[1.5px] border-[#1C1917] rounded-3xl shadow-[3px_4px_0px_#1C1917] space-y-3 font-sans">
+              <div className="flex items-center justify-between border-b border-[#1C1917]/15 pb-2">
+                <span className="text-[10px] uppercase font-mono font-bold tracking-wider text-[#665F56] block">
+                  Exact Raw Text / Spoken Transcript
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleCopyText}
+                    className="text-xs font-bold text-[#665F56] hover:text-[#1C1917] cursor-pointer transition-colors"
+                  >
+                    {copiedText ? "✓ Copied!" : "Copy Text"}
+                  </button>
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="text-xs font-bold text-[#DE5239] hover:underline cursor-pointer"
+                  >
+                    Edit
+                  </button>
+                </div>
               </div>
-            )}
-          </>
+
+              <p className="font-serif text-lg text-[#1C1917] leading-relaxed italic">
+                &ldquo;{capture?.content || "No raw text recorded."}&rdquo;
+              </p>
+            </div>
+
+            {/* BOTTOM QUICK ACTIONS TOOLBAR */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+              <button
+                onClick={() => setShowDeleteModal(true)}
+                className="flex items-center gap-2 px-4 py-2.5 bg-rose-50 border-[1.5px] border-rose-300 rounded-2xl text-xs font-bold text-rose-700 shadow-[2px_3px_0px_#b91c1c] hover:bg-rose-100 cursor-pointer transition-all"
+              >
+                <Trash2 size={15} /> Delete Memory
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => reanalyzeCapture(capture.id)}
+                  disabled={isAiProcessing}
+                  className="flex items-center gap-1.5 px-4 py-2.5 bg-[#FEF3C7] border-[1.5px] border-[#D97706] rounded-2xl text-xs font-bold text-[#D97706] shadow-[2px_3px_0px_#D97706] hover:bg-[#FDE68A] cursor-pointer disabled:opacity-50 transition-all"
+                >
+                  <Sparkles size={14} className={isAiProcessing ? "animate-spin text-[#D97706]" : "text-[#D97706]"} />
+                  <span>{isAiProcessing ? "Analyzing…" : "Re-Analyze AI"}</span>
+                </button>
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="flex items-center gap-1.5 px-5 py-2.5 bg-[#DE5239] border-[1.5px] border-[#1C1917] rounded-2xl text-xs font-bold text-white shadow-[2px_3px_0px_#1C1917] hover:bg-[#c9452d] cursor-pointer transition-all"
+                >
+                  <PenLine size={15} /> Edit Entry
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </main>
+
+      {/* CONFIRMATION MODAL FOR DELETING MEMORY */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[#FAF7F0] border-[2px] border-[#1C1917] rounded-3xl p-6 max-w-md w-full shadow-[4px_6px_0px_#1C1917] space-y-4 animate-in fade-in zoom-in duration-150 font-sans">
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-rose-100 border border-rose-300 rounded-2xl text-rose-600 shrink-0">
+                <Trash2 size={24} />
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-serif text-xl font-bold text-[#1C1917]">Delete Memory?</h3>
+                <p className="text-xs text-[#665F56] leading-relaxed">
+                  Are you sure you want to delete <span className="font-semibold text-[#1C1917]">&ldquo;{displayTitle}&rdquo;</span>? This will permanently remove it from your timeline.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#1C1917]/10">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="px-4 py-2.5 bg-white border border-[#1C1917]/20 rounded-xl text-xs font-bold text-[#665F56] hover:bg-stone-100 cursor-pointer transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  await deleteCapture(capture.id);
+                  setShowDeleteModal(false);
+                  go("life");
+                }}
+                className="px-5 py-2.5 bg-rose-600 border-[1.5px] border-[#1C1917] rounded-xl text-xs font-bold text-white shadow-[2px_3px_0px_#1C1917] hover:bg-rose-700 cursor-pointer transition-all"
+              >
+                Yes, Delete Memory
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1652,6 +1745,7 @@ function CaptureOverlay({
 
   // ── Accumulated items (NO processing until save) ──
   const [items, setItems] = useState<{ kind: string; label: string; base64?: string; mimeType?: string; text?: string }[]>([]);
+  const [customTitleInput, setCustomTitleInput] = useState("");
   const [textInput, setTextInput] = useState("");
   const [location, setLocation] = useState<string>();
   const [locationInput, setLocationInput] = useState("");
@@ -1667,9 +1761,23 @@ function CaptureOverlay({
   const voiceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [captureSubMode, setCaptureSubMode] = useState<"photo" | "video">("photo");
 
-  // Set active tab based on mode prop
+  const resetCaptureState = () => {
+    setItems([]);
+    setCustomTitleInput("");
+    setTextInput("");
+    setLocation(undefined);
+    setLocationInput("");
+    setShowLocationInput(false);
+    setIsRecordingVoice(false);
+    setVoiceDone(false);
+    setLiveTranscript("");
+    setVoiceSeconds(0);
+  };
+
+  // Set active tab based on mode prop and reset state from previous capture session
   useEffect(() => {
     if (!mode) return;
+    resetCaptureState();
     if (mode === "voice") {
       setActiveTab("speak");
     } else if (mode === "photo") {
@@ -1750,36 +1858,43 @@ function CaptureOverlay({
     };
     recognition.onerror = () => {};
     recognition.onend = () => { if (isRecordingVoice) { try { recognition.start(); } catch {} } };
-    recognitionRef.current = recognition;
-    recognition.start();
-    setIsRecordingVoice(true);
-    media.startAudioRecording().catch(() => {});
+    try { recognition.start(); recognitionRef.current = recognition; setIsRecordingVoice(true); } catch {}
   };
 
   const stopVoiceRecording = async () => {
     setIsRecordingVoice(false);
-    setVoiceDone(true);
     if (voiceTimerRef.current) clearInterval(voiceTimerRef.current);
-    if (recognitionRef.current) { recognitionRef.current.stop(); recognitionRef.current = null; }
+    if (recognitionRef.current) { try { recognitionRef.current.stop(); } catch {} }
     try {
-      const result = await media.stopAudioRecording();
-      setItems((prev) => [...prev, {
-        kind: "voice",
-        label: liveTranscript ? `"${liveTranscript.substring(0, 60)}"` : "Voice recording",
-        base64: result.base64, mimeType: result.mimeType,
-        text: liveTranscript || undefined
-      }]);
-    } catch {
-      if (liveTranscript) {
-        setItems((prev) => [...prev, { kind: "voice", label: `"${liveTranscript.substring(0, 60)}"`, text: liveTranscript }]);
+      const audioResult = await media.stopAudioRecording();
+      if (audioResult && audioResult.base64) {
+        setItems((prev) => [
+          ...prev,
+          {
+            kind: "voice",
+            label: "Voice Recording",
+            base64: audioResult.base64,
+            mimeType: audioResult.mimeType || "audio/webm",
+            text: liveTranscript.trim() || undefined,
+          },
+        ]);
       }
-    }
+    } catch {}
+    setVoiceDone(true);
   };
 
-  const resetVoice = () => {
+  const cancelVoiceRecording = () => {
+    setIsRecordingVoice(false);
+    if (voiceTimerRef.current) clearInterval(voiceTimerRef.current);
+    if (recognitionRef.current) { try { recognitionRef.current.stop(); } catch {} }
+    media.stopAudioRecording().catch(() => {});
     setVoiceDone(false);
     setLiveTranscript("");
     setVoiceSeconds(0);
+  };
+
+  const resetVoice = () => {
+    cancelVoiceRecording();
   };
 
   // ── Photo capture ──
@@ -1843,8 +1958,9 @@ function CaptureOverlay({
 
       const mediaCtx = items.filter((i) => i.kind !== "text").map((i) => `${i.kind}: ${i.label}`).join(" | ");
       const dateIso = selectedDate ? selectedDate.toISOString() : undefined;
-      await submitCapture(content, detectedSource, mediaCtx || undefined, mediaUrl, dateIso);
+      await submitCapture(content, detectedSource, mediaCtx || undefined, mediaUrl, dateIso, customTitleInput.trim() || undefined);
       onSaved({ kind: "written", text: content, location });
+      resetCaptureState(); // Clear all capture inputs immediately after save!
     } catch (err) {
       console.error("Save memory error:", err);
     } finally {
@@ -1880,6 +1996,17 @@ function CaptureOverlay({
           <button onClick={() => setMode(null)} className="p-2 rounded-full border border-[#1C1917]/20 bg-[#F5F1E8] text-[#665F56] hover:text-[#1C1917] cursor-pointer">
             <X size={16} />
           </button>
+        </div>
+
+        {/* Optional Title Input */}
+        <div className="px-5 pb-2">
+          <input
+            type="text"
+            value={customTitleInput}
+            onChange={(e) => setCustomTitleInput(e.target.value)}
+            placeholder="Title or Key Moment (optional - AI auto-generates if empty)"
+            className="w-full px-3.5 py-2 border-[1.5px] border-[#1C1917] bg-white rounded-xl text-xs font-serif font-medium text-[#1C1917] focus:outline-none shadow-[1px_2px_0px_#1C1917]"
+          />
         </div>
 
         {/* Tab bar */}
@@ -2166,16 +2293,22 @@ function BottomNav({
 
   return (
     <nav className="bottom-nav" aria-label="Primary navigation">
-      <button className={`cursor-pointer ${active === "life" ? "active" : ""}`} onClick={() => go("life")}>
-        <House />
-        <span>Life</span>
+      <button
+        className={`cursor-pointer ${active === "life" ? "active" : ""}`}
+        onClick={() => go("life")}
+        title="Home Sanctuary"
+        aria-label="Home Sanctuary"
+      >
+        <House size={22} />
       </button>
+
       <button
         className={`cursor-pointer ${active === "entities" || active === "people" || active === "places" ? "active" : ""}`}
         onClick={() => go("entities")}
+        title="Elements (People, Places & Wishlist)"
+        aria-label="Elements"
       >
-        <Users />
-        <span>Entities</span>
+        <Layers size={22} />
       </button>
 
       {/* Floating Capture Button Container */}
@@ -2232,14 +2365,22 @@ function BottomNav({
         </button>
       </div>
 
-      <button className={`cursor-pointer ${active === "collections" ? "active" : ""}`} onClick={() => go("collections")}>
-        <ImageIcon size={20} />
-        <span>Collections</span>
+      <button
+        className={`cursor-pointer ${active === "collections" ? "active" : ""}`}
+        onClick={() => go("collections")}
+        title="Mind Map & Themes"
+        aria-label="Mind Map & Themes"
+      >
+        <Share2 size={22} />
       </button>
 
-      <button className={`cursor-pointer ${active === "reflect" ? "active" : ""}`} onClick={() => go("reflect")}>
-        <Sparkles size={20} />
-        <span>Reflect</span>
+      <button
+        className={`cursor-pointer ${active === "reflect" ? "active" : ""}`}
+        onClick={() => go("reflect")}
+        title="AI Reflect"
+        aria-label="AI Reflect"
+      >
+        <MessageSquare size={22} />
       </button>
     </nav>
   );
@@ -2248,6 +2389,7 @@ function BottomNav({
 export function MemoiaryAppShell() {
   const { user, captures, streak = 0 } = useJournal();
   const [view, setView] = useState<View>("life");
+  const [searchQuery, setSearchQuery] = useState("");
   const [isSplash, setIsSplash] = useState(true);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [captureMode, setCaptureMode] = useState<CaptureMode>(null);
@@ -2326,7 +2468,7 @@ export function MemoiaryAppShell() {
         return <CollectionsSection go={go} onSelectPerson={(name) => { setSelectedPersonName(name); go("person"); }} onSelectCapture={(c) => { setSelectedCapture(c); go("memory"); }} />;
       case "reflect":
         return (
-          <div className="px-3 sm:px-6 mt-1 flex-1 flex flex-col pb-20">
+          <div className="px-3 sm:px-6 h-full flex-1 flex flex-col overflow-hidden pb-1">
             <ReflectionChatboard captures={captures} />
           </div>
         );
@@ -2353,7 +2495,14 @@ export function MemoiaryAppShell() {
       case "story":
         return <StoryViewSection go={go} />;
       case "search":
-        return <SearchViewSection go={go} onSelectCapture={(c) => { setSelectedCapture(c); go("memory"); }} />;
+        return (
+          <SearchViewSection
+            go={go}
+            initialQuery={searchQuery}
+            onQueryChange={setSearchQuery}
+            onSelectCapture={(c) => { setSelectedCapture(c); go("memory"); }}
+          />
+        );
       case "profile":
         return <ProfileViewSection go={go} />;
       case "memory":
@@ -2363,22 +2512,26 @@ export function MemoiaryAppShell() {
       case "onboarding":
         return <LifeHome go={go} openCapture={(prompt) => handleOpenCapture(prompt || "menu")} newMemory={newMemory} onSelectCapture={(c) => { setSelectedCapture(c); go("memory"); }} />;
     }
-  }, [view, newMemory, user, selectedCapture, captures, selectedPersonName, handleOpenCapture]);
+  }, [view, newMemory, user, selectedCapture, captures, selectedPersonName, searchQuery, handleOpenCapture]);
 
   const hideNav = ["story", "empty", "connections"].includes(view);
 
   return (
-    <div className="app-shell">
+    <div className="app-shell h-screen flex flex-col overflow-hidden bg-[#FAF7F0]">
       {isSplash && <SplashScreen />}
-      <div className="app-frame">
+      <div className="app-frame flex flex-col flex-1 h-full overflow-hidden relative max-w-3xl mx-auto w-full">
         <GlobalAppHeader
           activeView={view}
           go={go}
           streak={streak}
           user={user}
+          searchQuery={searchQuery}
+          onSearchQueryChange={setSearchQuery}
           onBack={["person", "place", "search", "thought", "story", "memory"].includes(view) ? () => go("life") : undefined}
         />
-        {content}
+        <main className="flex-1 overflow-y-auto min-h-0 pb-28 scroll-smooth">
+          {content}
+        </main>
       </div>
       {!hideNav && (
         <BottomNav
