@@ -181,7 +181,7 @@ function AuthLoginModal({
         </button>
 
         <div className="flex justify-center pt-2">
-          <img src="/logo-mark.png" alt="Memoiary" className="h-16 w-auto object-contain" />
+          <Brand />
         </div>
 
         <div className="space-y-1.5">
