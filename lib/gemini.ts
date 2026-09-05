@@ -1,16 +1,41 @@
 import { GoogleGenAI } from "@google/genai";
 
 // Initialize the GoogleGenAI client with the server-side API Key
+// Initialize the GoogleGenAI client (supports Vertex AI native mode on Cloud Run and API Key mode locally)
 const getAiClient = () => {
+  const projectId = process.env.GOOGLE_CLOUD_PROJECT || process.env.PROJECT_ID || process.env.GCP_PROJECT;
+  const region = process.env.GOOGLE_CLOUD_REGION || process.env.LOCATION || process.env.REGION || "us-central1";
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error("GEMINI_API_KEY environment variable is required");
+
+  // On Cloud Run (where K_SERVICE is present) or when GCP Project is set, use Vertex AI mode (ADC, zero API key required)
+  if (process.env.K_SERVICE || process.env.NODE_ENV === "production" || projectId) {
+    try {
+      return new GoogleGenAI({
+        vertexai: true,
+        project: projectId,
+        location: region
+      });
+    } catch (err) {
+      console.warn("Vertex AI native initialization note:", err);
+    }
   }
-  return new GoogleGenAI({ apiKey });
+
+  // Fallback to API Key mode if GEMINI_API_KEY is available (e.g. local development)
+  if (apiKey) {
+    return new GoogleGenAI({ apiKey });
+  }
+
+  // Native Vertex AI fallback
+  return new GoogleGenAI({
+    vertexai: true,
+    location: region
+  });
 };
 
 // Resilient fallback ladder ordered by availability, speed, and suitability
 const FALLBACK_MODELS = [
+  "gemini-2.5-flash",
+  "gemini-1.5-flash",
   "gemini-3.6-flash",
   "gemini-3.1-flash-lite",
   "gemini-flash-latest"
