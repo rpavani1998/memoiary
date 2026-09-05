@@ -1,73 +1,115 @@
-# Personal Memory Engine & Memoiary Journal
+# Memoiary — Autobiographical Memory Engine & Journal Reflection
 
-A private autobiographical thinking space and memory engine powered by Google Cloud, Firebase Firestore, Firebase Authentication, and Gemini resilient fallback ladders. The system understands deeply, remembers accurately, and acts as a quiet sounding board adhering to the cardinal principle: **The system remembers more than it says**.
+A private autobiographical thinking space and memory engine powered by Next.js 15+, Google Cloud Run, Cloud Firestore, Firebase Authentication, and Gemini fallback ladders (`gemini-3.6-flash` → `gemini-3.1-pro-preview` → `gemini-3.1-flash-lite` → `gemini-flash-latest`). 
 
----
-
-## 🏆 Hackathon Challenge Compliance & Deliverables
-
-### ✅ Phase 1: Configured Google AI Studio Directives
-- **Configured Directives**: Foundational security directives, threat modeling rules, database isolation constraints, and model fallback logic are documented in [`AI_STUDIO_DIRECTIVES.md`](file:///Volumes/RPavani/Hackathons/Ideathon/AI_STUDIO_DIRECTIVES.md), `firebase-blueprint.json`, and `firebase-applet-config.json`.
-
-### ✅ Phase 2: Production-Grade Core Requirements
-1. **User Authentication**: Sign-in via Firebase (Google Sign-In & Guest Authentication) in `JournalContext.tsx`.
-2. **Multi-Turn AI Interaction**: Real multi-turn conversations with Gemini API via `@google/genai` SDK over a dynamic fallback ladder (`gemini-3.6-flash` → `gemini-3.1-pro-preview` → `gemini-3.1-flash-lite` → `gemini-flash-latest`).
-3. **Isolated Data Storage**: Complete owner-bound document tree in Cloud Firestore (`/users/{userId}/...`) governed by default-deny security rules (`firestore.rules`). Zero cross-user leakage.
-4. **Secure Key Management**: `GEMINI_API_KEY` retrieved via **Google Cloud Secret Manager** or server environment variables, never hardcoded in client code.
-
-### ✅ Phase 3: Original Feature Enhancements
-1. **Autobiographical Memory Engine**: Multi-modal entity extraction (People, Places, Projects), emotional attribution, and temporal resolution.
-2. **Epistemic Consistency & Clarification Engine**: Automated contradiction detection and gentle clarification candidates without unsolicited advice or clinical diagnosing.
-3. **Daily Sanctuary & Visual Storyboard**: Dynamic time-of-day greeting, habit reflection streak, "On This Day" flashback memory cards, and AI storyboards (`DailyStoryboard`, `WeeklyRecapBoard`, `MonthlyCollageGrid`).
+The system acts as a quiet, objective mirror adhering to the cardinal principle: **The system remembers more than it says**.
 
 ---
 
-## Technical Architecture
+## 🏆 Hackathon Submission & Cloud Run Verification
 
-- **Frontend**: Next.js 15+ App Router, Tailwind CSS, and `motion` (Framer Motion) microinteractions.
-- **Memory Engine Layer** (`/lib/memory-engine`):
-  - **Extractor**: Multimodal & structured entity/episode extraction with temporal resolution and emotional attribution.
-  - **Consistency Engine**: Epistemic contradiction detection, entity mismatch identification, ambiguity resolution, and gentle clarification generation.
-  - **Reconciler**: Graph reconciliation with entity resolution, historical relationship transitions (`validFrom`, `validTo`), belief evolution, state superseding, and clarification resolution.
-  - **Retriever**: Hybrid graph, temporal, entity-grounded, and importance-weighted context retrieval.
-  - **Reflection Engine**: Three-level conversational mirror and connector without unsolicited advice or clinical diagnosing.
-  - **Maintenance**: Background candidate pattern mining and duplicate entity detection.
-- **RESTful API v1** (`/api/v1/...`):
-  - `POST /api/v1/capture` & `GET /api/v1/capture`: Unified multi-channel ingestion & capture history with real-time consistency check.
-  - `GET /api/v1/clarifications`: List pending/resolved clarification candidates.
-  - `POST /api/v1/clarifications/{id}/respond`: Confirm, reject, correct (freeform), or dismiss clarification.
-  - `GET /api/v1/test-suite`: Automated 10-point behavioral verification test runner.
-  - `GET /api/v1/capture/{id}`: Capture details, status, and derived memory bundle.
-  - `POST /api/v1/capture/media`: Multimodal asset ingestion (audio, screenshot, image, document).
-  - `GET /api/v1/entities` & `POST /api/v1/entities`: Filtered entity querying and manual entity creation.
-  - `GET /api/v1/entities/{id}` & `PATCH` & `DELETE`: Entity facts, graph relationships, and lifecycle management.
-  - `GET /api/v1/entities/{id}/timeline`: Chronological autobiographical episode timeline.
-  - `GET /api/v1/relationships/{id}`: Relationship status and validity history.
-  - `POST /api/v1/retrieve`: Context retrieval for conversational grounding.
-  - `POST /api/v1/reflect`: Grounded conversational reflection engine.
-  - `PATCH /api/v1/memories/{id}` & `DELETE`: User memory corrections and provenance auditing.
-  - `POST /api/v1/maintenance`: Pattern mining and deduplication maintenance tasks.
-- **Database**: Strictly private, owner-isolated Google Cloud Firestore.
-- **Cognitive Layer**: `@google/genai` TypeScript SDK executing a resilient fallback loop over dynamic model ladders:
-  - Primary: `gemini-3.6-flash`
-  - Deep Reasoning Fallback: `gemini-3.1-pro-preview`
-  - Lightweight Fallback: `gemini-3.1-flash-lite`
-  - High-Availability Fallback: `gemini-flash-latest`
+- **Repository**: [github.com/rpavani1998/memoiary](https://github.com/rpavani1998/memoiary)
+- **Mandatory Cloud Run Verification Label**: `dev-tutorial=cloud-run-ai-challenge`
 
 ---
 
-## 1. Firebase Firestore Security Configuration
+## 🚀 Google Cloud Run Deployment Guide
 
-The Firestore rules enforce complete owner-bound isolation across all user subcollections (`captures`, `episodes`, `entities`, `relationships`, `emotions`, `states`, `learnings`, `patterns`, `provenance`, `entries`, `memories`):
+### Prerequisites
+- [Google Cloud Project](https://console.cloud.google.com/) with billing enabled.
+- [Google Cloud SDK (`gcloud`)](https://cloud.google.com/sdk) installed or [Google Cloud Shell](https://shell.cloud.google.com).
+- Gemini API Key from [Google AI Studio](https://aistudio.google.com/).
+
+---
+
+### Option A: Deployment via `gcloud` CLI / Google Cloud Shell (Recommended)
+
+1. **Authenticate and set active project**:
+   ```bash
+   gcloud auth login
+   gcloud config set project YOUR_GCP_PROJECT_ID
+   ```
+
+2. **Deploy directly to Google Cloud Run from source with the mandatory verification label**:
+   ```bash
+   gcloud run deploy memoiary \
+     --source . \
+     --region us-central1 \
+     --allow-unauthenticated \
+     --labels dev-tutorial=cloud-run-ai-challenge \
+     --set-env-vars "GEMINI_API_KEY=your_gemini_api_key_here,NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_key"
+   ```
+
+3. **Output**: Cloud Run will build the container image and provide your public HTTPS endpoint:
+   ```text
+   Service [memoiary] revision [memoiary-00001-abc] has been deployed and is serving 100% of traffic.
+   Service URL: https://memoiary-xxxxxx-uc.a.run.app
+   ```
+
+---
+
+### Option B: Deployment via Google Cloud Console Web UI
+
+1. Navigate to the **[Google Cloud Run Console](https://console.cloud.google.com/run)**.
+2. Click **Create Service**.
+3. Select **Deploy one revision from a source repository** (or connect your GitHub repo `rpavani1998/memoiary`).
+4. Under **Authentication**, select **Allow unauthenticated invocations**.
+5. Expand **Container, Volumes, Networking, Security**:
+   - Scroll to **Labels**.
+   - Click **Add Label**:
+     - **Key**: `dev-tutorial`
+     - **Value**: `cloud-run-ai-challenge`
+   - Scroll to **Environment Variables**:
+     - Add `GEMINI_API_KEY` = `your_gemini_api_key`
+     - Add `NEXT_PUBLIC_FIREBASE_API_KEY` = `your_firebase_api_key`
+6. Click **Create**.
+7. Once deployment finishes, copy the generated public Service URL (`https://memoiary-xxxxxx-uc.a.run.app`).
+
+---
+
+### Secret Manager Integration (Optional for Production Secrets)
+
+To store secrets in **Google Cloud Secret Manager** instead of plain environment variables:
+
+```bash
+# Create secret in Secret Manager
+gcloud secrets create GEMINI_API_KEY --replication-policy="automatic"
+echo -n "YOUR_GEMINI_API_KEY" | gcloud secrets versions add GEMINI_API_KEY --data-file=-
+
+# Grant accessor permission to the Cloud Run service account
+PROJECT_NUMBER=$(gcloud projects describe YOUR_GCP_PROJECT_ID --format="value(projectNumber)")
+gcloud secrets add-iam-policy-binding GEMINI_API_KEY \
+  --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
+  --role="roles/secretmanager.secretAccessor"
+
+# Deploy referencing the secret
+gcloud run deploy memoiary \
+  --source . \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --labels dev-tutorial=cloud-run-ai-challenge \
+  --set-secrets GEMINI_API_KEY=GEMINI_API_KEY:latest
+```
+
+---
+
+## 🔒 Cloud Firestore Security Rules
+
+Memoiary enforces strict, owner-bound privacy isolation in Cloud Firestore. All user data (`captures`, `episodes`, `entities`, `relationships`, `emotions`, `states`, `learnings`, `patterns`, `provenance`, `entries`, `memories`) is isolated under `/users/{userId}/...` and protected by owner authentication checks and document ID validation.
+
+### Complete `firestore.rules`:
 
 ```javascript
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // Default deny catch-all
     match /{document=**} {
       allow read, write: if false;
     }
 
+    // Helper functions
     function isSignedIn() {
       return request.auth != null;
     }
@@ -80,73 +122,117 @@ service cloud.firestore {
       return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
+    // All memory collections belong strictly to the authenticated user's isolated document tree
     match /users/{userId} {
       allow read, write: if isOwner(userId);
 
-      match /{collection}/{docId} {
-        allow read, write: if isOwner(userId) && isValidId(docId);
+      match /captures/{captureId} {
+        allow read, write: if isOwner(userId) && isValidId(captureId);
+      }
+
+      match /episodes/{episodeId} {
+        allow read, write: if isOwner(userId) && isValidId(episodeId);
+      }
+
+      match /entities/{entityId} {
+        allow read, write: if isOwner(userId) && isValidId(entityId);
+      }
+
+      match /relationships/{relationshipId} {
+        allow read, write: if isOwner(userId) && isValidId(relationshipId);
+      }
+
+      match /emotions/{emotionId} {
+        allow read, write: if isOwner(userId) && isValidId(emotionId);
+      }
+
+      match /states/{stateId} {
+        allow read, write: if isOwner(userId) && isValidId(stateId);
+      }
+
+      match /learnings/{learningId} {
+        allow read, write: if isOwner(userId) && isValidId(learningId);
+      }
+
+      match /patterns/{patternId} {
+        allow read, write: if isOwner(userId) && isValidId(patternId);
+      }
+
+      match /provenance/{provenanceId} {
+        allow read, write: if isOwner(userId) && isValidId(provenanceId);
+      }
+
+      match /entries/{entryId} {
+        allow read, write: if isOwner(userId) && isValidId(entryId);
+      }
+
+      match /memories/{memoryId} {
+        allow read, write: if isOwner(userId) && isValidId(memoryId);
       }
     }
   }
 }
 ```
 
-Deploy the rules securely using Firebase CLI:
+### Deploying Rules via Firebase CLI:
 ```bash
 firebase deploy --only firestore:rules
 ```
 
 ---
 
-## 2. Cloud Secret Manager Integration
+## 🛠 Local Development Setup
 
-Ensure that the default Cloud Run Compute Service Account or your custom service account has the necessary Secret Manager Accessor permissions.
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/rpavani1998/memoiary.git
+   cd memoiary
+   ```
 
-```bash
-# Create the secret holding your API Key
-gcloud secrets create GEMINI_API_KEY --replication-policy="automatic"
-echo -n "YOUR_GEMINI_API_KEY" | gcloud secrets versions add GEMINI_API_KEY --data-file=-
+2. **Install dependencies**:
+   ```bash
+   npm install
+   ```
 
-# Grant Secret Manager Secret Accessor role to the Cloud Run runtime service account
-gcloud secrets add-iam-policy-binding GEMINI_API_KEY \
-  --member="serviceAccount:YOUR_PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
-  --role="roles/secretmanager.secretAccessor"
-```
+3. **Configure environment variables**:
+   Create a `.env.local` file in the root directory:
+   ```env
+   GEMINI_API_KEY="your_gemini_api_key_here"
+   NEXT_PUBLIC_FIREBASE_API_KEY="your_firebase_api_key"
+   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="your_firebase_project.firebaseapp.com"
+   NEXT_PUBLIC_FIREBASE_PROJECT_ID="your_firebase_project_id"
+   ```
+
+4. **Run development server**:
+   ```bash
+   npm run dev
+   ```
+   Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+5. **Test memory extraction pipeline**:
+   ```bash
+   npx tsx scripts/test-pipeline.ts
+   ```
 
 ---
 
-## 3. Unified Production Deployment (Cloud Run)
+## 🏛 Technical Architecture & Key Features
 
-Compile the standalone build and deploy the container service to Google Cloud Run:
-
-```bash
-# Build the Next.js production standalone package
-npm run build
-
-# Deploy the service directly from sources
-gcloud run deploy personal-gemini-journal \
-  --source=. \
-  --region=us-central1 \
-  --allow-unauthenticated \
-  --set-secrets=GEMINI_API_KEY=GEMINI_API_KEY:latest \
-  --update-labels=dev-tutorial=cloud-run-ai-challenge
-```
+- **Frontend**: Next.js 15+ App Router, Tailwind CSS, `motion` micro-interactions, serif typography, terracotta theme (`#DE5239`).
+- **Multimodal AI Engine**:
+  - Structured extraction of mood, intensity, entities (People, Places, Topics), and activities.
+  - Silent memory retrieval across entire life timeline.
+  - Intimate, reflective prose voice tuned to the user's journal persona.
+- **Gemini Fallback Ladder**:
+  - `gemini-3.6-flash` → `gemini-3.1-pro-preview` → `gemini-3.1-flash-lite` → `gemini-flash-latest`
+- **Memory Engine Core** (`/lib/memory-engine`):
+  - **Extractor**: Structured entity & episode resolution.
+  - **Retriever**: Hybrid graph and temporal memory context retrieval.
+  - **Person Graph**: Trait tracking & visual identity cards (`PERSON_VISUAL_REGISTRY`).
+  - **Reflection Chatboard**: Interactive thread history, saved threads, and voice-to-text input.
 
 ---
 
-## 4. Local Development
+## 📄 License
 
-Copy and configure your local environmental settings:
-```bash
-cp .env.example .env.local
-```
-
-Populate the local credentials inside `.env.local`:
-```env
-GEMINI_API_KEY="AIzaSy..."
-```
-
-Launch the development server:
-```bash
-npm run dev
-```
+MIT License — free to use and extend.
