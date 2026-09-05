@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "clean": "next clean"
+    "clean": "next clean",
+    "deploy:cloudrun": "bash ./scripts/deploy-cloud-run.sh"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
