@@ -120,6 +120,7 @@ export interface StreakData {
 
 interface JournalContextType {
   user: User | null;
+  isDemoMode: boolean;
   loading: boolean;
   entries: JournalEntry[];
   memories: UserMemory[];
@@ -330,6 +331,8 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const isDemoMode = !user || user.isAnonymous || Boolean(user.uid && user.uid.startsWith("guest_user_"));
+
   // Auth state
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
@@ -341,7 +344,18 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
 
   // Real-time listeners for entries, memories, captures, clarifications
   useEffect(() => {
-    if (!user || user.uid.startsWith("guest_user_")) return;
+    if (!user || user.isAnonymous || user.uid.startsWith("guest_user_")) {
+      // Demo Mode: Ensure captures are initialized to seeded demo dataset
+      setCapturesState(getSeededCaptures());
+      return;
+    }
+
+    // Authenticated Google Account Mode: Reset state to clean account slate
+    setEntries([]);
+    setMemories([]);
+    setCapturesState([]);
+    setClarifications([]);
+    setStreak(defaultStreak);
 
     const entriesRef = collection(db, "users", user.uid, "entries");
     const unsubEntries = onSnapshot(entriesRef, (snapshot) => {
@@ -376,14 +390,7 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
       snapshot.forEach((docSnap) => {
         loaded.push({ id: docSnap.id, ...docSnap.data() } as CaptureSession);
       });
-
-      if (loaded.length > 0) {
-        setCaptures((prev) => {
-          const existingIds = new Set(loaded.map((c) => c.id));
-          const localOnly = prev.filter((c) => !existingIds.has(c.id));
-          return [...loaded, ...localOnly];
-        });
-      }
+      setCapturesState(loaded);
     }, (error) => {
       console.warn("Firestore captures offline fallback:", error?.message);
     });
@@ -936,6 +943,7 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
     <JournalContext.Provider
       value={{
         user,
+        isDemoMode,
         loading,
         entries,
         memories,

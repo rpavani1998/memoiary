@@ -1667,27 +1667,57 @@ function CollectionsSection({
   );
 }
 
-function ProfileViewSection({ go }: { go: (view: View) => void }) {
-  const { user, logOut, streak, captures, clearAllData } = useJournal();
+function ProfileViewSection({ go, onOpenLogin }: { go: (view: View) => void; onOpenLogin?: () => void }) {
+  const { user, isDemoMode, logOut, streak, captures, clearAllData } = useJournal();
   const { artStyle, currentStyle } = useArtStyle();
 
   return (
     <div className="pb-24">
-      <PageHeader title="You" eyebrow="Your memory, in your hands" />
-      <main className="px-5 sm:px-8">
-        <div className="profile-mark">
-          <img src={user?.photoURL || imageAssets.logo} alt="Memoiary avatar" className="rounded-full border border-stone-200" />
-          <div>
-            <strong className="font-serif text-xl font-medium text-stone-900">
-              {user?.displayName || "Your Memoiary"}
-            </strong>
-            <small>{captures.length} memories{streak.longestStreak > 0 ? ` · Longest streak: ${streak.longestStreak} days` : ""}</small>
+      <PageHeader title="Profile & Account" eyebrow="Your memory, in your hands" />
+      <main className="px-5 sm:px-8 space-y-4">
+        {isDemoMode ? (
+          <div className="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-300 rounded-2xl p-5 shadow-sm space-y-3 font-sans">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-mono uppercase font-bold text-amber-900 bg-amber-200/90 px-2.5 py-0.5 rounded-full">
+                Demo Mode Active
+              </span>
+              <span className="text-xs text-amber-700 font-medium">Sample Dataset</span>
+            </div>
+            <h3 className="font-serif text-lg font-medium text-stone-900">
+              You are exploring sample memories
+            </h3>
+            <p className="text-xs text-stone-600 leading-relaxed font-sans">
+              The memories currently shown (Maya's rooftop chai, Kabir's design ideas, Ananya's art) are pre-populated sample entries demonstrating Memoiary's memory graph.
+            </p>
+            {onOpenLogin && (
+              <button
+                onClick={onOpenLogin}
+                className="w-full py-3 px-4 bg-[#DE5239] hover:bg-[#C6422A] text-white rounded-xl text-xs font-bold font-sans flex items-center justify-center gap-2 shadow-xs transition-transform active:scale-98 cursor-pointer"
+              >
+                <UserRound size={16} />
+                Sign In with Google to Start Your Personal Sanctuary
+              </button>
+            )}
           </div>
-        </div>
+        ) : (
+          <div className="profile-mark bg-white border border-stone-200 p-4 rounded-2xl shadow-2xs">
+            <img src={user?.photoURL || imageAssets.logo} alt="Memoiary avatar" className="w-12 h-12 rounded-full border border-stone-300 object-cover" />
+            <div>
+              <strong className="font-serif text-xl font-medium text-stone-900">
+                {user?.displayName || "Journaler"}
+              </strong>
+              <p className="text-xs text-stone-500 font-mono">{user?.email}</p>
+              <span className="inline-flex items-center gap-1.5 mt-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full font-sans">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                Account Connected & Synced ({captures.length} memories)
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Streak Card */}
-        {streak.currentStreak > 0 && (
-          <div className="mt-5 p-4 bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200/60 rounded-2xl">
+        {streak.currentStreak > 0 && !isDemoMode && (
+          <div className="p-4 bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200/60 rounded-2xl font-sans">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-amber-100 rounded-xl">
                 <Flame size={22} className="text-amber-600" />
@@ -1700,16 +1730,16 @@ function ProfileViewSection({ go }: { go: (view: View) => void }) {
           </div>
         )}
 
-        <div className="privacy-panel">
-          <ShieldCheck className="w-5 h-5 text-emerald-600" />
+        <div className="privacy-panel font-sans">
+          <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0" />
           <div>
             <strong className="text-stone-900">Your memories are yours.</strong>
-            <p>Original captures are never silently changed. Inferences are always labeled and correctable.</p>
+            <p className="text-xs text-stone-600">Original captures are never silently changed. Inferences are always labeled and correctable.</p>
           </div>
         </div>
 
         {/* Artwork Theme Card */}
-        <div className="mt-5 border-[1.5px] border-[#1C1917] bg-[#FAF7F0] rounded-2xl p-5 shadow-[3px_4px_0px_#1C1917] space-y-2 font-sans">
+        <div className="border-[1.5px] border-[#1C1917] bg-[#FAF7F0] rounded-2xl p-5 shadow-[3px_4px_0px_#1C1917] space-y-2 font-sans">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Palette size={18} className="text-[#D97706]" />
@@ -1724,41 +1754,35 @@ function ProfileViewSection({ go }: { go: (view: View) => void }) {
           </p>
         </div>
 
-        <div className="settings-list">
-          <button onClick={async () => { await clearAllData(); alert("All system data cleared! You now have a fresh zero-entry journal."); }} className="cursor-pointer text-rose-700 font-bold border-rose-200 bg-rose-50/50 hover:bg-rose-100/50">
-            <Trash2 className="text-rose-600" />
-            <span>
-              <strong className="text-rose-700">Clear All System Data</strong>
-              <small className="text-rose-500">Delete all entries &amp; start completely fresh</small>
-            </span>
-            <ChevronRight className="text-rose-600" />
-          </button>
-          <button className="cursor-pointer">
-            <LockKeyhole />
-            <span>
-              <strong>Privacy &amp; security</strong>
-              <small>Memory access, export, app lock</small>
-            </span>
-            <ChevronRight />
-          </button>
-          <button onClick={() => go("empty")} className="cursor-pointer">
-            <BookOpen />
-            <span>
-              <strong>See first-day experience</strong>
-              <small>Preview an empty Memoiary</small>
-            </span>
-            <ChevronRight />
-          </button>
-          {user && (
-            <button onClick={logOut} className="cursor-pointer text-rose-700">
-              <LogOut />
+        <div className="settings-list font-sans">
+          {isDemoMode && onOpenLogin ? (
+            <button onClick={onOpenLogin} className="cursor-pointer text-[#DE5239] font-bold border-[#DE5239]/30 bg-[#F5E5DC]/50 hover:bg-[#F5E5DC]">
+              <UserRound className="text-[#DE5239]" />
               <span>
-                <strong>Sign Out</strong>
-                <small>Log out of your account</small>
+                <strong className="text-[#DE5239]">Sign In with Google</strong>
+                <small className="text-[#665F56]">Save memories to your personal account</small>
               </span>
-              <ChevronRight />
+              <ChevronRight className="text-[#DE5239]" />
+            </button>
+          ) : (
+            <button onClick={logOut} className="cursor-pointer text-rose-700 hover:bg-rose-50 border-rose-200">
+              <LogOut className="text-rose-600" />
+              <span>
+                <strong className="text-rose-700">Sign Out</strong>
+                <small className="text-rose-500">Log out of {user?.email || "your account"}</small>
+              </span>
+              <ChevronRight className="text-rose-600" />
             </button>
           )}
+
+          <button onClick={async () => { await clearAllData(); alert("All system data cleared!"); }} className="cursor-pointer text-stone-600 hover:bg-stone-100">
+            <Trash2 className="text-stone-500" />
+            <span>
+              <strong>Clear All Local Data</strong>
+              <small className="text-stone-400">Reset local memory cache</small>
+            </span>
+            <ChevronRight />
+          </button>
         </div>
       </main>
     </div>
@@ -2455,7 +2479,7 @@ function BottomNav({
 }
 
 export function MemoiaryAppShell() {
-  const { user, captures, streak = 0 } = useJournal();
+  const { user, isDemoMode, captures, streak = 0 } = useJournal();
   const [view, setView] = useState<View>("life");
   const [searchQuery, setSearchQuery] = useState("");
   const [isSplash, setIsSplash] = useState(true);
@@ -2482,20 +2506,22 @@ export function MemoiaryAppShell() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [view]);
 
-  const go = (next: View) => setView(next);
+  const go = (v: View) => {
+    setView(v);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
-  const handleOpenCapture = (modeOrPrompt: CaptureMode | string = "menu") => {
-    // If a string prompt was passed, open in write mode with prompt
-    const isPrompt = typeof modeOrPrompt === "string" && !["menu", "write", "voice", "photo", "video"].includes(modeOrPrompt);
-    const mode: CaptureMode = isPrompt ? "menu" : (modeOrPrompt as CaptureMode);
-    if (!user) {
-      setPendingCaptureMode(mode);
-      setShowLoginModal(true);
-      return;
+  const handleOpenCapture = (promptOrMode?: string | CaptureMode) => {
+    if (typeof promptOrMode === "string" && ["menu", "write", "voice", "photo", "video"].includes(promptOrMode)) {
+      setCaptureMode(promptOrMode as CaptureMode);
+      setCapturePrompt("");
+    } else if (typeof promptOrMode === "string") {
+      setCaptureMode("write");
+      setCapturePrompt(promptOrMode);
+    } else {
+      setCaptureMode("menu");
+      setCapturePrompt("");
     }
-    if (isPrompt) setCapturePrompt(modeOrPrompt as string);
-    else setCapturePrompt("");
-    setCaptureMode(mode);
   };
 
   const handleAuthSuccess = () => {
@@ -2503,21 +2529,13 @@ export function MemoiaryAppShell() {
     if (pendingCaptureMode) {
       setCaptureMode(pendingCaptureMode);
       setPendingCaptureMode(null);
-    } else {
-      setCaptureMode("menu");
     }
   };
 
-  const onSaved = (memory: CapturedMemory) => {
-    if (!user) {
-      setShowLoginModal(true);
-      return;
-    }
-    setNewMemory(memory);
-    setCaptureMode(null);
-    setView("life");
+  const onSaved = (mem: CapturedMemory) => {
+    setNewMemory(mem);
     setSaved(true);
-    window.setTimeout(() => setSaved(false), 2600);
+    setTimeout(() => setSaved(false), 3000);
   };
 
   const content = useMemo(() => {
@@ -2529,13 +2547,13 @@ export function MemoiaryAppShell() {
           <div className="px-5 sm:px-8 mt-2">
             <EntitiesViewSection
               captures={captures}
-              onSelectPerson={(name) => { setSelectedPersonName(name); go("person"); }}
-              onSelectCapture={(c) => { setSelectedCapture(c); go("memory"); }}
+              onSelectPerson={(name: string) => { setSelectedPersonName(name); go("person"); }}
+              onSelectCapture={(c: any) => { setSelectedCapture(c); go("memory"); }}
             />
           </div>
         );
       case "collections":
-        return <CollectionsSection go={go} onSelectPerson={(name) => { setSelectedPersonName(name); go("person"); }} onSelectCapture={(c) => { setSelectedCapture(c); go("memory"); }} />;
+        return <CollectionsSection go={go} onSelectPerson={(name: string) => { setSelectedPersonName(name); go("person"); }} onSelectCapture={(c: any) => { setSelectedCapture(c); go("memory"); }} />;
       case "reflect":
         return (
           <div className="px-3 sm:px-6 h-full flex-1 flex flex-col overflow-hidden pb-1">
@@ -2547,13 +2565,13 @@ export function MemoiaryAppShell() {
           </div>
         );
       case "people":
-        return <PeopleViewSection go={go} onSelectPerson={(name) => setSelectedPersonName(name)} />;
+        return <PeopleViewSection go={go} onSelectPerson={(name: string) => setSelectedPersonName(name)} />;
       case "person":
         return <PersonViewSection go={go} selectedPerson={selectedPersonName} />;
       case "explore":
         return <ExploreViewSection go={go} />;
       case "places":
-        return <PlacesViewSection go={go} onSelectPlace={(name) => setSelectedPlaceName(name)} />;
+        return <PlacesViewSection go={go} onSelectPlace={(name: string) => setSelectedPlaceName(name)} />;
       case "place":
         return <PlaceViewSection go={go} selectedPlace={selectedPlaceName} />;
       case "thoughts":
@@ -2578,7 +2596,7 @@ export function MemoiaryAppShell() {
           />
         );
       case "profile":
-        return <ProfileViewSection go={go} />;
+        return <ProfileViewSection go={go} onOpenLogin={() => setShowLoginModal(true)} />;
       case "memory":
         return <MemoryDetailSection go={go} capture={selectedCapture} />;
       case "empty":
@@ -2586,7 +2604,7 @@ export function MemoiaryAppShell() {
       case "onboarding":
         return <LifeHome go={go} openCapture={(prompt) => handleOpenCapture(prompt || "menu")} newMemory={newMemory} onSelectCapture={(c) => { setSelectedCapture(c); go("memory"); }} />;
     }
-  }, [view, newMemory, user, selectedCapture, captures, selectedPersonName, searchQuery, reflectMessages, handleOpenCapture]);
+  }, [view, newMemory, user, isDemoMode, selectedCapture, captures, selectedPersonName, searchQuery, reflectMessages, handleOpenCapture]);
 
   const hideNav = ["story", "empty", "connections"].includes(view);
 
@@ -2599,6 +2617,8 @@ export function MemoiaryAppShell() {
           go={go}
           streak={streak}
           user={user}
+          isDemoMode={isDemoMode}
+          onOpenLogin={() => setShowLoginModal(true)}
           searchQuery={searchQuery}
           onSearchQueryChange={setSearchQuery}
           onBack={["person", "place", "search", "thought", "story", "memory"].includes(view) ? () => go("life") : undefined}
