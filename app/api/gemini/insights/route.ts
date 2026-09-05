@@ -4,10 +4,15 @@ import { generateContentWithFallback, safeParseJson } from "@/lib/gemini";
 
 export async function POST(req: Request) {
   try {
-    // Verify token
-    const decodedToken = await verifyUserToken(req);
-    if (!decodedToken) {
-      return NextResponse.json({ error: "Unauthorized access" }, { status: 401 });
+    // Verify token if available, fallback to guest user
+    let userId = "guest_user";
+    try {
+      const decodedToken = await verifyUserToken(req);
+      if (decodedToken?.uid) {
+        userId = decodedToken.uid;
+      }
+    } catch {
+      // Fallback for guest sessions
     }
 
     // Defensive parsing
