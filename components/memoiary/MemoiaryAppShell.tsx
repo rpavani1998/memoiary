@@ -145,7 +145,7 @@ function AuthLoginModal({
       onClose();
     } catch (err: any) {
       console.error("Google Sign-In Error:", err);
-      setLocalError(err?.message || "Sign in failed. Please try again.");
+      setLocalError(err?.message || "Sign in failed. Please check popup permissions or try Guest mode.");
     } finally {
       setSigningIn(false);
     }
@@ -172,7 +172,7 @@ function AuthLoginModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl border border-stone-100 space-y-5 text-center relative overflow-hidden">
+      <div className="w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl border border-stone-100 space-y-5 text-center relative overflow-hidden font-sans">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-stone-400 hover:text-stone-700 p-1.5 rounded-full hover:bg-stone-100 transition-colors cursor-pointer"
@@ -180,8 +180,24 @@ function AuthLoginModal({
           <X size={18} />
         </button>
 
-        <div className="flex justify-center pt-2">
-          <Brand />
+        {/* Centered Logo Badge & Title */}
+        <div className="flex flex-col items-center justify-center pt-2 gap-2">
+          <div className="w-16 h-16 rounded-2xl bg-[#FAF7F0] border border-[#DE5239]/20 flex items-center justify-center p-2 shadow-2xs shrink-0">
+            <img
+              src="/logo-mark.png"
+              onError={(e) => {
+                const target = e.currentTarget as HTMLImageElement;
+                if (!target.src.endsWith("/logo.png")) {
+                  target.src = "/logo.png";
+                }
+              }}
+              alt="Memoiary logo"
+              className="w-full h-full object-contain"
+            />
+          </div>
+          <span className="font-serif text-2xl font-semibold tracking-tight text-stone-900">
+            Memoiary
+          </span>
         </div>
 
         <div className="space-y-1.5">
@@ -192,12 +208,16 @@ function AuthLoginModal({
         </div>
 
         {(localError || saveError) && (
-          <div className="p-2.5 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-xs text-left">
-            {localError || saveError}
+          <div className="p-3 bg-amber-50 border border-amber-200/80 text-amber-900 rounded-xl text-xs text-left leading-relaxed font-sans space-y-1">
+            <div className="flex items-center gap-1.5 font-bold text-amber-800">
+              <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+              <span>Authentication Notice</span>
+            </div>
+            <p className="text-amber-900 text-[11px] leading-relaxed">{localError || saveError}</p>
           </div>
         )}
 
-        <div className="space-y-2.5 pt-2">
+        <div className="space-y-2.5 pt-1">
           <button
             onClick={handleGoogleSignIn}
             disabled={signingIn}
@@ -221,7 +241,7 @@ function AuthLoginModal({
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
               />
             </svg>
-            {signingIn ? "Signing in..." : "Continue with Google"}
+            {signingIn ? "Connecting to Google..." : "Continue with Google"}
           </button>
 
           <button
@@ -229,7 +249,7 @@ function AuthLoginModal({
             disabled={signingIn}
             className="w-full py-2.5 px-4 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-2xl text-xs font-medium transition-colors cursor-pointer disabled:opacity-50"
           >
-            Continue as Guest
+            Continue as Guest / Demo Mode
           </button>
         </div>
       </div>

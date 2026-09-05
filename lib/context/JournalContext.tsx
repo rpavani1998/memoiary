@@ -4,6 +4,8 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import {
   onAuthStateChanged,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signInAnonymously,
   signOut,
   User,
@@ -287,19 +289,34 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
     try {
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: "select_account" });
-      await signInWithPopup(auth, provider);
+      try {
+        await signInWithPopup(auth, provider);
+      } catch (popupErr: any) {
+        if (
+          popupErr?.code === "auth/popup-blocked" ||
+          popupErr?.code === "auth/popup-closed-by-user" ||
+          popupErr?.code === "auth/cancelled-popup-request"
+        ) {
+          console.warn("Popup blocked/closed, attempting signInWithRedirect fallback...", popupErr?.code);
+          await signInWithRedirect(auth, provider);
+          return;
+        }
+        throw popupErr;
+      }
       setSaveError(null);
     } catch (error: any) {
       console.warn("Google Auth error:", error?.code, error?.message);
+      let msg = error?.message || "Google Sign-In failed.";
       if (error?.code === "auth/unauthorized-domain") {
-        setSaveError("This domain is not authorized in Firebase Console. Add it to Authentication > Authorized domains.");
-        return;
+        const domain = typeof window !== "undefined" ? window.location.hostname : "current domain";
+        msg = `The domain "${domain}" is not authorized in Firebase Console. Add "${domain}" to Firebase Console > Authentication > Settings > Authorized domains.`;
       } else if (error?.code === "auth/popup-closed-by-user") {
-        setSaveError("Sign in popup was closed. Please try again.");
-      } else {
-        setSaveError(error?.message || "Google Sign-In failed.");
+        msg = "Sign in popup was closed. Please try again.";
+      } else if (error?.code === "auth/operation-not-allowed") {
+        msg = "Google Sign-In is not enabled in Firebase Console. Enable Google under Authentication > Sign-in method.";
       }
-      throw error;
+      setSaveError(msg);
+      throw new Error(msg);
     }
   };
 
@@ -307,9 +324,19 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
     try {
       await signInAnonymously(auth);
       setSaveError(null);
-    } catch (anonErr) {
-      console.warn("Anonymous auth failed:", anonErr);
-      setSaveError("Anonymous sign-in is not enabled. Enable it in Firebase Console > Authentication > Sign-in method.");
+    } catch (anonErr: any) {
+      console.warn("Anonymous auth failed, initializing guest session fallback:", anonErr);
+      const guestUid = `guest_user_${Date.now()}`;
+      const mockGuestUser = {
+        uid: guestUid,
+        displayName: "Guest Explorer",
+        email: "guest@memoiary.app",
+        photoURL: "/logo-mark.png",
+        isAnonymous: true,
+        getIdToken: async () => "demo_guest_token"
+      } as any;
+      setUser(mockGuestUser);
+      setSaveError(null);
     }
   };
 
@@ -322,7 +349,7 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
       }
       setEntries([]);
       setMemories([]);
-      setCaptures([]);
+      setCapturesState(getSeededCaptures());
       setInsights(null);
       setActiveEntry(null);
       setStreak(defaultStreak);
@@ -333,8 +360,18 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
 
   const isDemoMode = !user || user.isAnonymous || Boolean(user.uid && user.uid.startsWith("guest_user_"));
 
-  // Auth state
+  // Auth state & redirect handler
   useEffect(() => {
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result?.user) {
+          setUser(result.user);
+        }
+      })
+      .catch((err) => {
+        console.warn("Redirect auth result error:", err);
+      });
+
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
       setLoading(false);
