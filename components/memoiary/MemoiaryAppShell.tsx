@@ -828,7 +828,7 @@ function ExploreViewSection({ go }: { go: (view: View) => void }) {
   );
 }
 
-function PlacesViewSection({ go }: { go: (view: View) => void }) {
+function PlacesViewSection({ go, onSelectPlace }: { go: (view: View) => void; onSelectPlace: (name: string) => void }) {
   const { captures } = useJournal();
   const placesAcc: Record<string, { count: number; lastNote: string }> = {};
   captures.forEach((c) => {
@@ -843,56 +843,124 @@ function PlacesViewSection({ go }: { go: (view: View) => void }) {
     .sort((a, b) => b.count - a.count);
 
   return (
-    <div className="pb-28">
+    <div className="pb-28 font-sans">
       <PageHeader title="My Places" eyebrow="A geography of you" onBack={() => go("explore")} />
-      <main>
-        <section className="px-5 sm:px-8">
-          <p className="eyebrow mt-7">Places that hold you</p>
-          {places.length > 0 ? (
-            places.map((place) => (
-              <button key={place.name} onClick={() => go("place")} className="place-feature cursor-pointer">
-                <div>
-                  <strong className="font-serif text-xl font-medium text-stone-900">{place.name}</strong>
-                  <small>{place.count} memor{place.count === 1 ? "y" : "ies"}</small>
-                  {place.lastNote && <q>{place.lastNote}</q>}
+      <main className="px-5 sm:px-8">
+        <p className="intro-copy">Places where your life was lived.</p>
+        {places.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 my-4">
+            {places.map((place) => (
+              <button
+                key={place.name}
+                onClick={() => { onSelectPlace(place.name); go("place"); }}
+                className="group border-[1.5px] border-[#1C1917] bg-[#FBF9F4] rounded-2xl p-4 shadow-[2px_3px_0px_#1C1917] hover:shadow-[4px_6px_0px_#1C1917] hover:-translate-y-0.5 transition-all cursor-pointer flex items-center justify-between text-left"
+              >
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div className="p-2.5 bg-[#F5E5DC] rounded-xl border border-[#DE5239]/30 text-[#DE5239] shrink-0">
+                    <MapPin size={22} />
+                  </div>
+                  <div className="text-left min-w-0">
+                    <h3 className="font-serif text-lg font-medium text-[#1C1917] truncate">{place.name}</h3>
+                    <span className="text-[11px] font-sans text-[#DE5239] font-semibold bg-[#F5E5DC] border border-[#DE5239]/20 px-2 py-0.5 rounded-full inline-block mt-0.5">
+                      {place.count} memor{place.count === 1 ? "y" : "ies"} logged
+                    </span>
+                    {place.lastNote && <p className="text-xs font-serif text-[#665F56] line-clamp-1 italic mt-1">{place.lastNote}</p>}
+                  </div>
                 </div>
-                <ChevronRight size={18} className="text-stone-400" />
+                <ChevronRight size={18} className="text-[#DE5239] opacity-60 group-hover:opacity-100 transition-opacity shrink-0 ml-2" />
               </button>
-            ))
-          ) : (
-            <p className="text-stone-400 text-sm py-4">No places detected yet. Capture memories with location context.</p>
-          )}
-        </section>
+            ))}
+          </div>
+        ) : (
+          <p className="text-stone-400 text-sm text-center py-8">No places detected yet. Capture memories with location context.</p>
+        )}
       </main>
     </div>
   );
 }
 
 
-function PlaceViewSection({ go }: { go: (view: View) => void }) {
+function PlaceViewSection({ go, selectedPlace = "Third Wave Coffee, Jubilee Hills" }: { go: (view: View) => void; selectedPlace?: string }) {
+  const { captures } = useJournal();
+  
+  const placeCaptures = captures.filter((c) => {
+    const textMatch = c.content.toLowerCase().includes(selectedPlace.toLowerCase());
+    const placeTagMatch = c.dimensions?.places?.some(
+      (p: string) => p.toLowerCase() === selectedPlace.toLowerCase()
+    );
+    return textMatch || placeTagMatch;
+  });
+
   return (
-    <div className="pb-24">
-      <PageHeader title="Third Wave Coffee" eyebrow="Jubilee Hills · Hyderabad" onBack={() => go("places")} />
-      <main className="px-5 sm:px-8">
-        <div className="place-cover">
-          <img src={imageAssets.cafeNotes} alt="A notebook and chai at Third Wave Coffee" />
-          <span>17 memories · 2025—2026</span>
+    <div className="pb-28 font-sans">
+      <PageHeader
+        title={selectedPlace}
+        eyebrow={`${placeCaptures.length} memories grounded in this location`}
+        onBack={() => go("places")}
+      />
+      <main className="px-5 sm:px-8 space-y-5 mt-2">
+        <div className="p-6 border-[1.5px] border-[#1C1917] bg-[#FAF7F0] rounded-3xl shadow-[3px_4px_0px_#1C1917] flex flex-col items-center text-center space-y-3">
+          <div className="p-3 bg-[#F5E5DC] rounded-full border-[1.5px] border-[#1C1917]">
+            <MapPin size={32} className="text-[#DE5239]" />
+          </div>
+          <div>
+            <h2 className="font-serif text-2xl sm:text-3xl font-medium text-[#1C1917]">{selectedPlace}</h2>
+            <p className="text-xs font-serif text-[#DE5239] font-semibold bg-[#F5E5DC] border border-[#DE5239]/20 px-3 py-1 rounded-full w-fit mx-auto mt-1">
+              {placeCaptures.length} memor{placeCaptures.length === 1 ? "y" : "ies"} logged here
+            </p>
+          </div>
         </div>
-        <blockquote className="feature-quote font-serif text-stone-800">“You seem to think differently when you’re here.”</blockquote>
-        <div className="place-timeline">
-          <article>
-            <small>September 2</small>
-            <p>Maybe I’m finally ready to build this.</p>
-          </article>
-          <article>
-            <small>August 18</small>
-            <p>Two coffees, three pages, one idea that stayed.</p>
-          </article>
-          <article>
-            <small>June 14</small>
-            <img src={imageAssets.rooftopChai} alt="Coffee with Sarah" />
-            <p>Coffee with Sarah</p>
-          </article>
+
+        <div className="space-y-3">
+          <div className="flex items-center justify-between border-b border-[#1C1917]/15 pb-2">
+            <h3 className="font-serif text-lg font-medium text-[#1C1917]">
+              Memories at {selectedPlace} ({placeCaptures.length})
+            </h3>
+            <span className="text-[10px] font-mono font-bold text-[#DE5239] bg-[#F5E5DC] px-2.5 py-0.5 rounded-full uppercase border border-[#DE5239]/20">
+              Grounded Location Memories
+            </span>
+          </div>
+
+          {placeCaptures.length > 0 ? (
+            placeCaptures.map((c) => {
+              const date = new Date(c.createdAt);
+              const dateStr = date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+              return (
+                <div
+                  key={c.id}
+                  className="p-4 border-[1.5px] border-[#1C1917] bg-white rounded-2xl shadow-[2px_3px_0px_#1C1917] space-y-2 hover:-translate-y-0.5 transition-transform"
+                >
+                  <div className="flex items-center justify-between text-xs text-[#DE5239] font-bold">
+                    <span>{dateStr}</span>
+                    <span className="text-[10px] font-mono text-[#665F56] uppercase bg-stone-100 px-2 py-0.5 rounded border border-stone-200">
+                      {c.source} capture
+                    </span>
+                  </div>
+                  <h4 className="font-serif text-base font-bold text-[#1C1917]">{c.title || c.dimensions?.title || "Memory Entry"}</h4>
+                  <p className="font-serif text-sm text-[#1C1917] leading-relaxed">
+                    {c.content}
+                  </p>
+                  {c.dimensions?.people && c.dimensions.people.length > 0 && (
+                    <div className="flex items-center gap-1.5 pt-1">
+                      <span className="text-xs text-[#665F56] font-sans font-medium">With:</span>
+                      <div className="flex items-center gap-1">
+                        {c.dimensions.people.map((p: string, idx: number) => (
+                          <div key={idx} className="flex items-center gap-1 bg-[#F5F1E8] border border-[#1C1917]/20 rounded-full px-2 py-0.5 text-xs text-[#1C1917] font-semibold">
+                            <ArtisticAvatar name={p} size="sm" />
+                            <span>{p}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          ) : (
+            <p className="text-stone-500 text-sm py-6 text-center italic">
+              No entries found specifically tagged at {selectedPlace}.
+            </p>
+          )}
         </div>
       </main>
     </div>
@@ -2399,6 +2467,8 @@ export function MemoiaryAppShell() {
   const [newMemory, setNewMemory] = useState<CapturedMemory | null>(null);
   const [selectedCapture, setSelectedCapture] = useState<any>(null);
   const [selectedPersonName, setSelectedPersonName] = useState<string>("Maya");
+  const [selectedPlaceName, setSelectedPlaceName] = useState<string>("Third Wave Coffee, Jubilee Hills");
+  const [reflectMessages, setReflectMessages] = useState<any[]>([]);
 
   // Splash loading screen timer (2.5 seconds like Swiggy/Blinkit)
   useEffect(() => {
@@ -2469,7 +2539,11 @@ export function MemoiaryAppShell() {
       case "reflect":
         return (
           <div className="px-3 sm:px-6 h-full flex-1 flex flex-col overflow-hidden pb-1">
-            <ReflectionChatboard captures={captures} />
+            <ReflectionChatboard
+              captures={captures}
+              messages={reflectMessages}
+              onMessagesChange={setReflectMessages}
+            />
           </div>
         );
       case "people":
@@ -2479,9 +2553,9 @@ export function MemoiaryAppShell() {
       case "explore":
         return <ExploreViewSection go={go} />;
       case "places":
-        return <PlacesViewSection go={go} />;
+        return <PlacesViewSection go={go} onSelectPlace={(name) => setSelectedPlaceName(name)} />;
       case "place":
-        return <PlaceViewSection go={go} />;
+        return <PlaceViewSection go={go} selectedPlace={selectedPlaceName} />;
       case "thoughts":
         return <ThoughtsViewSection go={go} />;
       case "thought":
@@ -2512,7 +2586,7 @@ export function MemoiaryAppShell() {
       case "onboarding":
         return <LifeHome go={go} openCapture={(prompt) => handleOpenCapture(prompt || "menu")} newMemory={newMemory} onSelectCapture={(c) => { setSelectedCapture(c); go("memory"); }} />;
     }
-  }, [view, newMemory, user, selectedCapture, captures, selectedPersonName, searchQuery, handleOpenCapture]);
+  }, [view, newMemory, user, selectedCapture, captures, selectedPersonName, searchQuery, reflectMessages, handleOpenCapture]);
 
   const hideNav = ["story", "empty", "connections"].includes(view);
 
@@ -2529,7 +2603,7 @@ export function MemoiaryAppShell() {
           onSearchQueryChange={setSearchQuery}
           onBack={["person", "place", "search", "thought", "story", "memory"].includes(view) ? () => go("life") : undefined}
         />
-        <main className="flex-1 overflow-y-auto min-h-0 pb-28 scroll-smooth">
+        <main className={`flex-1 min-h-0 ${view === "reflect" ? "flex flex-col overflow-hidden pb-0" : "overflow-y-auto pb-28 scroll-smooth"}`}>
           {content}
         </main>
       </div>

@@ -1,6 +1,6 @@
 {
   "name": "Memoiary",
-  "description": "A private, beautiful personal journal and witness companion that helps you see, structure, connect, and discover your own life story.",
+  "description": "A private, beautiful personal journal and memory engine that helps you see, structure, connect, and discover your own life story.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

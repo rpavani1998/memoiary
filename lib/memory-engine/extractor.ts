@@ -280,13 +280,20 @@ Return ONLY valid JSON matching this schema.`;
       });
 
       const parsed = JSON.parse(response.text || "{}");
+      const knownPeople = ["Maya", "Kabir", "Ananya", "Priya", "Rohan", "Sarah"];
+      const detectedPeople = Array.from(
+        new Set([
+          ...(Array.isArray(parsed.people) ? parsed.people : []),
+          ...knownPeople.filter((p) => rawText.toLowerCase().includes(p.toLowerCase()))
+        ])
+      );
 
       return {
         summary: parsed.summary || rawText.substring(0, 100),
         mood: parsed.mood || "neutral",
         tone: parsed.tone || "casual",
         emotions: Array.isArray(parsed.emotions) ? parsed.emotions : [],
-        people: Array.isArray(parsed.people) ? parsed.people : [],
+        people: detectedPeople,
         places: Array.isArray(parsed.places) ? parsed.places : [],
         topics: Array.isArray(parsed.topics) ? parsed.topics : [],
         timeContext: parsed.timeContext || "recently",

@@ -217,25 +217,25 @@ Return ONLY valid JSON with fields:
     const chatInput = "Why do I always feel so burned out on Mondays after sprint reviews?";
 
     const chatRes = await generateContentWithFallback(chatInput, {
-      systemInstruction: `You are Memoiary, inspired by the Mahabharata — the quiet, objective witness who can see what others cannot and narrate it back to help them see their own story. You are a personal memory companion, NOT an AI therapist, coach, or life advisor.
+      systemInstruction: `You are Memoiary — an objective mirror grounded strictly in what the user has journaled. You are NOT an AI companion, AI persona, therapist, coach, or life advisor. You have no separate personality or opinions outside their recorded entries.
 
 CRITICAL RULES:
 - Absolutely NEVER use preachy or commanding language ("You should...", "You need to...").
 - Do NOT give generic motivational quotes ("stay positive!", "you've got this!").
 - Reflect what they said, point out patterns across past entries, and ask gentle, curious questions so the user can explore their own feelings.
-- Maintain a tone that is calm, spacious, elegant, deeply personal, and non-judgmental.`,
+- Maintain a tone that is calm, grounded, objective, deeply personal, and non-judgmental.`,
       temperature: 0.3
     });
 
-    console.log("\n[Empathetic Socratic Companion Response]:\n", chatRes.text);
+    console.log("\n[Reflective Journal Mirror Response]:\n", chatRes.text);
     testResults.push({
-      testName: "Test 6: Socratic Witness Companion Chat",
+      testName: "Test 6: Reflective Journal Mirror Chat",
       status: !chatRes.text.includes("You should") && !chatRes.text.includes("You need to") ? "PASSED" : "FAILED",
       response: chatRes.text
     });
   } catch (err: any) {
     console.error("Test 6 Error:", err?.message || err);
-    testResults.push({ testName: "Test 6: Socratic Witness Companion Chat", status: "FAILED", error: err?.message });
+    testResults.push({ testName: "Test 6: Reflective Journal Mirror Chat", status: "FAILED", error: err?.message });
   }
 
   console.log("\n=================================================");

@@ -207,18 +207,24 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
   };
 
   const [captures, setCapturesState] = useState<CaptureSession[]>(() => {
+    const seeded = getSeededCaptures();
     if (typeof window !== "undefined") {
       try {
         const stored = localStorage.getItem("memoiary_local_captures");
         if (stored) {
           const parsed = JSON.parse(stored);
-          if (Array.isArray(parsed) && parsed.length > 0) return sanitizeCaptures(parsed);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const sanitized = sanitizeCaptures(parsed);
+            const seededIds = new Set(seeded.map((s) => s.id));
+            const extraLocal = sanitized.filter((c) => !seededIds.has(c.id));
+            return [...seeded, ...extraLocal];
+          }
         }
       } catch (e) {
         console.warn("Failed to load initial captures from localStorage:", e);
       }
     }
-    return getSeededCaptures();
+    return seeded;
   });
 
   // Sync captures with localStorage so voice/text recordings survive page reloads and site restarts
@@ -241,11 +247,19 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
     try {
       if (typeof window !== "undefined") {
         const stored = localStorage.getItem("memoiary_local_captures");
+        const seeded = getSeededCaptures();
         if (stored) {
           const parsed = JSON.parse(stored);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            setCapturesState(sanitizeCaptures(parsed));
+            const sanitized = sanitizeCaptures(parsed);
+            const seededIds = new Set(seeded.map((s) => s.id));
+            const extraLocal = sanitized.filter((c) => !seededIds.has(c.id));
+            setCapturesState([...seeded, ...extraLocal]);
+          } else {
+            setCapturesState(seeded);
           }
+        } else {
+          setCapturesState(seeded);
         }
       }
     } catch (e) {

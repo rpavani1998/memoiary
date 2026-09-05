@@ -130,7 +130,7 @@ export function EntitiesViewSection({
 
             {peopleList.length === 0 ? (
               <div className="p-8 bg-white border-[1.5px] border-dashed border-[#1C1917]/30 rounded-3xl text-center space-y-2 font-sans">
-                <p className="text-xs text-[#665F56]">No people tagged yet. Mention companions in your entries to populate your network!</p>
+                <p className="text-xs text-[#665F56]">No people tagged yet. Mention friends or people in your entries to populate your network!</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

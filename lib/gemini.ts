@@ -11,9 +11,9 @@ const getAiClient = () => {
 
 // Resilient fallback ladder ordered by availability, speed, and suitability
 const FALLBACK_MODELS = [
+  "gemini-3.6-flash",
   "gemini-3.1-flash-lite",
-  "gemini-2.5-flash-lite",
-  "gemini-3.6-flash"
+  "gemini-flash-latest"
 ];
 
 interface GenerateOptions {
@@ -35,38 +35,46 @@ export async function generateContentWithFallback(
   let lastError: any = null;
 
   for (const model of FALLBACK_MODELS) {
-    try {
-      // Build generation config
-      const config: any = {};
-      if (options.systemInstruction) {
-        config.systemInstruction = options.systemInstruction;
-      }
-      if (options.temperature !== undefined) {
-        config.temperature = options.temperature;
-      }
-      if (options.responseMimeType) {
-        config.responseMimeType = options.responseMimeType;
-      }
-      if (options.responseSchema) {
-        config.responseSchema = options.responseSchema;
-      }
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const config: any = {};
+        if (options.systemInstruction) {
+          config.systemInstruction = options.systemInstruction;
+        }
+        if (options.temperature !== undefined) {
+          config.temperature = options.temperature;
+        }
+        if (options.responseMimeType) {
+          config.responseMimeType = options.responseMimeType;
+        }
+        if (options.responseSchema) {
+          config.responseSchema = options.responseSchema;
+        }
 
-      const response = await ai.models.generateContent({
-        model,
-        contents,
-        config,
-      });
+        const response = await ai.models.generateContent({
+          model,
+          contents,
+          config,
+        });
 
-      if (response && response.text) {
-        return {
-          text: response.text,
-          modelUsed: model,
-        };
+        if (response && response.text) {
+          return {
+            text: response.text,
+            modelUsed: model,
+          };
+        }
+      } catch (error: any) {
+        lastError = error;
+        if (error?.message?.includes("429")) {
+          // Free tier rate limit wait
+          await new Promise((r) => setTimeout(r, 12000));
+          continue;
+        } else if (attempt === 0 && error?.message?.includes("503")) {
+          await new Promise((r) => setTimeout(r, 1000));
+          continue;
+        }
+        console.warn(`Model ${model} failed (attempt ${attempt + 1}):`, error?.message || error);
       }
-    } catch (error: any) {
-      console.warn(`Model ${model} failed with error:`, error?.message || error);
-      lastError = error;
-      // Continue to next model in the fallback ladder
     }
   }
 

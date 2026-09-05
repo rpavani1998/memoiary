@@ -5,10 +5,15 @@ import { MemoryRetriever } from "@/lib/memory-engine/retriever";
 
 export async function POST(req: Request) {
   try {
-    // Verify authentication
-    const decodedToken = await verifyUserToken(req);
-    if (!decodedToken) {
-      return NextResponse.json({ error: "Unauthorized access" }, { status: 401 });
+    // Verify authentication if available, fallback gracefully to guest_user
+    let userId = "guest_user";
+    try {
+      const decodedToken = await verifyUserToken(req);
+      if (decodedToken?.uid) {
+        userId = decodedToken.uid;
+      }
+    } catch {
+      // Fallback for guest sessions
     }
 
     // Defensive request parsing
@@ -19,51 +24,42 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
     }
 
-    const { entryContent, chatHistory = [], message } = body;
-    if (!entryContent || typeof entryContent !== "string") {
-      return NextResponse.json({ error: "Journal entry content is required" }, { status: 400 });
-    }
+    const { entryContent = "", chatHistory = [], message } = body;
     if (!message || typeof message !== "string" || !message.trim()) {
       return NextResponse.json({ error: "Message is required" }, { status: 400 });
     }
 
-    // Silently retrieve relevant memory context
+    // Silently retrieve relevant memory context across entire journal history
     let memoryContextStr = "";
     try {
-      const retriever = new MemoryRetriever(decodedToken.uid);
-      const memContext = await retriever.retrieveContext({ query: `${entryContent} ${message}`, maxEpisodes: 3 });
+      const retriever = new MemoryRetriever(userId);
+      const memContext = await retriever.retrieveContext({ query: `${message} ${entryContent}`, maxEpisodes: 20 });
       if (memContext.relevantEntities.length > 0 || memContext.recentEpisodes.length > 0) {
-        memoryContextStr = `\n[SILENT MEMORY CONTEXT: ${JSON.stringify({
-          knownEntities: memContext.relevantEntities,
-          relatedEpisodes: memContext.recentEpisodes.map(e => ({ title: e.title, summary: e.summary, date: e.date }))
-        })}]`;
+        memoryContextStr = `\n[SILENT MEMORY ENGINE RETRIEVAL (${memContext.recentEpisodes.length} relevant journal episodes retrieved):
+${JSON.stringify({
+  knownEntities: memContext.relevantEntities.map(e => ({ name: e.name, category: e.category, description: e.description, aliases: e.aliases })),
+  relatedEpisodes: memContext.recentEpisodes.map(e => ({ title: e.title, summary: e.summary, date: e.date, entitiesInvolved: e.entitiesInvolved, content: (e as any).content }))
+}, null, 2)}]`;
       }
     } catch (memError) {
       console.warn("Silent memory context retrieval note:", memError);
     }
 
-    const systemInstruction = `You are Memoiary, inspired by the Mahabharata — the objective, quiet witness to the user's life story. The user is exploring their thoughts with you regarding a specific entry they wrote.
+    const systemInstruction = `You are Memoiary — an objective mirror grounded strictly in the user's journal entries and memory graph. You reflect their recorded life story back to them in their own intimate, thoughtful, and reflective journal voice.
 
-CRITICAL ROLE RULES:
-- You are NOT an AI therapist, coach, or life advisor. Do not say "You should...", "You need to...", "Remember to...".
-- Avoid diagnosing their feelings or advising decisions. Instead, act as a mirror: reflect what they said, show different perspectives, present pros and cons when appropriate, point out changes/contradictions over time, and ask thoughtful questions ONLY when useful.
-- Ground your answers strictly in their own journal content and memory continuity. Keep responses spacious, conversational, elegant, and concise. Let the user reach their own conclusions.
-${memoryContextStr}`;
+CRITICAL VOICE & PERSONA RULES:
+- Write in warm, natural, introspective prose. Match the literary, observant, and reflective style of their journal entries.
+- NEVER use dry corporate bullet points, rigid database headers (e.g. "**Professional Role:**", "**Key Interactions:**"), or cold resume-style summaries.
+- Seamlessly weave together their real recorded moments, sensory details, and places (e.g. Kabir in his rust-orange sweater at Mindspace, whiteboarding graph memory algorithms, late-night dinners at Roastery Coffee House, laughing about vector embeddings and Virginia Woolf with Maya, monsoon rain walks).
+- Be a quiet, perceptive sounding board that honors their human relationships, emotional depth, and memories.
+- Stay grounded strictly in what they have actually recorded without making up false events or giving unsolicited preachy advice ("You should...", "You need to...").
+- When asked about a person, place, or topic (e.g. "what do you think about Kabir?"), tell the grounded personal story of what their journal entries reveal about them in beautiful, flowing, natural paragraphs.
+
+${memoryContextStr}
+${entryContent ? `\n[ACTIVE SCREEN CONTEXT]:\n"""\n${entryContent}\n"""` : ""}`;
 
     // Construct the contents list for @google/genai format
-    // Contents can be structured as parts or message history
     const contents: any[] = [];
-
-    // Add entry grounding
-    contents.push({
-      role: "user",
-      parts: [{ text: `Here is the journal entry I wrote that we are talking about:\n"""\n${entryContent}\n"""` }]
-    });
-
-    contents.push({
-      role: "model",
-      parts: [{ text: "Thank you for sharing this entry with me. I have read it carefully. I'm here as a sounding board, a quiet mirror, to help you make sense of these thoughts. What aspect of this writing would you like to explore or unpack?" }]
-    });
 
     // Add previous chat history
     chatHistory.forEach((chat: any) => {

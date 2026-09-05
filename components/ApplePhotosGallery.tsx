@@ -286,7 +286,7 @@ export function ApplePhotosGallery({
               <Users size={32} className="text-[#DE5239] mx-auto" />
               <h3 className="font-serif text-xl font-medium text-[#1C1917]">No People Tagged Yet</h3>
               <p className="text-xs text-[#665F56] max-w-sm mx-auto">
-                Mention friends or companions in your journal entries (e.g. &ldquo;Went for a walk with Maya&rdquo;) to automatically see them here!
+                Mention friends or family in your journal entries (e.g. &ldquo;Went for a walk with Maya&rdquo;) to automatically see them here!
               </p>
             </div>
           ) : (

@@ -1,0 +1,10 @@
+.next
+node_modules
+.git
+.agents
+.antigravity
+.gemini
+npm-debug.log
+Dockerfile
+.dockerignore
+README.md
