@@ -35,7 +35,7 @@ const db = getFirestore(app, firebaseConfig.firestoreDatabaseId || 'default');
  */
 export async function ensureClientFirebaseConfig(): Promise<boolean> {
   if (typeof window === "undefined") return false;
-  
+
   const currentKey = (app.options as any)?.apiKey;
   if (currentKey && currentKey !== "YOUR_FIREBASE_API_KEY") {
     return true; // Already configured
