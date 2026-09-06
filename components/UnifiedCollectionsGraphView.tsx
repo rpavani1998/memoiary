@@ -856,7 +856,7 @@ export function UnifiedCollectionsGraphView({
   };
 
   return (
-    <div className="w-full font-sans space-y-5 pb-32">
+    <div data-tour="graph-canvas" className="w-full font-sans space-y-5 pb-32">
       {/* ── HEADER & MAIN TAB SWITCHER ── */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#1C1917]/15 pb-4">
         <div>

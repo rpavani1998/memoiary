@@ -252,7 +252,7 @@ export function WishlistIntentionsBoard({
   };
 
   return (
-    <div className="rounded-3xl border-[1.5px] border-[#1C1917] bg-[#FAF7F0] p-5 sm:p-6 shadow-[3px_4px_0px_#1C1917] space-y-4 font-sans mb-6">
+    <div data-tour="wishlist-board" className="rounded-3xl border-[1.5px] border-[#1C1917] bg-[#FAF7F0] p-5 sm:p-6 shadow-[3px_4px_0px_#1C1917] space-y-4 font-sans mb-6">
       {/* Section Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#1C1917]/10 pb-3">
         <div>

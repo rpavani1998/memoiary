@@ -105,6 +105,7 @@ export function MemoryTimeCapsuleBanner({
 
   return (
     <div
+      data-tour="time-capsule"
       onClick={() => onSelectCapture?.(capture)}
       className="my-5 border-[1.5px] border-[#1C1917] bg-gradient-to-r from-[#FAF7F0] via-white to-[#FAF7F0] rounded-3xl p-5 shadow-[4px_5px_0px_#1C1917] hover:-translate-y-0.5 transition-all cursor-pointer font-sans relative overflow-hidden group"
     >

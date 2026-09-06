@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Sparkles,
   ChevronRight,
@@ -13,9 +13,12 @@ import {
   HeartHandshake,
   MessageSquare,
   ShieldCheck,
-  Play,
-  RotateCcw,
-  CheckCircle2
+  CheckCircle2,
+  Plus,
+  History,
+  Compass,
+  ArrowDown,
+  ArrowUp
 } from "lucide-react";
 import { View } from "./memoiary/MemoiaryAppShell";
 
@@ -24,6 +27,7 @@ export interface WalkthroughStep {
   title: string;
   badge: string;
   targetView: View;
+  selector: string;
   icon: React.ComponentType<{ size?: number; className?: string }>;
   description: string;
   aiExplanation: string;
@@ -33,73 +37,80 @@ export interface WalkthroughStep {
 export const WALKTHROUGH_STEPS: WalkthroughStep[] = [
   {
     id: 1,
-    title: "Home Sanctuary & Memory Feed",
-    badge: "Gemini Multimodal AI",
+    title: "Journal Sanctuary & Quick Capture",
+    badge: "Multimodal Voice & Text AI",
     targetView: "life",
-    icon: BookOpen,
-    description: "Capture voice notes, photos, and journal entries effortlessly. Memoiary automatically organizes them into a clean chronological timeline.",
-    aiExplanation: "Behind the scenes, Gemini Multimodal AI extracts key people, places, emotions, and time context from your raw input without requiring manual tags.",
-    highlightNote: "Try adding a quick text or voice reflection using the '+' button below!"
+    selector: "[data-tour='nav-capture']",
+    icon: Plus,
+    description: "Tap the central '+' button anytime to record voice notes, upload photos, or write personal memories.",
+    aiExplanation: "Gemini Multimodal AI processes your voice audio and text in real-time, automatically identifying people, locations, emotional valence, and key memory moments.",
+    highlightNote: "Try clicking '+' to record a quick voice note or write a thought!"
   },
   {
     id: 2,
     title: "Memory Time Capsule ('On This Day')",
     badge: "Historical Date Engine",
     targetView: "life",
-    icon: Calendar,
-    description: "Rediscover meaningful moments from your past with automated historical date matching.",
-    aiExplanation: "The Time Capsule engine compares today's date with past entries (1 month, 2 months, 3 months, or 1 year ago) and highlights nostalgic memories.",
-    highlightNote: "Check the top banner on your feed for historical date reflections."
+    selector: "[data-tour='time-capsule']",
+    icon: History,
+    description: "Revisit your past! This banner automatically surfaces memories recorded on this exact date 1 month, 2 months, 3 months, or 1 year ago.",
+    aiExplanation: "The Time Capsule matching engine queries your memory graph chronologically, highlighting nostalgic reflections so you can trace emotional growth over time.",
+    highlightNote: "Click any Time Capsule match to revisit that day's entry!"
   },
   {
     id: 3,
-    title: "Weekly Narrative Arc & Storyboards",
-    badge: "Narrative Synthesis",
+    title: "Weekly Storyboard & Narrative Arc",
+    badge: "Narrative Synthesis Engine",
     targetView: "life",
+    selector: "[data-tour='weekly-recap']",
     icon: Layers,
-    description: "Transform daily logs into a structured weekly story arc presented in a clean 2-column square card grid.",
+    description: "View your weekly story arc in a clean 2-column square collage grid with bold titles, summaries, and key companion tags.",
     aiExplanation: "AI synthesizes your weekly emotional trajectory, creating concise titles, highlight summaries, and key people lists for each period.",
-    highlightNote: "Switch between Daily Storyboard and Weekly Recap using the top view toggle."
+    highlightNote: "Click any highlight card to inspect the full journal detail."
   },
   {
     id: 4,
-    title: "AI Mind Map & Epistemic Graph",
-    badge: "Entity Force Physics",
-    targetView: "collections",
-    icon: GitFork,
-    description: "Visualize your entire memory universe as an interactive mind map with real-time force-directed physics.",
-    aiExplanation: "Clusters recurring entities into 4 central category hubs: People & Bonds, Places & Spaces, Topics & Themes, and Key Moments.",
-    highlightNote: "Drag graph nodes around to explore relationships between people and memories!"
+    title: "Elements: Wishlists & Action Intentions",
+    badge: "Sentence Classifier",
+    targetView: "entities",
+    selector: "[data-tour='wishlist-board']",
+    icon: HeartHandshake,
+    description: "Separates your future desires (recipes to try, travel spots) from active action obligations (promises, calls to make).",
+    aiExplanation: "Uses sentence-level regex classification to filter out past completed events, extracting active future intentions with direct links back to source entries.",
+    highlightNote: "Click 'Open Entry' on any item to view the source journal recording!"
   },
   {
     id: 5,
-    title: "Wishlist & Action Intentions",
-    badge: "Sentence Classifier",
-    targetView: "entities",
-    icon: HeartHandshake,
-    description: "Automatically extract future dreams, recipes to try, travel spots, and commitments you made in your journal.",
-    aiExplanation: "Uses sentence-level regex classification to separate past completed events from future aspirations (wishlists) and obligations (action intentions).",
-    highlightNote: "Click any item to open its exact source journal entry in a popup modal!"
+    title: "AI Mind Map & Epistemic Graph",
+    badge: "Force Physics Clustering",
+    targetView: "collections",
+    selector: "[data-tour='graph-canvas']",
+    icon: GitFork,
+    description: "Your memory universe visualized as an interactive mind map. Central hub branches out into People, Places, Topics, and Key Moments.",
+    aiExplanation: "Clusters recurring entity mentions across all journal entries, executing dynamic force physics so you can drag and explore connected memories.",
+    highlightNote: "Drag any node on the graph to explore connections!"
   },
   {
     id: 6,
     title: "AI Reflection Chatboard",
     badge: "Personal AI Guide",
     targetView: "reflect",
+    selector: "[data-tour='chat-reflect']",
     icon: MessageSquare,
-    description: "Have deep conversational reflections with your AI journal assistant and save threads directly to your timeline.",
-    aiExplanation: "Queries past entries and user memories to provide empathetic guidance, detect life patterns, and suggest clarity questions.",
-    highlightNote: "Click 'Save Chat Reflection' to persist key AI conversations directly to your journal."
+    description: "Chat directly with your personal journal AI assistant. Ask questions about past memories, synthesize patterns, and save chat threads to your timeline.",
+    aiExplanation: "Queries your encrypted memory context to provide empathetic, context-aware answers, allowing one-click saving of chat threads back into your journal feed.",
+    highlightNote: "Click 'Save Chat Reflection' to persist key AI conversations directly to your timeline."
   },
   {
     id: 7,
-    title: "Privacy, Art Styles & Scoped State",
-    badge: "User Account Isolation",
+    title: "Privacy & User Account Isolation",
+    badge: "Encrypted Storage Scoping",
     targetView: "profile",
+    selector: "[data-tour='profile-section']",
     icon: ShieldCheck,
-    description: "Customize visual art styles (Hand-Drawn, Cyberpunk, Watercolor) with complete privacy assurance.",
-    aiExplanation: "Every user account operates on isolated localStorage keys and encrypted Firestore trees, ensuring zero demo data bleed.",
-    highlightNote: "Sign in with Google anytime to sync your clean personal memories across all devices."
+    description: "Customize visual art styles (Hand-Drawn Vintage, Cyberpunk, Watercolor) with complete privacy control.",
+    aiExplanation: "Memoiary scopes all localStorage keys and Firestore document collections to your unique user UID, ensuring guest/demo data never leaks into your account.",
+    highlightNote: "Sign in with Google anytime to sync your clean personal memories across devices!"
   }
 ];
 
@@ -113,23 +124,45 @@ export function InteractiveProductWalkthrough({
   onNavigateView: (view: View) => void;
 }) {
   const [currentStepIdx, setCurrentStepIdx] = useState(0);
+  const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
 
   const step = WALKTHROUGH_STEPS[currentStepIdx];
-  const StepIcon = step.icon;
+  const StepIcon = step?.icon || Plus;
 
+  // Navigate view and calculate target element bounding rect
   useEffect(() => {
-    if (isOpen && step) {
-      onNavigateView(step.targetView);
-    }
+    if (!isOpen || !step) return;
+
+    onNavigateView(step.targetView);
+
+    const updateRect = () => {
+      const el = document.querySelector(step.selector);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+        const rect = el.getBoundingClientRect();
+        setTargetRect(rect);
+      } else {
+        setTargetRect(null);
+      }
+    };
+
+    // Delay slightly to allow tab transition & DOM render
+    const timer = setTimeout(updateRect, 300);
+    window.addEventListener("resize", updateRect);
+    window.addEventListener("scroll", updateRect, true);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("resize", updateRect);
+      window.removeEventListener("scroll", updateRect, true);
+    };
   }, [currentStepIdx, isOpen, step, onNavigateView]);
 
   if (!isOpen || !step) return null;
 
   const handleNext = () => {
     if (currentStepIdx < WALKTHROUGH_STEPS.length - 1) {
-      const nextIdx = currentStepIdx + 1;
-      setCurrentStepIdx(nextIdx);
-      onNavigateView(WALKTHROUGH_STEPS[nextIdx].targetView);
+      setCurrentStepIdx((prev) => prev + 1);
     } else {
       onClose();
     }
@@ -137,121 +170,167 @@ export function InteractiveProductWalkthrough({
 
   const handlePrev = () => {
     if (currentStepIdx > 0) {
-      const prevIdx = currentStepIdx - 1;
-      setCurrentStepIdx(prevIdx);
-      onNavigateView(WALKTHROUGH_STEPS[prevIdx].targetView);
+      setCurrentStepIdx((prev) => prev - 1);
     }
   };
 
-  const handleRestart = () => {
-    setCurrentStepIdx(0);
-    onNavigateView(WALKTHROUGH_STEPS[0].targetView);
+  // Compute position for the in-page popover speech bubble
+  let popoverPositionStyle: React.CSSProperties = {
+    position: "fixed",
+    left: "50%",
+    transform: "translateX(-50%)",
+    bottom: "100px"
   };
 
+  let arrowPlacement: "top" | "bottom" = "bottom";
+
+  if (targetRect) {
+    const isTargetInBottomHalf = targetRect.top > window.innerHeight / 2;
+
+    if (isTargetInBottomHalf) {
+      arrowPlacement = "bottom";
+      const bottomOffset = window.innerHeight - targetRect.top + 16;
+      popoverPositionStyle = {
+        position: "fixed",
+        left: Math.max(16, Math.min(window.innerWidth - 340, targetRect.left + targetRect.width / 2 - 160)),
+        bottom: `${Math.min(window.innerHeight - 320, bottomOffset)}px`
+      };
+    } else {
+      arrowPlacement = "top";
+      const topOffset = targetRect.bottom + 16;
+      popoverPositionStyle = {
+        position: "fixed",
+        left: Math.max(16, Math.min(window.innerWidth - 340, targetRect.left + targetRect.width / 2 - 160)),
+        top: `${Math.max(16, topOffset)}px`
+      };
+    }
+  }
+
   return (
-    <div className="fixed inset-0 z-50 pointer-events-none flex items-end sm:items-center justify-center p-3 sm:p-6 font-sans">
-      {/* Semi-transparent backdrop overlay with subtle blur */}
+    <div className="fixed inset-0 z-50 pointer-events-none font-sans select-none">
+      {/* Dark backdrop overlay */}
       <div
-        className="absolute inset-0 bg-[#1C1917]/35 backdrop-blur-[2px] pointer-events-auto transition-opacity"
+        className="absolute inset-0 bg-[#1C1917]/40 backdrop-blur-[1px] pointer-events-auto transition-opacity"
         onClick={onClose}
       />
 
-      {/* Floating Interactive Walkthrough Card */}
-      <div className="relative pointer-events-auto w-full max-w-lg bg-[#FAF7F0] border-2 border-[#1C1917] rounded-3xl p-5 sm:p-7 shadow-[6px_8px_0px_#1C1917] z-10 animate-fade-in font-sans overflow-hidden">
-        {/* Decorative corner accent badge */}
-        <div className="absolute top-0 right-0 bg-[#DE5239] text-white px-4 py-1.5 rounded-bl-2xl font-mono text-[11px] font-bold tracking-wider uppercase flex items-center gap-1.5 shadow-2xs">
-          <Sparkles size={12} className="animate-spin-slow" />
-          <span>Step {step.id} of {WALKTHROUGH_STEPS.length}</span>
-        </div>
+      {/* Target Element Spotlight Ring */}
+      {targetRect && (
+        <div
+          className="fixed pointer-events-none z-50 rounded-2xl border-3 border-[#DE5239] shadow-[0_0_25px_rgba(222,82,57,0.7)] transition-all duration-300 animate-pulse"
+          style={{
+            top: targetRect.top - 6,
+            left: targetRect.left - 6,
+            width: targetRect.width + 12,
+            height: targetRect.height + 12
+          }}
+        />
+      )}
 
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 left-4 p-1.5 text-[#1C1917]/60 hover:text-[#1C1917] hover:bg-[#1C1917]/5 rounded-full transition-colors cursor-pointer"
-          title="Exit Walkthrough"
-        >
-          <X size={18} />
-        </button>
+      {/* Element-Anchored Popover Tooltip Speech Bubble */}
+      <div
+        className="pointer-events-auto w-[calc(100vw-32px)] max-w-sm bg-[#FAF7F0] border-2 border-[#1C1917] rounded-3xl p-4 sm:p-5 shadow-[6px_8px_0px_#1C1917] z-50 font-sans transition-all duration-300 animate-fade-in relative"
+        style={popoverPositionStyle}
+      >
+        {/* Pointer Arrow */}
+        {targetRect && arrowPlacement === "bottom" && (
+          <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-0 h-0 border-l-8 border-l-transparent border-r-8 border-r-transparent border-t-8 border-t-[#1C1917]" />
+        )}
+        {targetRect && arrowPlacement === "top" && (
+          <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-0 h-0 border-l-8 border-l-transparent border-r-8 border-r-transparent border-b-8 border-b-[#1C1917]" />
+        )}
 
-        {/* Step Content Header */}
-        <div className="mt-5 mb-4">
-          <div className="flex items-center gap-2 mb-1">
-            <div className="p-2 bg-[#DE5239]/10 text-[#DE5239] border border-[#DE5239]/30 rounded-xl">
-              <StepIcon size={20} />
-            </div>
-            <div>
-              <span className="text-[10px] font-mono uppercase font-bold tracking-widest text-[#DE5239] bg-[#DE5239]/10 px-2 py-0.5 rounded-md border border-[#DE5239]/20">
-                {step.badge}
-              </span>
-              <h3 className="font-serif text-xl sm:text-2xl font-bold text-[#1C1917] leading-snug mt-0.5">
-                {step.title}
-              </h3>
-            </div>
+        {/* Step Badge & Close */}
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <div className="flex items-center gap-1.5">
+            <span className="bg-[#DE5239] text-white px-2.5 py-0.5 rounded-md font-mono text-[10px] font-bold uppercase tracking-wider shadow-2xs flex items-center gap-1">
+              <Sparkles size={11} className="animate-spin-slow" />
+              <span>Step {step.id} of {WALKTHROUGH_STEPS.length}</span>
+            </span>
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#DE5239] bg-[#DE5239]/10 px-2 py-0.5 rounded-md border border-[#DE5239]/20 truncate max-w-[140px]">
+              {step.badge}
+            </span>
           </div>
 
-          <p className="text-xs sm:text-sm text-[#1C1917]/85 mt-3 leading-relaxed font-sans font-normal">
-            {step.description}
-          </p>
+          <button
+            onClick={onClose}
+            className="p-1 text-[#1C1917]/60 hover:text-[#1C1917] hover:bg-[#1C1917]/10 rounded-full transition-colors cursor-pointer shrink-0"
+            title="Exit Tour"
+          >
+            <X size={16} />
+          </button>
         </div>
 
-        {/* AI Behind-the-Scenes Technical Insight Box */}
-        <div className="my-4 bg-white/90 border border-[#1C1917]/20 rounded-2xl p-3.5 sm:p-4 shadow-2xs relative">
-          <div className="flex items-center gap-1.5 text-xs font-bold text-[#DE5239] font-sans mb-1.5">
-            <Sparkles size={14} className="fill-[#DE5239]" />
+        {/* Feature Title & Icon */}
+        <div className="flex items-start gap-2.5 my-2">
+          <div className="p-2 bg-[#DE5239]/10 text-[#DE5239] border border-[#DE5239]/30 rounded-xl shrink-0 mt-0.5">
+            <StepIcon size={18} />
+          </div>
+          <div>
+            <h3 className="font-serif text-lg sm:text-xl font-bold text-[#1C1917] leading-tight">
+              {step.title}
+            </h3>
+            <p className="text-xs text-[#1C1917]/85 mt-1 leading-relaxed">
+              {step.description}
+            </p>
+          </div>
+        </div>
+
+        {/* AI Insight Technical Box */}
+        <div className="my-3 bg-white/90 border border-[#1C1917]/20 rounded-2xl p-3 shadow-2xs">
+          <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#DE5239] font-sans mb-1">
+            <Sparkles size={13} className="fill-[#DE5239]" />
             <span>AI Behind The Scenes</span>
           </div>
-          <p className="text-xs text-stone-700 leading-relaxed font-sans">
+          <p className="text-[11px] text-stone-700 leading-relaxed font-sans">
             {step.aiExplanation}
           </p>
           {step.highlightNote && (
-            <div className="mt-2.5 pt-2 border-t border-stone-200/80 flex items-start gap-1.5 text-[11px] text-[#4D7C0F] font-medium font-sans">
-              <CheckCircle2 size={13} className="shrink-0 mt-0.5" />
+            <div className="mt-2 pt-1.5 border-t border-stone-200 flex items-start gap-1 text-[10px] text-[#4D7C0F] font-semibold font-sans">
+              <CheckCircle2 size={12} className="shrink-0 mt-0.5" />
               <span>{step.highlightNote}</span>
             </div>
           )}
         </div>
 
-        {/* Step Progress Indicators & Controls */}
-        <div className="mt-5 pt-3 border-t border-[#1C1917]/15 flex items-center justify-between gap-3 font-sans">
-          {/* Step Dots Indicator */}
-          <div className="flex items-center gap-1.5">
+        {/* Step Controls */}
+        <div className="mt-3 pt-2.5 border-t border-[#1C1917]/15 flex items-center justify-between gap-2">
+          {/* Step Dots */}
+          <div className="flex items-center gap-1">
             {WALKTHROUGH_STEPS.map((s, idx) => (
               <button
                 key={s.id}
-                onClick={() => {
-                  setCurrentStepIdx(idx);
-                  onNavigateView(s.targetView);
-                }}
-                className={`w-2.5 h-2.5 rounded-full transition-all cursor-pointer ${
+                onClick={() => setCurrentStepIdx(idx)}
+                className={`w-2 h-2 rounded-full transition-all cursor-pointer ${
                   idx === currentStepIdx
-                    ? "bg-[#DE5239] w-6"
+                    ? "bg-[#DE5239] w-4"
                     : idx < currentStepIdx
                     ? "bg-[#1C1917]"
-                    : "bg-[#1C1917]/20 hover:bg-[#1C1917]/40"
+                    : "bg-[#1C1917]/20"
                 }`}
-                title={`Go to step ${s.id}: ${s.title}`}
+                title={`Step ${s.id}: ${s.title}`}
               />
             ))}
           </div>
 
-          {/* Prev & Next Buttons */}
-          <div className="flex items-center gap-2">
+          {/* Action Buttons */}
+          <div className="flex items-center gap-1.5">
             {currentStepIdx > 0 && (
               <button
                 onClick={handlePrev}
-                className="px-3 py-1.5 border-[1.5px] border-[#1C1917] bg-white hover:bg-stone-100 text-[#1C1917] rounded-xl text-xs font-bold font-sans flex items-center gap-1 cursor-pointer shadow-2xs active:scale-95 transition-all"
+                className="px-2.5 py-1 border border-[#1C1917] bg-white hover:bg-stone-100 text-[#1C1917] rounded-lg text-xs font-bold font-sans flex items-center gap-0.5 cursor-pointer active:scale-95 transition-all"
               >
-                <ChevronLeft size={14} />
+                <ChevronLeft size={13} />
                 <span>Back</span>
               </button>
             )}
 
             <button
               onClick={handleNext}
-              className="px-4 py-1.5 border-[1.5px] border-[#1C1917] bg-[#DE5239] hover:bg-[#C6422A] text-white rounded-xl text-xs font-bold font-sans flex items-center gap-1.5 cursor-pointer shadow-[2px_3px_0px_#1C1917] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all"
+              className="px-3.5 py-1 border border-[#1C1917] bg-[#DE5239] hover:bg-[#C6422A] text-white rounded-lg text-xs font-bold font-sans flex items-center gap-1 cursor-pointer shadow-[2px_2px_0px_#1C1917] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all"
             >
               <span>{currentStepIdx === WALKTHROUGH_STEPS.length - 1 ? "Finish Tour 🎉" : "Next Step"}</span>
-              {currentStepIdx < WALKTHROUGH_STEPS.length - 1 && <ChevronRight size={14} />}
+              {currentStepIdx < WALKTHROUGH_STEPS.length - 1 && <ChevronRight size={13} />}
             </button>
           </div>
         </div>

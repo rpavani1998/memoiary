@@ -473,7 +473,7 @@ export function ReflectionChatboard({
   };
 
   return (
-    <div className="flex flex-col h-full w-full max-w-4xl mx-auto font-sans overflow-hidden">
+    <div data-tour="chat-reflect" className="flex flex-col h-full w-full max-w-4xl mx-auto font-sans overflow-hidden">
       {/* ── CHAT TOP HEADER BAR (Stationary) ── */}
       <div className="px-3 sm:px-4 py-2.5 border-b border-[#1C1917]/10 flex items-center justify-between shrink-0 bg-[#FAF7F0] gap-2 flex-wrap sm:flex-nowrap">
         <div className="flex items-center gap-2">

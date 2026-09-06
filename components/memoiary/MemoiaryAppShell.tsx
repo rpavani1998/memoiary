@@ -1862,7 +1862,7 @@ function ProfileViewSection({ go, onOpenLogin }: { go: (view: View) => void; onO
   const { artStyle, currentStyle } = useArtStyle();
 
   return (
-    <div className="pb-24">
+    <div data-tour="profile-section" className="pb-24">
       <PageHeader title="Profile & Account" eyebrow="Your memory, in your hands" />
       <main className="px-5 sm:px-8 space-y-4">
         {isDemoMode ? (
@@ -2577,6 +2577,7 @@ function BottomNav({
   return (
     <nav className="bottom-nav" aria-label="Primary navigation">
       <button
+        data-tour="nav-sanctuary"
         className={`cursor-pointer ${active === "life" ? "active" : ""}`}
         onClick={() => go("life")}
         title="Journal Sanctuary"
@@ -2586,6 +2587,7 @@ function BottomNav({
       </button>
 
       <button
+        data-tour="nav-elements"
         className={`cursor-pointer ${active === "entities" || active === "people" || active === "places" ? "active" : ""}`}
         onClick={() => go("entities")}
         title="Elements (People, Places & Wishlist)"
@@ -2596,6 +2598,7 @@ function BottomNav({
 
       {/* Floating Capture Button Container */}
       <div
+        data-tour="nav-capture"
         className="capture-button-wrapper"
         onMouseEnter={() => setShowQuickMenu(true)}
         onMouseLeave={() => setShowQuickMenu(false)}
@@ -2649,6 +2652,7 @@ function BottomNav({
       </div>
 
       <button
+        data-tour="nav-mindmap"
         className={`cursor-pointer ${active === "collections" ? "active" : ""}`}
         onClick={() => go("collections")}
         title="Mind Map & Themes"
@@ -2658,6 +2662,7 @@ function BottomNav({
       </button>
 
       <button
+        data-tour="nav-reflect"
         className={`cursor-pointer ${active === "reflect" ? "active" : ""}`}
         onClick={() => go("reflect")}
         title="AI Reflect"
