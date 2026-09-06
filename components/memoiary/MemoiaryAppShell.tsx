@@ -1264,26 +1264,23 @@ function SearchViewSection({
           )}
         </form>
         {!query && results.length === 0 ? (
-          <div className="space-y-6 mt-4">
-            {/* Weekly Visual Recap Board */}
-            <WeeklyRecapBoard
-              weekLabel={user ? "This Week" : "Aug 28 – Sep 3, 2026"}
-              weeklyPeople={Array.from(new Set(user ? [] : ["Maya", "Kabir", "Ananya"]))}
-              weeklyInsight={user ? "Your weekly reflection will summarize as you capture moments throughout the week." : "Start capturing to see your weekly visual synthesis."}
-              highlights={user ? [] : []}
-              onSelectHighlight={() => go("life")}
-            />
-
-            <div>
-              <p className="eyebrow mt-6">Try remembering</p>
-              <div className="search-suggestions">
-                {suggestions.map((q) => (
-                  <button key={q} onClick={() => { setQuery(q); }} className="cursor-pointer">
-                    {q}
-                    <ChevronRight size={15} className="text-stone-400" />
-                  </button>
-                ))}
-              </div>
+          <div className="space-y-4 mt-6">
+            <p className="eyebrow text-xs font-sans font-bold text-[#665F56] uppercase tracking-wider">Try searching for</p>
+            <div className="search-suggestions space-y-2 font-sans">
+              {suggestions.map((q) => (
+                <button
+                  key={q}
+                  onClick={() => {
+                    setQuery(q);
+                    if (onQueryChange) onQueryChange(q);
+                    handleSearch(q);
+                  }}
+                  className="w-full p-3.5 bg-white border border-[#1C1917]/15 rounded-2xl text-left text-xs font-medium text-[#1C1917] hover:bg-[#F5E5DC] hover:border-[#DE5239]/40 transition-all flex items-center justify-between group cursor-pointer shadow-2xs"
+                >
+                  <span>{q}</span>
+                  <ChevronRight size={15} className="text-[#665F56] group-hover:text-[#DE5239] transition-colors" />
+                </button>
+              ))}
             </div>
           </div>
         ) : (
