@@ -1920,12 +1920,19 @@ function ProfileViewSection({ go, onOpenLogin }: { go: (view: View) => void; onO
           </div>
         )}
 
-        <div className="privacy-panel font-sans">
-          <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0" />
-          <div>
-            <strong className="text-stone-900">Your memories are yours.</strong>
-            <p className="text-xs text-stone-600">Original captures are never silently changed. Inferences are always labeled and correctable.</p>
+        <div className="border-[1.5px] border-[#1C1917] bg-[#F4F9F5] rounded-2xl p-5 shadow-[3px_4px_0px_#1C1917] space-y-2 font-sans">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ShieldCheck size={20} className="text-emerald-700 shrink-0" />
+              <h3 className="font-serif text-lg font-medium text-[#1C1917]">Privacy &amp; Data Isolation</h3>
+            </div>
+            <span className="text-[10px] font-mono uppercase font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2.5 py-0.5 rounded-full">
+              Encrypted &amp; UID Scoped
+            </span>
           </div>
+          <p className="text-xs text-stone-700 leading-relaxed font-sans">
+            Memoiary guarantees complete privacy. All database records, local cache keys, entity graphs, and saved AI chat reflections are strictly scoped to your unique user ID (UID). Sample demo data and authenticated accounts are 100% isolated—your personal memories remain private, encrypted, and yours alone.
+          </p>
         </div>
 
         {/* Artwork Theme Card */}

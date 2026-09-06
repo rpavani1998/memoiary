@@ -110,17 +110,6 @@ export const WALKTHROUGH_STEPS: WalkthroughStep[] = [
     description: "Chat directly with your personal journal AI assistant. Ask questions about past memories, synthesize patterns, and save chat threads to your timeline.",
     aiExplanation: "Queries your encrypted memory context to provide empathetic, context-aware answers, allowing one-click saving of chat threads back into your journal feed.",
     highlightNote: "Tap this Reflect icon anytime to chat with your personal AI journal guide!"
-  },
-  {
-    id: 8,
-    title: "Privacy & User Account Isolation",
-    badge: "Encrypted Storage Scoping",
-    targetView: "profile",
-    selector: "[data-tour='profile-section']",
-    icon: ShieldCheck,
-    description: "Customize visual art styles (Hand-Drawn Vintage, Cyberpunk, Watercolor) with complete privacy control.",
-    aiExplanation: "Memoiary scopes all localStorage keys and Firestore document collections to your unique user UID, ensuring guest/demo data never leaks into your account.",
-    highlightNote: "Sign in with Google anytime to sync your clean personal memories across devices!"
   }
 ];
 
