@@ -395,25 +395,7 @@ function LifeHome({
             weekLabel="This Week"
             uniqueDaysLogged={uniqueDaysLogged}
             isUnlocked={uniqueDaysLogged >= 7}
-            weeklyPeople={Array.from(new Set(captures.flatMap((c) => c.dimensions?.people || [])))}
-            weeklyInsight={
-              captures.length > 0
-                ? "Your week shifted from intense early-week sprint stress into celebratory team milestones and deep restorative time with friends."
-                : undefined
-            }
-            highlights={
-              captures.length > 0
-                ? captures.slice(0, 3).map((c, i) => ({
-                    id: c.id,
-                    dayLabel: new Date(c.createdAt).toLocaleDateString("en-US", { weekday: "short" }),
-                    title: c.dimensions?.summary || c.content.substring(0, 30),
-                    summary: c.content,
-                    imageUrl: c.mediaUrl,
-                    people: c.dimensions?.people || [],
-                    mood: c.dimensions?.mood
-                  }))
-                : []
-            }
+            captures={captures}
             onSelectHighlight={() => setTimelineMode("day")}
             onOpenCapture={openCapture}
             onGoReflect={go}

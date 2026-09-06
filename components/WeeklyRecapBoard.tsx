@@ -16,6 +16,7 @@ export interface WeeklyHighlight {
 
 interface Props {
   weekLabel?: string;
+  captures?: any[];
   highlights?: WeeklyHighlight[];
   weeklyPeople?: string[];
   weeklyInsight?: string;
@@ -26,8 +27,123 @@ interface Props {
   onGoReflect?: (view: any) => void;
 }
 
+const HISTORICAL_WEEK_PRESETS: Record<number, { title: string; rangeLabel: string; insight: string; highlights: WeeklyHighlight[] }> = {
+  0: {
+    title: "Sept 1 – Sept 7, 2026 (Week 1)",
+    rangeLabel: "Sept 1 – Sept 7",
+    insight: "Your current week is taking shape. Moments captured between Sept 1st and Sept 7th synthesize dynamically as you log thoughts, photos, and voice notes.",
+    highlights: [
+      {
+        id: "cap_sep_06",
+        dayLabel: "Sat, Sep 6",
+        title: "Morning Journaling & Studio Planning",
+        summary: "Reflective session discussing studio priorities around depth, creative focus, and grounded collaboration.",
+        people: ["Kirti", "Mansa"],
+        mood: "Grounded & Relieved"
+      },
+      {
+        id: "cap_sep_05",
+        dayLabel: "Fri, Sep 5",
+        title: "Design Jam & Memory Engine Work",
+        summary: "Worked through UI architecture with the team. Great breakthrough on narrative memory synthesis.",
+        people: ["Kirti", "Mansa"],
+        mood: "Inspired"
+      }
+    ]
+  },
+  "-1": {
+    title: "Aug 25 – Aug 31, 2026 (Completed)",
+    rangeLabel: "Aug 25 – Aug 31",
+    insight: "Your week shifted from intense sprint work into peaceful evening walks at KBR Park, coffee dates with Maya, and creative tea breaks with Ananya.",
+    highlights: [
+      {
+        id: "mock_aug_31",
+        dayLabel: "Mon, Aug 31",
+        title: "Evening Walk & Reflections at KBR Park",
+        summary: "Voice memo recorded during a peaceful evening stroll contemplating how memories evolve over time.",
+        imageUrl: "/collages/daily_collage_sketch.jpg",
+        people: ["Maya"],
+        mood: "Reflective"
+      },
+      {
+        id: "mock_aug_29",
+        dayLabel: "Sat, Aug 29",
+        title: "Third Wave Coffee Date with Maya",
+        summary: "Coffee and long conversation about her upcoming move to London and physical journal rituals.",
+        imageUrl: "/collages/daily_collage_risograph.jpg",
+        people: ["Maya"],
+        mood: "Contemplative"
+      },
+      {
+        id: "mock_aug_28",
+        dayLabel: "Fri, Aug 28",
+        title: "Monsoon Skyline & Tea Break with Ananya",
+        summary: "Captured photos of dramatic monsoon clouds over Jubilee Hills after an intense design session.",
+        imageUrl: "/collages/daily_collage_ghibli.jpg",
+        people: ["Ananya"],
+        mood: "Joyful"
+      }
+    ]
+  },
+  "-2": {
+    title: "Aug 18 – Aug 24, 2026 (Completed)",
+    rangeLabel: "Aug 18 – Aug 24",
+    insight: "Focused sprint energy mid-week, balanced by restful terrace acoustic sessions with Rohan and clear project intentions.",
+    highlights: [
+      {
+        id: "mock_aug_24",
+        dayLabel: "Sun, Aug 24",
+        title: "Quiet Evening Intentions & Studio Plan",
+        summary: "Logged reflections on studio goals and personal creative boundaries.",
+        people: ["Kabir"],
+        mood: "Grounded"
+      },
+      {
+        id: "mock_aug_22",
+        dayLabel: "Fri, Aug 22",
+        title: "Sunset Acoustic Session with Rohan",
+        summary: "Rohan played new acoustic guitar tunes on the terrace as the sun went down over the city skyline.",
+        people: ["Rohan"],
+        mood: "Restorative"
+      },
+      {
+        id: "mock_aug_19",
+        dayLabel: "Tue, Aug 19",
+        title: "Product Architecture Sprint with Kabir",
+        summary: "Deep dive into memory store schemas and graph traversal algorithms.",
+        people: ["Kabir"],
+        mood: "Focused"
+      }
+    ]
+  },
+  "-3": {
+    title: "Aug 11 – Aug 17, 2026 (Completed)",
+    rangeLabel: "Aug 11 – Aug 17",
+    insight: "Strategic clarity and team ideation laid strong foundations for late-August project milestones.",
+    highlights: [
+      {
+        id: "mock_aug_15",
+        dayLabel: "Fri, Aug 15",
+        title: "Studio Dinner & Milestone Celebration",
+        summary: "Celebrated early prototype milestones with Ananya, Kabir, and Priya over dinner.",
+        people: ["Ananya", "Kabir", "Priya"],
+        mood: "Celebratory"
+      },
+      {
+        id: "mock_aug_12",
+        dayLabel: "Wed, Aug 12",
+        title: "Brand Strategy Session with Priya",
+        summary: "Mapped out visual identity tokens, hand-drawn illustration styles, and brand voice.",
+        people: ["Priya"],
+        mood: "Creative"
+      }
+    ]
+  }
+};
+
 export function WeeklyRecapBoard({
   weekLabel = "This Week",
+  captures = [],
   highlights = [],
   weeklyPeople = [],
   weeklyInsight,
@@ -45,15 +161,66 @@ export function WeeklyRecapBoard({
   const currentDayOfWeek = 4;
   const totalDaysInWeek = 7;
 
-  const weekTitle = 
-    weekIndex === 0 ? "Sept 1 – Sept 7, 2026 (Week 1)" :
-    weekIndex === -1 ? "Aug 25 – Aug 31, 2026 (Completed)" :
-    `Aug ${18 + (weekIndex + 2) * 7} – Aug ${24 + (weekIndex + 2) * 7}, 2026 (Completed)`;
+  // Calculate exact start and end dates for selected weekIndex relative to Sept 1, 2026
+  const getWeekBounds = (idx: number) => {
+    const baseStart = new Date(2026, 8, 1); // Sept 1, 2026
+    const start = new Date(baseStart);
+    start.setDate(start.getDate() + idx * 7);
 
-  const dynamicWeeklyInsight = 
+    const end = new Date(start);
+    end.setDate(end.getDate() + 6);
+    end.setHours(23, 59, 59, 999);
+
+    return { start, end };
+  };
+
+  const { start: weekStart, end: weekEnd } = getWeekBounds(weekIndex);
+
+  // Filter actual captures matching the selected week
+  const filteredCaptures = captures.filter((c) => {
+    const d = new Date(c.createdAt);
+    return d >= weekStart && d <= weekEnd;
+  });
+
+  const preset = HISTORICAL_WEEK_PRESETS[weekIndex] || HISTORICAL_WEEK_PRESETS["-1"];
+
+  const rangeLabel =
     weekIndex === 0
-      ? "Your current week is taking shape. Moments captured between Sept 1st and Sept 7th will synthesize into a full weekly story once Week 1 completes."
-      : (weeklyInsight || "Your past week shifted from stress into celebratory milestones and deep restorative time with friends.");
+      ? "Sept 1 – Sept 7"
+      : weekIndex === -1
+      ? "Aug 25 – Aug 31"
+      : `Aug ${Math.max(1, 25 + (weekIndex + 1) * 7)} – Aug ${Math.max(7, 31 + (weekIndex + 1) * 7)}`;
+
+  const weekTitle =
+    weekIndex === 0
+      ? "Sept 1 – Sept 7, 2026 (Week 1)"
+      : preset.title;
+
+  // Highlights for the selected week
+  const activeHighlights: WeeklyHighlight[] =
+    filteredCaptures.length > 0
+      ? filteredCaptures.map((c) => ({
+          id: c.id,
+          dayLabel: new Date(c.createdAt).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }),
+          title: c.dimensions?.summary || c.title || (c.content ? c.content.substring(0, 40) + "..." : "Memory Entry"),
+          summary: c.content,
+          imageUrl: c.mediaUrl,
+          people: c.dimensions?.people || [],
+          mood: c.dimensions?.mood,
+        }))
+      : preset.highlights;
+
+  const activePeople =
+    filteredCaptures.length > 0
+      ? Array.from(new Set(filteredCaptures.flatMap((c) => c.dimensions?.people || [])))
+      : Array.from(new Set(preset.highlights.flatMap((h) => h.people || [])));
+
+  const dynamicWeeklyInsight =
+    weekIndex === 0
+      ? "Your current week is taking shape. Moments captured between Sept 1st and Sept 7th will synthesize into a full weekly story as you capture memories."
+      : filteredCaptures.length > 0
+      ? `Synthesized ${filteredCaptures.length} memory entries captured during ${rangeLabel}.`
+      : preset.insight;
 
   // Load reflection from localStorage on weekIndex change
   useEffect(() => {
@@ -248,10 +415,10 @@ export function WeeklyRecapBoard({
             </div>
           </div>
 
-          {/* Grid of Scene Highlights */}
-          {highlights.length > 0 && (
+          {/* Grid of Scene Highlights for Selected Week */}
+          {activeHighlights.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {highlights.map((item) => (
+              {activeHighlights.map((item) => (
                 <div
                   key={item.id}
                   onClick={() => onSelectHighlight?.(item.id)}
@@ -277,6 +444,16 @@ export function WeeklyRecapBoard({
 
                   <div className="p-4 space-y-1.5 flex-1 flex flex-col justify-between">
                     <div className="space-y-1">
+                      <div className="flex items-center justify-between gap-1 mb-1">
+                        <span className="text-[10px] font-mono font-bold text-[#DE5239] uppercase">
+                          {item.dayLabel}
+                        </span>
+                        {item.mood && !item.imageUrl && (
+                          <span className="text-[10px] font-sans font-semibold text-[#1C1917] bg-[#FAF7F0] border border-[#1C1917]/20 px-2 py-0.5 rounded-full">
+                            {item.mood}
+                          </span>
+                        )}
+                      </div>
                       <h4 className="font-serif text-base font-medium text-[#1C1917] group-hover:text-[#DE5239] transition-colors leading-snug">
                         {item.title}
                       </h4>
