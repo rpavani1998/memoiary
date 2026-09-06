@@ -419,7 +419,7 @@ function LifeHome({
         )}
 
         {/* Memory Time Capsule / Revisiting Past Memories Banner */}
-        <MemoryTimeCapsuleBanner captures={recentCaptures} onSelectCapture={onSelectCapture} />
+        <MemoryTimeCapsuleBanner captures={captures} onSelectCapture={onSelectCapture} />
 
         {/* DAY MODE VIEW: Clean single timeline feed of your captures */}
         {timelineMode === "day" && (

@@ -34,14 +34,14 @@ export interface WalkthroughStep {
 export const WALKTHROUGH_STEPS: WalkthroughStep[] = [
   {
     id: 1,
-    title: "Journal Sanctuary & Quick Capture",
-    badge: "Multimodal Voice & Text AI",
+    title: "Journal Sanctuary Feed & Timeline",
+    badge: "Chronological Sanctuary Feed",
     targetView: "life",
-    selector: "[data-tour='nav-capture']",
-    icon: Plus,
-    description: "Tap the central '+' button anytime to record voice notes, upload photos, or write personal memories.",
-    aiExplanation: "Gemini Multimodal AI processes your voice audio and text in real-time, automatically identifying people, locations, emotional valence, and key memory moments.",
-    highlightNote: "Try clicking '+' to record a quick voice note or write a thought!"
+    selector: "[data-tour='nav-sanctuary']",
+    icon: BookOpen,
+    description: "Welcome to your primary Journal Sanctuary feed! All recorded text, audio, and photo memories are rendered chronologically here.",
+    aiExplanation: "Gemini Multimodal AI parses your raw voice/text in real-time, automatically extracting people involved, location context, emotional valence, and key memory moments.",
+    highlightNote: "Tap this sanctuary icon anytime to return to your main memory feed."
   },
   {
     id: 2,
@@ -67,6 +67,17 @@ export const WALKTHROUGH_STEPS: WalkthroughStep[] = [
   },
   {
     id: 4,
+    title: "Quick Capture (+ Button)",
+    badge: "Multimodal Voice & Text AI",
+    targetView: "life",
+    selector: "[data-tour='nav-capture']",
+    icon: Plus,
+    description: "Tap the central '+' button anytime to record voice notes, upload photos, or write personal memories.",
+    aiExplanation: "Processes voice audio and text with zero delay, extracting structured dimensions without requiring manual tags.",
+    highlightNote: "Try clicking '+' to record a quick voice note or write a thought!"
+  },
+  {
+    id: 5,
     title: "Elements: Wishlists & Action Intentions",
     badge: "Sentence Classifier",
     targetView: "entities",
@@ -77,7 +88,7 @@ export const WALKTHROUGH_STEPS: WalkthroughStep[] = [
     highlightNote: "Click 'Open Entry' on any item to view the source journal recording!"
   },
   {
-    id: 5,
+    id: 6,
     title: "AI Mind Map & Epistemic Graph",
     badge: "Force Physics Clustering",
     targetView: "collections",
@@ -88,7 +99,7 @@ export const WALKTHROUGH_STEPS: WalkthroughStep[] = [
     highlightNote: "Drag any node on the graph to explore connections!"
   },
   {
-    id: 6,
+    id: 7,
     title: "AI Reflection Chatboard",
     badge: "Personal AI Guide",
     targetView: "reflect",
@@ -99,7 +110,7 @@ export const WALKTHROUGH_STEPS: WalkthroughStep[] = [
     highlightNote: "Click 'Save Chat Reflection' to persist key AI conversations directly to your timeline."
   },
   {
-    id: 7,
+    id: 8,
     title: "Privacy & User Account Isolation",
     badge: "Encrypted Storage Scoping",
     targetView: "profile",
@@ -127,20 +138,29 @@ export function InteractiveProductWalkthrough({
   const step = WALKTHROUGH_STEPS[currentStepIdx];
   const StepIcon = step?.icon || Plus;
 
-  // Navigate view and calculate target element bounding rect with polling retry
+  // Navigate view and calculate target element bounding rect with retry interval
   useEffect(() => {
     if (!isOpen || !step) return;
 
     onNavigateView(step.targetView);
 
     let attempts = 0;
-    const maxAttempts = 20;
+    const maxAttempts = 25;
 
     const findAndTarget = () => {
       const el = document.querySelector(step.selector);
       if (el) {
         el.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
-        setTargetRect(el.getBoundingClientRect());
+        
+        // Track smooth scroll animation ticks
+        let ticks = 0;
+        const anim = setInterval(() => {
+          const rect = el.getBoundingClientRect();
+          setTargetRect(rect);
+          ticks++;
+          if (ticks > 12) clearInterval(anim);
+        }, 50);
+
         return true;
       }
       return false;
@@ -193,55 +213,56 @@ export function InteractiveProductWalkthrough({
     }
   };
 
-  // Compute card positioning guaranteeing 100% viewport visibility
-  const cardHeight = popoverRef.current?.offsetHeight || 280;
-  const cardWidth = popoverRef.current?.offsetWidth || 340;
+  // Measured card dimensions for exact viewport clamping
+  const cardHeight = popoverRef.current?.offsetHeight || 270;
+  const cardWidth = Math.min(360, window.innerWidth - 32);
 
-  let popoverStyle: React.CSSProperties = {
-    position: "fixed",
-    left: "50%",
-    transform: "translateX(-50%)",
-    bottom: "90px"
-  };
-
+  let top = window.innerHeight / 2 - cardHeight / 2;
+  let left = window.innerWidth / 2 - cardWidth / 2;
   let arrowPlacement: "top" | "bottom" | "none" = "none";
+  let arrowLeftPx = "50%";
 
   if (targetRect) {
     const spaceAbove = targetRect.top;
     const spaceBelow = window.innerHeight - targetRect.bottom;
 
-    let top: number;
-    if (spaceAbove > cardHeight + 20) {
+    if (spaceAbove > cardHeight + 16) {
       top = targetRect.top - cardHeight - 14;
       arrowPlacement = "bottom";
-    } else if (spaceBelow > cardHeight + 20) {
+    } else if (spaceBelow > cardHeight + 16) {
       top = targetRect.bottom + 14;
       arrowPlacement = "top";
     } else {
-      top = targetRect.top;
+      top = targetRect.top - 20;
       arrowPlacement = "none";
     }
 
-    // Clamp top & left strictly inside visible viewport bounds
-    top = Math.max(16, Math.min(window.innerHeight - cardHeight - 80, top));
-    let left = targetRect.left + targetRect.width / 2 - cardWidth / 2;
+    // Clamp top & left strictly inside visible screen viewport
+    top = Math.max(16, Math.min(window.innerHeight - cardHeight - 75, top));
+    left = targetRect.left + targetRect.width / 2 - cardWidth / 2;
     left = Math.max(16, Math.min(window.innerWidth - cardWidth - 16, left));
 
-    popoverStyle = {
-      position: "fixed",
-      top: `${top}px`,
-      left: `${left}px`,
-      width: "calc(100vw - 32px)",
-      maxWidth: "360px"
-    };
+    // Dynamic pointer arrow alignment relative to card
+    const targetCenterX = targetRect.left + targetRect.width / 2;
+    const arrowPosInCard = targetCenterX - left;
+    const clampedArrowPos = Math.max(24, Math.min(cardWidth - 24, arrowPosInCard));
+    arrowLeftPx = `${clampedArrowPos}px`;
   }
+
+  const popoverStyle: React.CSSProperties = {
+    position: "fixed",
+    top: `${top}px`,
+    left: `${left}px`,
+    width: `${cardWidth}px`,
+    maxHeight: `calc(100vh - ${top + 20}px)`
+  };
 
   return (
     <div className="fixed inset-0 z-50 pointer-events-none font-sans select-none">
       {/* Target Element Spotlight Ring */}
       {targetRect && (
         <div
-          className="fixed pointer-events-none z-50 rounded-2xl border-3 border-[#DE5239] shadow-[0_0_20px_rgba(222,82,57,0.7)] transition-all duration-300 animate-pulse"
+          className="fixed pointer-events-none z-50 rounded-2xl border-3 border-[#DE5239] shadow-[0_0_20px_rgba(222,82,57,0.7)] transition-all duration-200 animate-pulse"
           style={{
             top: targetRect.top - 6,
             left: targetRect.left - 6,
@@ -254,19 +275,25 @@ export function InteractiveProductWalkthrough({
       {/* Element-Anchored Popover Tooltip Speech Bubble */}
       <div
         ref={popoverRef}
-        className="pointer-events-auto bg-[#FAF7F0] border-2 border-[#1C1917] rounded-3xl p-4 sm:p-5 shadow-[6px_8px_0px_#1C1917] z-50 font-sans transition-all duration-300 animate-fade-in relative"
+        className="pointer-events-auto bg-[#FAF7F0] border-2 border-[#1C1917] rounded-3xl p-4 sm:p-5 shadow-[6px_8px_0px_#1C1917] z-50 font-sans transition-all duration-200 animate-fade-in relative flex flex-col"
         style={popoverStyle}
       >
         {/* Pointer Arrow */}
         {targetRect && arrowPlacement === "bottom" && (
-          <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-0 h-0 border-l-8 border-l-transparent border-r-8 border-r-transparent border-t-8 border-t-[#1C1917]" />
+          <div
+            className="absolute -bottom-3 w-0 h-0 border-l-8 border-l-transparent border-r-8 border-r-transparent border-t-8 border-t-[#1C1917]"
+            style={{ left: arrowLeftPx, transform: "translateX(-50%)" }}
+          />
         )}
         {targetRect && arrowPlacement === "top" && (
-          <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-0 h-0 border-l-8 border-l-transparent border-r-8 border-r-transparent border-b-8 border-b-[#1C1917]" />
+          <div
+            className="absolute -top-3 w-0 h-0 border-l-8 border-l-transparent border-r-8 border-r-transparent border-b-8 border-b-[#1C1917]"
+            style={{ left: arrowLeftPx, transform: "translateX(-50%)" }}
+          />
         )}
 
         {/* Step Badge & Close */}
-        <div className="flex items-center justify-between gap-2 mb-2">
+        <div className="flex items-center justify-between gap-2 mb-2 shrink-0">
           <div className="flex items-center gap-1.5">
             <span className="bg-[#DE5239] text-white px-2.5 py-0.5 rounded-md font-mono text-[10px] font-bold uppercase tracking-wider shadow-2xs flex items-center gap-1">
               <Sparkles size={11} className="animate-spin-slow" />
@@ -287,7 +314,7 @@ export function InteractiveProductWalkthrough({
         </div>
 
         {/* Feature Title & Icon */}
-        <div className="flex items-start gap-2.5 my-2">
+        <div className="flex items-start gap-2.5 my-1.5 shrink-0">
           <div className="p-2 bg-[#DE5239]/10 text-[#DE5239] border border-[#DE5239]/30 rounded-xl shrink-0 mt-0.5">
             <StepIcon size={18} />
           </div>
@@ -302,7 +329,7 @@ export function InteractiveProductWalkthrough({
         </div>
 
         {/* AI Insight Technical Box */}
-        <div className="my-2.5 bg-white/90 border border-[#1C1917]/20 rounded-2xl p-2.5 shadow-2xs">
+        <div className="my-2 bg-white/90 border border-[#1C1917]/20 rounded-2xl p-2.5 shadow-2xs shrink-0">
           <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#DE5239] font-sans mb-1">
             <Sparkles size={13} className="fill-[#DE5239]" />
             <span>AI Behind The Scenes</span>
@@ -311,7 +338,7 @@ export function InteractiveProductWalkthrough({
             {step.aiExplanation}
           </p>
           {step.highlightNote && (
-            <div className="mt-2 pt-1.5 border-t border-stone-200 flex items-start gap-1 text-[10px] text-[#4D7C0F] font-semibold font-sans">
+            <div className="mt-1.5 pt-1.5 border-t border-stone-200 flex items-start gap-1 text-[10px] text-[#4D7C0F] font-semibold font-sans">
               <CheckCircle2 size={12} className="shrink-0 mt-0.5" />
               <span>{step.highlightNote}</span>
             </div>
@@ -319,7 +346,7 @@ export function InteractiveProductWalkthrough({
         </div>
 
         {/* Step Controls */}
-        <div className="mt-3 pt-2 border-t border-[#1C1917]/15 flex items-center justify-between gap-2">
+        <div className="mt-2 pt-2 border-t border-[#1C1917]/15 flex items-center justify-between gap-2 shrink-0">
           {/* Step Dots */}
           <div className="flex items-center gap-1">
             {WALKTHROUGH_STEPS.map((s, idx) => (
