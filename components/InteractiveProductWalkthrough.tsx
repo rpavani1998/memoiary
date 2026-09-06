@@ -15,7 +15,8 @@ import {
   ShieldCheck,
   CheckCircle2,
   Plus,
-  History
+  History,
+  Users
 } from "lucide-react";
 import { View } from "./memoiary/MemoiaryAppShell";
 
@@ -25,6 +26,7 @@ export interface WalkthroughStep {
   badge: string;
   targetView: View;
   selector: string;
+  subTabSelector?: string;
   icon: React.ComponentType<{ size?: number; className?: string }>;
   description: string;
   aiExplanation: string;
@@ -78,17 +80,42 @@ export const WALKTHROUGH_STEPS: WalkthroughStep[] = [
   },
   {
     id: 5,
-    title: "Elements: Wishlists & Action Intentions",
-    badge: "Sentence Classifier",
+    title: "Elements: Events & Milestones Calendar",
+    badge: "Event Extractor Engine",
     targetView: "entities",
-    selector: "[data-tour='wishlist-board']",
-    icon: HeartHandshake,
-    description: "Separates your future desires (recipes to try, travel spots) from active action obligations (promises, calls to make).",
-    aiExplanation: "Uses sentence-level regex classification to filter out past completed events, extracting active future intentions with direct links back to source entries.",
-    highlightNote: "Click 'Open Entry' on any item to view the source journal recording!"
+    subTabSelector: "[data-tour='tab-events']",
+    selector: "[data-tour='elements-events']",
+    icon: Calendar,
+    description: "Auto-detects upcoming birthdays, farewell gatherings, trips, and social milestones directly from your journal entries with smart countdowns.",
+    aiExplanation: "Gemini extracts dates, recurring event triggers, and tagged companions, mapping them to an interactive calendar board with custom event creation.",
+    highlightNote: "Click 'Add Custom Event' or tap any date to inspect milestones!"
   },
   {
     id: 6,
+    title: "Elements: People & Places Network",
+    badge: "Entity Linking Matrix",
+    targetView: "entities",
+    subTabSelector: "[data-tour='tab-people-places']",
+    selector: "[data-tour='people-places-board']",
+    icon: Users,
+    description: "Your personal directory of friends, family, and places logged. Shows how many shared moments you've captured with each companion and location.",
+    aiExplanation: "Aggregates named entities and geo-places across all journal entries into dynamic companion profiles and location cards.",
+    highlightNote: "Click on any person's avatar to view all journal entries involving them!"
+  },
+  {
+    id: 7,
+    title: "Elements: Wishlists & Action Intentions",
+    badge: "Sentence Classifier",
+    targetView: "entities",
+    subTabSelector: "[data-tour='tab-intentions']",
+    selector: "[data-tour='wishlist-board']",
+    icon: HeartHandshake,
+    description: "Separates your aspirational desires (recipes to try, places to visit) from active action commitments (promises made, calls to make).",
+    aiExplanation: "Sentence-level classification filters out completed past events, extracting active future intentions with direct links back to source entries.",
+    highlightNote: "Click 'Open Entry' on any wishlist or intention item to jump to the source journal entry!"
+  },
+  {
+    id: 8,
     title: "AI Mind Map & Epistemic Graph",
     badge: "Force Physics Clustering",
     targetView: "collections",
@@ -99,7 +126,7 @@ export const WALKTHROUGH_STEPS: WalkthroughStep[] = [
     highlightNote: "Drag any node on the graph to explore connections!"
   },
   {
-    id: 7,
+    id: 9,
     title: "AI Reflection Chatboard",
     badge: "Personal AI Guide",
     targetView: "reflect",
@@ -110,7 +137,7 @@ export const WALKTHROUGH_STEPS: WalkthroughStep[] = [
     highlightNote: "Click 'Save Chat Reflection' to persist key AI conversations directly to your timeline."
   },
   {
-    id: 8,
+    id: 10,
     title: "Privacy & User Account Isolation",
     badge: "Encrypted Storage Scoping",
     targetView: "profile",
@@ -148,6 +175,13 @@ export function InteractiveProductWalkthrough({
     const maxAttempts = 25;
 
     const findAndTarget = () => {
+      if (step.subTabSelector) {
+        const subTabEl = document.querySelector(step.subTabSelector) as HTMLElement | null;
+        if (subTabEl) {
+          subTabEl.click();
+        }
+      }
+
       const el = document.querySelector(step.selector);
       if (el) {
         el.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });

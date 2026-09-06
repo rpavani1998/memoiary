@@ -91,6 +91,7 @@ export function EntitiesViewSection({
         <div className="flex bg-[#F5F1E8] border border-[#1C1917]/20 p-1 rounded-2xl gap-1 text-xs font-sans font-bold shadow-2xs">
           <button
             onClick={() => setInternalTab("events")}
+            data-tour="tab-events"
             className={`px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer ${
               internalTab === "events"
                 ? "bg-[#DE5239] text-white shadow-[1px_2px_0px_#1C1917]"
@@ -103,6 +104,7 @@ export function EntitiesViewSection({
 
           <button
             onClick={() => setInternalTab("people_places")}
+            data-tour="tab-people-places"
             className={`px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer ${
               internalTab === "people_places"
                 ? "bg-[#DE5239] text-white shadow-[1px_2px_0px_#1C1917]"
@@ -115,6 +117,7 @@ export function EntitiesViewSection({
 
           <button
             onClick={() => setInternalTab("intentions")}
+            data-tour="tab-intentions"
             className={`px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer ${
               internalTab === "intentions"
                 ? "bg-[#DE5239] text-white shadow-[1px_2px_0px_#1C1917]"
@@ -129,11 +132,13 @@ export function EntitiesViewSection({
 
       {/* ── TAB 1: EVENTS & MILESTONES CALENDAR ── */}
       {internalTab === "events" && (
-        <EventCalendarBoard
-          captures={captures}
-          onSelectPerson={onSelectPerson}
-          onOpenCapture={onOpenCapture}
-        />
+        <div data-tour="elements-events">
+          <EventCalendarBoard
+            captures={captures}
+            onSelectPerson={onSelectPerson}
+            onOpenCapture={onOpenCapture}
+          />
+        </div>
       )}
 
       {/* ── TAB 2: WISHLIST & ACTION INTENTIONS ── */}
@@ -141,9 +146,9 @@ export function EntitiesViewSection({
         <WishlistIntentionsBoard captures={captures} onSelectCapture={onSelectCapture} />
       )}
 
-      {/* ── TAB 2: PEOPLE & PLACES (COMBINED TOGETHER) ── */}
+      {/* ── TAB 3: PEOPLE & PLACES (COMBINED TOGETHER) ── */}
       {internalTab === "people_places" && (
-        <div className="space-y-8">
+        <div data-tour="people-places-board" className="space-y-8">
           {/* Section A: People in Your Life */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
