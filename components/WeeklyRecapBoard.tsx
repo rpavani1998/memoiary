@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { Calendar, Sparkles, TrendingUp, Users, Heart, Lock, ChevronLeft, ChevronRight, CheckCircle2, Clock } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Calendar, Sparkles, TrendingUp, Users, Heart, Lock, ChevronLeft, ChevronRight, CheckCircle2, Clock, PenLine } from "lucide-react";
 import { ArtisticAvatar } from "./ArtisticAvatar";
 
 export interface WeeklyHighlight {
@@ -39,10 +39,11 @@ export function WeeklyRecapBoard({
 }: Props) {
   // weekIndex: 0 = current week (Sept 1 - Sept 7), -1 = previous week (Aug 25 - Aug 31), -2 = Aug 18 - Aug 24
   const [weekIndex, setWeekIndex] = useState<number>(0);
+  const [userReflection, setUserReflection] = useState<string>("");
+  const [savedToast, setSavedToast] = useState(false);
 
-  const currentDayOfWeek = 4; // Day 4 of 7 for current week
+  const currentDayOfWeek = 4;
   const totalDaysInWeek = 7;
-  const isCurrentWeekComplete = isUnlocked || weekIndex < 0;
 
   const weekTitle = 
     weekIndex === 0 ? "Sept 1 – Sept 7, 2026 (Week 1)" :
@@ -53,6 +54,27 @@ export function WeeklyRecapBoard({
     weekIndex === 0
       ? "Your current week is taking shape. Moments captured between Sept 1st and Sept 7th will synthesize into a full weekly story once Week 1 completes."
       : (weeklyInsight || "Your past week shifted from stress into celebratory milestones and deep restorative time with friends.");
+
+  // Load reflection from localStorage on weekIndex change
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(`memoiary_user_reflection_week_${weekIndex}`);
+      setUserReflection(saved || "");
+    } catch (e) {
+      setUserReflection("");
+    }
+  }, [weekIndex]);
+
+  const handleSaveReflection = (val: string) => {
+    setUserReflection(val);
+    try {
+      localStorage.setItem(`memoiary_user_reflection_week_${weekIndex}`, val);
+      setSavedToast(true);
+      setTimeout(() => setSavedToast(false), 2000);
+    } catch (e) {
+      console.warn("Failed to save reflection", e);
+    }
+  };
 
   return (
     <section className="my-6 border-[1.5px] border-[#1C1917] bg-[#FAF7F0] rounded-3xl p-5 sm:p-7 shadow-[4px_6px_0px_#1C1917] relative overflow-hidden font-sans">
@@ -139,9 +161,20 @@ export function WeeklyRecapBoard({
               </div>
             </div>
 
-            <p className="text-xs text-[#665F56] leading-relaxed">
-              ✨ <strong className="text-[#1C1917]">Weekly Rule:</strong> Weekly recaps synthesize automatically once the full 7-day week finishes. Use the <strong className="text-[#1C1917]">&lt; arrow</strong> in the top header to navigate back to view completed previous weeks!
-            </p>
+            {/* Freeform Current Week Reflection */}
+            <div className="pt-2 space-y-2 border-t border-stone-100">
+              <label className="text-xs font-bold text-[#1C1917] flex items-center justify-between">
+                <span>✍️ Add your reflections for this week</span>
+                {savedToast && <span className="text-[10px] font-mono text-[#059669]">✓ Saved</span>}
+              </label>
+              <textarea
+                value={userReflection}
+                onChange={(e) => handleSaveReflection(e.target.value)}
+                placeholder="How are you feeling this week? Add any personal notes or thoughts..."
+                rows={2}
+                className="w-full p-3 bg-[#FAF7F0] border border-[#1C1917]/20 rounded-xl font-serif text-xs text-[#1C1917] focus:outline-none focus:border-[#DE5239] placeholder:italic"
+              />
+            </div>
           </div>
         </div>
       )}
@@ -149,7 +182,7 @@ export function WeeklyRecapBoard({
       {/* VIEW 2: COMPLETED WEEK VIEW (WEEK INDEX < 0 OR UNLOCKED) */}
       {(weekIndex < 0 || isUnlocked) && (
         <div className="space-y-6 animate-in fade-in duration-300">
-          {/* Guided Weekly Reflection & Review Section */}
+          {/* Freeform Personal Weekly Reflection Box */}
           <div className="p-5 sm:p-6 bg-white border-[1.5px] border-[#1C1917] rounded-2xl shadow-[2px_3px_0px_#1C1917] space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#1C1917]/10 pb-3">
               <div className="flex items-center gap-2">
@@ -158,45 +191,44 @@ export function WeeklyRecapBoard({
                 </div>
                 <div>
                   <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#DE5239] block">
-                    Completed Week Synthesis
+                    Personal Weekly Reflection
                   </span>
                   <h4 className="font-serif text-xl font-medium text-[#1C1917]">
-                    Weekly Story Arc &amp; Reflections
+                    How are you feeling about this period?
                   </h4>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                {onOpenCapture && (
-                  <button
-                    onClick={() => onOpenCapture("Weekly Reflection: Key moments & learnings")}
-                    className="px-3.5 py-2 bg-[#DE5239] hover:bg-[#C6422A] text-white rounded-xl text-xs font-sans font-bold shadow-[1px_2px_0px_#1C1917] border border-[#1C1917] transition-all cursor-pointer"
-                  >
-                    ✍️ Record Reflection
-                  </button>
-                )}
-              </div>
+              {savedToast && (
+                <span className="text-xs font-mono font-bold text-[#059669] bg-[#E2EBD8] border border-[#059669]/30 px-3 py-1 rounded-full animate-in fade-in">
+                  ✓ Saved to your story
+                </span>
+              )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-              <div className="p-3.5 rounded-xl bg-[#FAF7F0] border border-[#1C1917]/15 space-y-1">
-                <span className="text-xs font-bold text-[#DE5239] font-mono block">1. HIGHLIGHTS &amp; EVENTS</span>
-                <p className="font-serif italic text-xs text-stone-800 leading-snug">
-                  &quot;Major breakthroughs and milestones from this 7-day period.&quot;
-                </p>
-              </div>
+            {/* Freeform Reflection Textarea */}
+            <div className="space-y-3">
+              <textarea
+                value={userReflection}
+                onChange={(e) => handleSaveReflection(e.target.value)}
+                placeholder="Write your reflections here... How did this week feel for you? What were your favorite moments, insights, or intentions for next week?"
+                rows={3}
+                className="w-full p-4 bg-[#FAF7F0] border-[1.5px] border-[#1C1917]/25 rounded-2xl font-serif text-sm text-[#1C1917] focus:outline-none focus:border-[#DE5239] placeholder:italic placeholder:text-[#665F56]/60 leading-relaxed shadow-2xs"
+              />
 
-              <div className="p-3.5 rounded-xl bg-[#FAF7F0] border border-[#1C1917]/15 space-y-1">
-                <span className="text-xs font-bold text-[#D97706] font-mono block">2. KEY LEARNINGS</span>
-                <p className="font-serif italic text-xs text-stone-800 leading-snug">
-                  &quot;Insights and personal takeaways gained across these 7 days.&quot;
-                </p>
-              </div>
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                <span className="text-[11px] font-mono text-[#665F56]">
+                  {userReflection.trim() ? "✨ Saved in your personal reflection history" : "💡 Write freely or record a quick audio/photo reflection"}
+                </span>
 
-              <div className="p-3.5 rounded-xl bg-[#FAF7F0] border border-[#1C1917]/15 space-y-1">
-                <span className="text-xs font-bold text-[#059669] font-mono block">3. WHAT TO IMPROVE</span>
-                <p className="font-serif italic text-xs text-stone-800 leading-snug">
-                  &quot;Rest and pacing intentions set for the next cycle.&quot;
-                </p>
+                {onOpenCapture && (
+                  <button
+                    onClick={() => onOpenCapture("Weekly Reflection: How did this week feel for you?")}
+                    className="px-3.5 py-1.5 bg-[#DE5239] hover:bg-[#C6422A] text-white rounded-xl text-xs font-sans font-bold shadow-[1px_2px_0px_#1C1917] border border-[#1C1917] transition-all cursor-pointer flex items-center gap-1.5"
+                  >
+                    <PenLine size={13} />
+                    <span>Record Audio/Photo Reflection</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>
