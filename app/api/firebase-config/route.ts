@@ -13,8 +13,8 @@ export async function GET() {
     apiKey:
       process.env.FIREBASE_API_KEY ||
       process.env.NEXT_PUBLIC_FIREBASE_API_KEY ||
-      localConfig.apiKey ||
-      "YOUR_FIREBASE_API_KEY",
+      (localConfig.apiKey && localConfig.apiKey !== "YOUR_FIREBASE_API_KEY" ? localConfig.apiKey : null) ||
+      "",
     authDomain:
       process.env.FIREBASE_AUTH_DOMAIN ||
       process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ||
