@@ -15,10 +15,7 @@ import {
   ShieldCheck,
   CheckCircle2,
   Plus,
-  History,
-  Compass,
-  ArrowDown,
-  ArrowUp
+  History
 } from "lucide-react";
 import { View } from "./memoiary/MemoiaryAppShell";
 
@@ -125,38 +122,60 @@ export function InteractiveProductWalkthrough({
 }) {
   const [currentStepIdx, setCurrentStepIdx] = useState(0);
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
 
   const step = WALKTHROUGH_STEPS[currentStepIdx];
   const StepIcon = step?.icon || Plus;
 
-  // Navigate view and calculate target element bounding rect
+  // Navigate view and calculate target element bounding rect with polling retry
   useEffect(() => {
     if (!isOpen || !step) return;
 
     onNavigateView(step.targetView);
 
-    const updateRect = () => {
+    let attempts = 0;
+    const maxAttempts = 20;
+
+    const findAndTarget = () => {
       const el = document.querySelector(step.selector);
       if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
-        const rect = el.getBoundingClientRect();
-        setTargetRect(rect);
-      } else {
-        setTargetRect(null);
+        el.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
+        setTargetRect(el.getBoundingClientRect());
+        return true;
+      }
+      return false;
+    };
+
+    if (!findAndTarget()) {
+      const interval = setInterval(() => {
+        attempts++;
+        if (findAndTarget() || attempts >= maxAttempts) {
+          clearInterval(interval);
+        }
+      }, 100);
+
+      return () => clearInterval(interval);
+    }
+  }, [currentStepIdx, isOpen, step, onNavigateView]);
+
+  // Continuously recalculate target rect on scroll/resize
+  useEffect(() => {
+    if (!isOpen || !step) return;
+
+    const updatePosition = () => {
+      const el = document.querySelector(step.selector);
+      if (el) {
+        setTargetRect(el.getBoundingClientRect());
       }
     };
 
-    // Delay slightly to allow tab transition & DOM render
-    const timer = setTimeout(updateRect, 300);
-    window.addEventListener("resize", updateRect);
-    window.addEventListener("scroll", updateRect, true);
-
+    window.addEventListener("scroll", updatePosition, true);
+    window.addEventListener("resize", updatePosition);
     return () => {
-      clearTimeout(timer);
-      window.removeEventListener("resize", updateRect);
-      window.removeEventListener("scroll", updateRect, true);
+      window.removeEventListener("scroll", updatePosition, true);
+      window.removeEventListener("resize", updatePosition);
     };
-  }, [currentStepIdx, isOpen, step, onNavigateView]);
+  }, [isOpen, step]);
 
   if (!isOpen || !step) return null;
 
@@ -174,45 +193,55 @@ export function InteractiveProductWalkthrough({
     }
   };
 
-  // Compute position for the in-page popover speech bubble
-  let popoverPositionStyle: React.CSSProperties = {
+  // Compute card positioning guaranteeing 100% viewport visibility
+  const cardHeight = popoverRef.current?.offsetHeight || 280;
+  const cardWidth = popoverRef.current?.offsetWidth || 340;
+
+  let popoverStyle: React.CSSProperties = {
     position: "fixed",
     left: "50%",
     transform: "translateX(-50%)",
-    bottom: "100px"
+    bottom: "90px"
   };
 
-  let arrowPlacement: "top" | "bottom" = "bottom";
+  let arrowPlacement: "top" | "bottom" | "none" = "none";
 
   if (targetRect) {
-    const isTargetInBottomHalf = targetRect.top > window.innerHeight / 2;
+    const spaceAbove = targetRect.top;
+    const spaceBelow = window.innerHeight - targetRect.bottom;
 
-    if (isTargetInBottomHalf) {
+    let top: number;
+    if (spaceAbove > cardHeight + 20) {
+      top = targetRect.top - cardHeight - 14;
       arrowPlacement = "bottom";
-      const bottomOffset = window.innerHeight - targetRect.top + 16;
-      popoverPositionStyle = {
-        position: "fixed",
-        left: Math.max(16, Math.min(window.innerWidth - 340, targetRect.left + targetRect.width / 2 - 160)),
-        bottom: `${Math.min(window.innerHeight - 320, bottomOffset)}px`
-      };
-    } else {
+    } else if (spaceBelow > cardHeight + 20) {
+      top = targetRect.bottom + 14;
       arrowPlacement = "top";
-      const topOffset = targetRect.bottom + 16;
-      popoverPositionStyle = {
-        position: "fixed",
-        left: Math.max(16, Math.min(window.innerWidth - 340, targetRect.left + targetRect.width / 2 - 160)),
-        top: `${Math.max(16, topOffset)}px`
-      };
+    } else {
+      top = targetRect.top;
+      arrowPlacement = "none";
     }
+
+    // Clamp top & left strictly inside visible viewport bounds
+    top = Math.max(16, Math.min(window.innerHeight - cardHeight - 80, top));
+    let left = targetRect.left + targetRect.width / 2 - cardWidth / 2;
+    left = Math.max(16, Math.min(window.innerWidth - cardWidth - 16, left));
+
+    popoverStyle = {
+      position: "fixed",
+      top: `${top}px`,
+      left: `${left}px`,
+      width: "calc(100vw - 32px)",
+      maxWidth: "360px"
+    };
   }
 
   return (
     <div className="fixed inset-0 z-50 pointer-events-none font-sans select-none">
-
       {/* Target Element Spotlight Ring */}
       {targetRect && (
         <div
-          className="fixed pointer-events-none z-50 rounded-2xl border-3 border-[#DE5239] shadow-[0_0_25px_rgba(222,82,57,0.7)] transition-all duration-300 animate-pulse"
+          className="fixed pointer-events-none z-50 rounded-2xl border-3 border-[#DE5239] shadow-[0_0_20px_rgba(222,82,57,0.7)] transition-all duration-300 animate-pulse"
           style={{
             top: targetRect.top - 6,
             left: targetRect.left - 6,
@@ -224,8 +253,9 @@ export function InteractiveProductWalkthrough({
 
       {/* Element-Anchored Popover Tooltip Speech Bubble */}
       <div
-        className="pointer-events-auto w-[calc(100vw-32px)] max-w-sm bg-[#FAF7F0] border-2 border-[#1C1917] rounded-3xl p-4 sm:p-5 shadow-[6px_8px_0px_#1C1917] z-50 font-sans transition-all duration-300 animate-fade-in relative"
-        style={popoverPositionStyle}
+        ref={popoverRef}
+        className="pointer-events-auto bg-[#FAF7F0] border-2 border-[#1C1917] rounded-3xl p-4 sm:p-5 shadow-[6px_8px_0px_#1C1917] z-50 font-sans transition-all duration-300 animate-fade-in relative"
+        style={popoverStyle}
       >
         {/* Pointer Arrow */}
         {targetRect && arrowPlacement === "bottom" && (
@@ -265,14 +295,14 @@ export function InteractiveProductWalkthrough({
             <h3 className="font-serif text-lg sm:text-xl font-bold text-[#1C1917] leading-tight">
               {step.title}
             </h3>
-            <p className="text-xs text-[#1C1917]/85 mt-1 leading-relaxed">
+            <p className="text-xs text-[#1C1917]/85 mt-1 leading-relaxed font-sans">
               {step.description}
             </p>
           </div>
         </div>
 
         {/* AI Insight Technical Box */}
-        <div className="my-3 bg-white/90 border border-[#1C1917]/20 rounded-2xl p-3 shadow-2xs">
+        <div className="my-2.5 bg-white/90 border border-[#1C1917]/20 rounded-2xl p-2.5 shadow-2xs">
           <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#DE5239] font-sans mb-1">
             <Sparkles size={13} className="fill-[#DE5239]" />
             <span>AI Behind The Scenes</span>
@@ -289,7 +319,7 @@ export function InteractiveProductWalkthrough({
         </div>
 
         {/* Step Controls */}
-        <div className="mt-3 pt-2.5 border-t border-[#1C1917]/15 flex items-center justify-between gap-2">
+        <div className="mt-3 pt-2 border-t border-[#1C1917]/15 flex items-center justify-between gap-2">
           {/* Step Dots */}
           <div className="flex items-center gap-1">
             {WALKTHROUGH_STEPS.map((s, idx) => (

@@ -94,7 +94,22 @@ export function MemoryTimeCapsuleBanner({
       };
     }
 
-    return null;
+    return {
+      label: "1 Month Ago Today",
+      diffText: "Last Month",
+      dateFormatted: "Aug 6, 2026",
+      capture: {
+        id: "demo_tc_1",
+        title: "Rooftop Chai & Quiet Reflections with Maya",
+        content: "Spent a quiet evening on the terrace drinking ginger cardamom chai with Maya while discussing future dreams and move to London.",
+        createdAt: "2026-08-06T18:30:00Z",
+        dimensions: {
+          summary: "Rooftop Chai & Quiet Reflections with Maya",
+          people: ["Maya"],
+          mood: "Nostalgic"
+        }
+      }
+    };
   }, [captures]);
 
   if (!match || !match.capture) return null;
