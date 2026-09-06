@@ -81,12 +81,10 @@ export function EntitiesViewSection({
       {/* Elements Hub Header with 2 Internal Tabs */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#1C1917]/15 pb-4">
         <div>
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[#DE5239] flex items-center gap-1.5 font-sans">
-            <Layers size={14} /> Components of your Memory Engine
-          </span>
-          <h1 className="font-serif text-2xl sm:text-3xl font-medium text-[#1C1917] mt-0.5">
-            Elements
+          <h1 className="font-serif text-2xl sm:text-3xl font-medium text-[#1C1917] flex items-center gap-2">
+            <Layers size={22} className="text-[#DE5239]" /> Elements
           </h1>
+          <p className="text-xs text-[#665F56] font-sans mt-0.5">Events, People, Places, and Wishlists extracted from your story.</p>
         </div>
 
         {/* 3 Internal Sub-Tabs Switcher */}

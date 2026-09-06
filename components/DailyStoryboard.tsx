@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Clock, MapPin, Film, Sparkles, PenTool, Users } from "lucide-react";
 import { ArtisticAvatar } from "./ArtisticAvatar";
 import { getPersonVisualIdentity } from "@/lib/memory-engine/person-graph";
@@ -44,6 +44,8 @@ function synthesizeDailyEmotionalArc(scenes: StoryboardScene[]): string {
 }
 
 export function DailyStoryboard({ dateStr, scenes }: Props) {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
   if (!scenes || scenes.length === 0) return null;
 
   // Collect all unique people in today's scenes
@@ -59,19 +61,30 @@ export function DailyStoryboard({ dateStr, scenes }: Props) {
       <div className="absolute top-0 right-0 w-64 h-64 rounded-full bg-[#D97706]/10 blur-3xl pointer-events-none" />
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 pb-4 border-b border-[#1C1917]/15">
+      <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-[#1C1917]/15">
         <div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#FDF2D0] border border-[#D97706]/30 rounded-full text-xs font-bold text-[#D97706] uppercase tracking-wider mb-1">
-            <PenTool size={13} /> Pencil & Graphite Journal Sketch
-          </div>
-          <h3 className="font-serif text-2xl sm:text-3xl font-medium text-[#1C1917]">
-            The Story of Your Day · {dateStr}
+          <h3 className="font-serif text-xl sm:text-2xl font-medium text-[#1C1917] flex items-center gap-2">
+            <PenTool size={18} className="text-[#D97706]" />
+            <span>The Story of Your Day · {dateStr}</span>
           </h3>
         </div>
-        <span className="text-xs font-semibold text-[#665F56] font-sans bg-white border border-[#1C1917]/20 px-3.5 py-1.5 rounded-full w-fit shadow-xs">
-          Narrative Arc · {scenes.length} Key Moments Reconciled
-        </span>
+
+        <div className="flex items-center gap-2">
+          <span className="hidden sm:inline-block text-xs font-semibold text-[#665F56] font-sans bg-white border border-[#1C1917]/20 px-3 py-1 rounded-full shadow-xs">
+            {scenes.length} Key Moments
+          </span>
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="p-1.5 rounded-xl border border-[#1C1917]/20 bg-white text-[#1C1917] hover:bg-[#FAF7F0] cursor-pointer text-xs font-sans font-bold flex items-center gap-1"
+            title={isCollapsed ? "Expand Story" : "Collapse Story"}
+          >
+            {isCollapsed ? "Show" : "Hide"}
+          </button>
+        </div>
       </div>
+
+      {!isCollapsed && (
+        <>
 
       {/* People in Today's Story Bar */}
       {todayPeople.length > 0 && (
@@ -161,6 +174,8 @@ export function DailyStoryboard({ dateStr, scenes }: Props) {
           </div>
         ))}
       </div>
+      </>
+      )}
     </section>
   );
 }

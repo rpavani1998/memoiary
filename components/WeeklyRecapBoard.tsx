@@ -188,6 +188,20 @@ function synthesizeWeeklyNarrativeArc(captures: any[], fallbackInsight: string):
   return `Your week brought together ${count} captured moments into a coherent narrative of personal clarity and creative flow.`;
 }
 
+interface Props {
+  weekLabel?: string;
+  captures?: any[];
+  highlights?: WeeklyHighlight[];
+  weeklyPeople?: string[];
+  weeklyInsight?: string;
+  onSelectHighlight?: (id: string) => void;
+  uniqueDaysLogged?: number;
+  isUnlocked?: boolean;
+  isDemoMode?: boolean;
+  onOpenCapture?: (prompt?: string) => void;
+  onGoReflect?: (view: any) => void;
+}
+
 export function WeeklyRecapBoard({
   weekLabel = "This Week",
   captures = [],
@@ -197,6 +211,7 @@ export function WeeklyRecapBoard({
   onSelectHighlight,
   uniqueDaysLogged = 0,
   isUnlocked = false,
+  isDemoMode = false,
   onOpenCapture,
   onGoReflect,
 }: Props) {
@@ -204,6 +219,7 @@ export function WeeklyRecapBoard({
   const [weekIndex, setWeekIndex] = useState<number>(0);
   const [userReflection, setUserReflection] = useState<string>("");
   const [savedToast, setSavedToast] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const currentDayOfWeek = 4;
   const totalDaysInWeek = 7;
@@ -243,7 +259,7 @@ export function WeeklyRecapBoard({
       ? "Sept 1 – Sept 7, 2026 (Week 1)"
       : preset.title;
 
-  // Highlights for the selected week
+  // Highlights for the selected week: show real captures if exist, preset ONLY if isDemoMode is true, otherwise empty
   const activeHighlights: WeeklyHighlight[] =
     filteredCaptures.length > 0
       ? filteredCaptures.map((c) => ({
@@ -255,17 +271,17 @@ export function WeeklyRecapBoard({
           people: c.dimensions?.people || [],
           mood: c.dimensions?.mood,
         }))
-      : preset.highlights;
+      : (isDemoMode ? preset.highlights : []);
 
   const activePeople =
     filteredCaptures.length > 0
       ? Array.from(new Set(filteredCaptures.flatMap((c) => c.dimensions?.people || [])))
-      : Array.from(new Set(preset.highlights.flatMap((h) => h.people || [])));
+      : (isDemoMode ? Array.from(new Set(preset.highlights.flatMap((h) => h.people || []))) : []);
 
   const dynamicWeeklyInsight =
     filteredCaptures.length > 0
       ? synthesizeWeeklyNarrativeArc(filteredCaptures, preset.insight)
-      : preset.insight;
+      : (isDemoMode ? preset.insight : "Your story canvas for this period is open. Log a reflection to synthesize your weekly arc.");
 
   // Load reflection from localStorage on weekIndex change
   useEffect(() => {
@@ -293,16 +309,24 @@ export function WeeklyRecapBoard({
       {/* Background paper texture glow */}
       <div className="absolute -top-10 -right-10 w-56 h-56 rounded-full bg-[#DE5239]/10 blur-3xl pointer-events-none" />
 
-      {/* Header with Week Navigation Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-[#1C1917]/15">
-        <div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#F5E5DC] border border-[#DE5239]/30 rounded-full text-xs font-bold text-[#DE5239] uppercase tracking-wider mb-1">
-            <Sparkles size={13} /> Weekly Visual Recap
+      {/* Header with Week Navigation Controls & Collapse Toggle */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#1C1917]/15 pb-4">
+        <div className="flex items-center justify-between w-full sm:w-auto">
+          <div>
+            <h3 className="font-serif text-xl sm:text-2xl font-medium text-[#1C1917] flex items-center gap-2">
+              <Sparkles size={20} className="text-[#DE5239]" />
+              <span>Your Story This Week</span>
+            </h3>
+            <p className="text-xs text-[#665F56] font-sans mt-0.5">{weekTitle}</p>
           </div>
-          <h3 className="font-serif text-2xl sm:text-3xl font-medium text-[#1C1917]">
-            Your Story This Week
-          </h3>
-          <p className="text-xs text-[#665F56] font-sans mt-0.5">{weekTitle}</p>
+
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="sm:hidden p-1.5 rounded-xl border border-[#1C1917]/20 bg-white text-[#1C1917]"
+            title={isCollapsed ? "Expand Section" : "Collapse Section"}
+          >
+            {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+          </button>
         </div>
 
         {/* Week Navigator (Previous / Next Week Controls) */}
@@ -331,8 +355,19 @@ export function WeeklyRecapBoard({
           >
             <ChevronRight size={16} />
           </button>
+
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="hidden sm:block p-1.5 rounded-xl border border-[#1C1917]/20 bg-[#FAF7F0] text-[#1C1917] hover:bg-[#F5E5DC] cursor-pointer transition-colors ml-2"
+            title={isCollapsed ? "Expand Section" : "Collapse Section"}
+          >
+            {isCollapsed ? "Show" : "Hide"}
+          </button>
         </div>
       </div>
+
+      {!isCollapsed && (
+        <>
 
       {/* VIEW 1: CURRENT WEEK IN PROGRESS (SEPT 1 - SEPT 7) */}
       {weekIndex === 0 && !isUnlocked && (
@@ -525,6 +560,8 @@ export function WeeklyRecapBoard({
             </div>
           )}
         </div>
+      )}
+      </>
       )}
     </section>
   );

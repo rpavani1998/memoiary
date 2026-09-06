@@ -275,12 +275,9 @@ export function EventCalendarBoard({
       {/* Header & Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#1C1917]/10 pb-4">
         <div>
-          <div className="flex items-center gap-2 text-xs font-sans font-bold uppercase tracking-wider text-[#DE5239]">
-            <CalendarIcon size={15} />
-            <span>Event Calendar &amp; Milestones</span>
-          </div>
-          <h3 className="font-serif text-2xl font-medium text-[#1C1917] mt-0.5">
-            Memorable Events &amp; Celebrations
+          <h3 className="font-serif text-xl sm:text-2xl font-medium text-[#1C1917] flex items-center gap-2">
+            <CalendarIcon size={20} className="text-[#DE5239]" />
+            <span>Memorable Events &amp; Celebrations</span>
           </h3>
           <p className="text-xs text-[#665F56] font-sans mt-0.5">
             Birthdays, attended gatherings, and key milestones reconciled from your story.

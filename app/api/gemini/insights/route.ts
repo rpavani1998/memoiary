@@ -84,6 +84,12 @@ The JSON schema must be EXACTLY:
     "ideasEvolved": 2,
     "questionsResolved": 4
   },
+  "mindsetShifts": [
+    {
+      "topic": "Creative focus vs cafe environments",
+      "shift": "In July, cafe environments felt distracting to you, but by September, coffee shop sessions with Sarah became your primary focus space."
+    }
+  ],
   "gentleInspirations": [
     "A personalized, gentle writing prompt specifically tailored to help the user reflect on their recurring themes or contradictory thoughts."
   ]

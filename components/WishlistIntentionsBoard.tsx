@@ -213,12 +213,12 @@ export function WishlistIntentionsBoard({
       {/* Section Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#1C1917]/10 pb-3">
         <div>
-          <div className="flex items-center gap-2 text-xs font-sans font-bold uppercase tracking-wider text-[#DE5239]">
-            <Star size={15} className="fill-[#DE5239]" />
-            <span>Wishlist &amp; Subtle Life Intentions</span>
-          </div>
+          <h3 className="font-serif text-xl font-medium text-[#1C1917] flex items-center gap-2">
+            <Star size={18} className="text-[#DE5239] fill-[#DE5239]" />
+            <span>Wishlist &amp; Action Intentions</span>
+          </h3>
           <p className="text-xs text-[#665F56] font-sans mt-0.5">
-            Unspoken desires, bucket list thoughts, and gentle commitments extracted from your entries.
+            Unspoken desires, culinary wishes, and commitments extracted from your entries.
           </p>
         </div>
 

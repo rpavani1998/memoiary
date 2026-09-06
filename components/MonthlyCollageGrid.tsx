@@ -140,11 +140,9 @@ export function MonthlyCollageGrid({
       {/* Header with Month Navigation Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 pb-4 border-b border-[#1C1917]/15">
         <div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#FDF2D0] border border-[#D97706]/30 rounded-full text-xs font-bold text-[#D97706] uppercase tracking-wider mb-1">
-            <Calendar size={13} /> Monthly Visual Anthology
-          </div>
-          <h3 className="font-serif text-2xl sm:text-3xl font-medium text-[#1C1917]">
-            Your Story This Month
+          <h3 className="font-serif text-xl sm:text-2xl font-medium text-[#1C1917] flex items-center gap-2">
+            <Calendar size={20} className="text-[#D97706]" />
+            <span>Your Story This Month</span>
           </h3>
           <p className="text-xs text-[#665F56] font-sans mt-0.5">{activeMonth.name}</p>
         </div>
