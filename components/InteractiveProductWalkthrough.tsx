@@ -94,11 +94,11 @@ export const WALKTHROUGH_STEPS: WalkthroughStep[] = [
     title: "AI Mind Map & Epistemic Graph",
     badge: "Force Physics Clustering",
     targetView: "collections",
-    selector: "[data-tour='graph-canvas']",
+    selector: "[data-tour='nav-mindmap']",
     icon: GitFork,
     description: "Your memory universe visualized as an interactive mind map. Central hub branches out into People, Places, Topics, and Key Moments.",
     aiExplanation: "Clusters recurring entity mentions across all journal entries, executing dynamic force physics so you can drag and explore connected memories.",
-    highlightNote: "Drag any node on the graph to explore connections!"
+    highlightNote: "Tap this Mind Map icon anytime to explore your interactive memory graph!"
   },
   {
     id: 7,
