@@ -272,7 +272,7 @@ function LifeHome({
   newMemory: CapturedMemory | null;
   onSelectCapture: (c: any) => void;
 }) {
-  const { user, streak, captures } = useJournal();
+  const { user, streak, captures, isDemoMode } = useJournal();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [timelineMode, setTimelineMode] = useState<TimelineMode>("day");
   const [showFullCalendar, setShowFullCalendar] = useState(false);
@@ -398,6 +398,7 @@ function LifeHome({
             uniqueDaysLogged={uniqueDaysLogged}
             isUnlocked={uniqueDaysLogged >= 7}
             captures={captures}
+            isDemoMode={isDemoMode}
             onSelectHighlight={() => setTimelineMode("day")}
             onOpenCapture={openCapture}
             onGoReflect={go}
@@ -411,7 +412,8 @@ function LifeHome({
             uniqueDaysLogged={uniqueDaysLogged}
             isUnlocked={uniqueDaysLogged >= 30}
             monthlyPeople={Array.from(new Set(captures.flatMap((c) => c.dimensions?.people || [])))}
-            monthlySummary="Creative focus, studio priorities & grounded collaboration"
+            monthlySummary={captures.length > 0 ? captures[0]?.dimensions?.summary || captures[0]?.content : ""}
+            isDemoMode={isDemoMode}
             onSelectCollage={() => setTimelineMode("day")}
             onOpenCapture={openCapture}
             onGoReflect={go}

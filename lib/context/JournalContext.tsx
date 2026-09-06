@@ -234,26 +234,44 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
   };
 
   const [captures, setCapturesState] = useState<CaptureSession[]>(() => {
-    const seeded = sanitizeCaptures(getSeededCaptures());
     if (typeof window !== "undefined") {
+      const isRealUser = user && !user.uid?.startsWith("guest_user_") && !user.uid?.startsWith("user_guest_") && !user.uid?.startsWith("user_google_");
+      if (isRealUser) {
+        try {
+          const key = getUserStorageKey(user);
+          const stored = localStorage.getItem(key);
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            if (Array.isArray(parsed)) {
+              const seededIds = new Set(getSeededCaptures().map((s) => s.id));
+              return parsed.filter((c) => !seededIds.has(c.id));
+            }
+          }
+        } catch (e) {
+          console.warn("Failed to load initial user captures from localStorage:", e);
+        }
+        return [];
+      }
+
+      // Guest / Demo Mode
+      const seeded = sanitizeCaptures(getSeededCaptures());
       try {
-        const key = getUserStorageKey(user);
-        const stored = localStorage.getItem(key);
+        const stored = localStorage.getItem("memoiary_local_captures_guest");
         if (stored) {
           const parsed = JSON.parse(stored);
           if (Array.isArray(parsed) && parsed.length > 0) {
             const sanitized = sanitizeCaptures(parsed);
             const seededIds = new Set(seeded.map((s) => s.id));
             const extraLocal = sanitized.filter((c) => !seededIds.has(c.id));
-            const full = [...extraLocal, ...(key.endsWith("_guest") ? seeded : [])];
-            return full;
+            return [...extraLocal, ...seeded];
           }
         }
       } catch (e) {
         console.warn("Failed to load initial captures from localStorage:", e);
       }
+      return seeded;
     }
-    return seeded;
+    return [];
   });
 
   // Sync captures with localStorage so voice/text recordings survive page reloads and site restarts
@@ -421,7 +439,7 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const isDemoMode = !user;
+  const isDemoMode = !user || user.uid?.startsWith("guest_user_") || user.uid?.startsWith("user_guest_") || user.uid?.startsWith("user_google_");
 
   // Auth state & redirect handler
   useEffect(() => {

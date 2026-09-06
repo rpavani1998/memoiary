@@ -12,6 +12,7 @@ interface Props {
   onSelectCollage?: (dateStr: string) => void;
   uniqueDaysLogged?: number;
   isUnlocked?: boolean;
+  isDemoMode?: boolean;
   onOpenCapture?: (prompt?: string) => void;
   onGoReflect?: (view: any) => void;
 }
@@ -34,6 +35,7 @@ export function MonthlyCollageGrid({
   onSelectCollage,
   uniqueDaysLogged = 0,
   isUnlocked = false,
+  isDemoMode = false,
   onOpenCapture,
   onGoReflect,
 }: Props) {
@@ -46,20 +48,10 @@ export function MonthlyCollageGrid({
   const dynamicHeadline =
     monthlySummary && monthlySummary.length < 90
       ? monthlySummary
-      : "Creative focus, studio priorities & grounded collaboration";
-  const dynamicPeople = monthlyPeople && monthlyPeople.length > 0 ? monthlyPeople : ["Kirti", "Mansa"];
+      : (isDemoMode ? "Creative focus, studio priorities & grounded collaboration" : "No captured moments logged for this month yet.");
+  const dynamicPeople = monthlyPeople && monthlyPeople.length > 0 ? monthlyPeople : (isDemoMode ? ["Kirti", "Mansa"] : []);
 
-  const allMonths: MonthItem[] = [
-    {
-      id: "sep-2026",
-      name: "September 2026",
-      year: 2026,
-      isCompleted: false,
-      summary: dynamicHeadline,
-      people: dynamicPeople,
-      daysCount: uniqueDaysLogged || 6,
-      unlockedDate: "Sept 30, 11:59 PM",
-    },
+  const demoMonths: MonthItem[] = isDemoMode ? [
     {
       id: "aug-2026",
       name: "August 2026",
@@ -79,27 +71,21 @@ export function MonthlyCollageGrid({
       people: ["Kirti", "Mansa", "Rohan"],
       daysCount: 31,
       unlockedDate: "Jul 31, 2026",
-    },
+    }
+  ] : [];
+
+  const allMonths: MonthItem[] = [
     {
-      id: "jun-2026",
-      name: "June 2026",
+      id: "sep-2026",
+      name: "September 2026",
       year: 2026,
-      isCompleted: true,
-      summary: "Early summer exploration, product launch preparations & design sprints.",
-      people: ["Mansa"],
-      daysCount: 30,
-      unlockedDate: "Jun 30, 2026",
+      isCompleted: false,
+      summary: dynamicHeadline,
+      people: dynamicPeople,
+      daysCount: uniqueDaysLogged || 0,
+      unlockedDate: "Sept 30, 11:59 PM",
     },
-    {
-      id: "may-2026",
-      name: "May 2026",
-      year: 2026,
-      isCompleted: true,
-      summary: "Spring retrospective, scaling team workflows & quiet personal reflections.",
-      people: ["Kirti"],
-      daysCount: 31,
-      unlockedDate: "May 31, 2026",
-    },
+    ...demoMonths
   ];
 
   const activeIndex = Math.min(allMonths.length - 1, Math.max(0, Math.abs(monthIndex)));
