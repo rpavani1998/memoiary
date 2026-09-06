@@ -83,7 +83,6 @@ function normalizeTopic(rawTopic: string): string {
   if (t.includes("memory") || t.includes("philosophy") || t.includes("duration") || t.includes("identity") || t.includes("growth") || t.includes("time")) return "Memory & Reflections";
   if (t.includes("nature") || t.includes("trek") || t.includes("sunset") || t.includes("forest")) return "Nature & Outdoor";
 
-  // Capitalize title case for generic topics
   return rawTopic
     .split(" ")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
@@ -175,7 +174,6 @@ export function UnifiedCollectionsGraphView({
     const placeMap = new Map<string, { count: number; lastDate: string; captures: CaptureSession[] }>();
     const topicMap = new Map<string, { count: number; lastDate: string; captures: CaptureSession[] }>();
 
-    // Ensure custom user topics are populated in topicMap
     customTopics.forEach((ct) => {
       topicMap.set(ct.name, { count: 0, lastDate: "User Defined", captures: [] });
     });
@@ -363,7 +361,7 @@ export function UnifiedCollectionsGraphView({
       plIdx++;
     });
 
-    // Build Topic Nodes (Filtered to topics with >= 2 distinct captures or user custom defined topics)
+    // Build Topic Nodes
     let tIdx = 0;
     const topicArray = Array.from(topicMap.entries())
       .filter(([topicName, data]) => data.captures.length >= 2 || customTopics.some((ct) => ct.name.toLowerCase() === topicName.toLowerCase()))
@@ -734,6 +732,37 @@ export function UnifiedCollectionsGraphView({
     return new Set<string>([activeFocusId, ...(node?.connectedNodeIds || [])]);
   }, [activeFocusId, nodes]);
 
+  // ── 4. PERFECT GRAPH FOCUSING ENGINE ──
+  const focusNodeOnGraph = useCallback((targetNameOrId: string) => {
+    // Search for target node by ID or label
+    const targetNode = baseNodes.find((n) =>
+      n.id === targetNameOrId ||
+      n.label.toLowerCase() === targetNameOrId.toLowerCase() ||
+      n.label.toLowerCase().includes(targetNameOrId.toLowerCase())
+    );
+
+    setActiveTab("graph");
+    setFilterType("all");
+    setSearchQuery("");
+
+    if (targetNode) {
+      setSelectedNodeId(targetNode.id);
+
+      const targetX = nodePositions[targetNode.id]?.x ?? targetNode.x;
+      const targetY = nodePositions[targetNode.id]?.y ?? targetNode.y;
+
+      // Center viewport onto target node (canvas center = 500, 350)
+      const targetZoom = 1.15;
+      setZoom(targetZoom);
+      setPan({
+        x: (500 - targetX) * targetZoom,
+        y: (350 - targetY) * targetZoom
+      });
+
+      triggerPhysicsBurst();
+    }
+  }, [baseNodes, nodePositions, triggerPhysicsBurst]);
+
   // ── MOUSE & DRAG HANDLERS ──
   const handleCanvasMouseDown = (e: React.MouseEvent) => {
     if (e.target instanceof SVGElement || (e.target as HTMLElement).id === "canvas-bg") {
@@ -1094,7 +1123,7 @@ export function UnifiedCollectionsGraphView({
                       onMouseLeave={() => setHoveredNodeId(null)}
                       onClick={(e) => {
                         e.stopPropagation();
-                        setSelectedNodeId(node.id);
+                        focusNodeOnGraph(node.id);
                         if (onSelectPerson && isPerson) {
                           onSelectPerson(node.label);
                         }
@@ -1248,7 +1277,7 @@ export function UnifiedCollectionsGraphView({
                       return (
                         <button
                           key={cId}
-                          onClick={() => setSelectedNodeId(connNode.id)}
+                          onClick={() => focusNodeOnGraph(connNode.id)}
                           className={`text-xs font-sans font-medium px-2.5 py-1 rounded-xl border border-[#1C1917]/20 transition-all cursor-pointer flex items-center gap-1 ${connNode.colorTheme.bg} hover:border-[#1C1917]`}
                         >
                           <span>{connNode.label}</span>
@@ -1427,10 +1456,7 @@ export function UnifiedCollectionsGraphView({
                           ✓ Active AI Categorization Rule
                         </span>
                         <button
-                          onClick={() => {
-                            setSearchQuery(t.name);
-                            setActiveTab("graph");
-                          }}
+                          onClick={() => focusNodeOnGraph(t.name)}
                           className="text-[10px] font-sans font-bold text-[#1C1917] hover:underline flex items-center gap-0.5 cursor-pointer"
                         >
                           Focus in Graph <ArrowUpRight size={10} />
@@ -1465,10 +1491,7 @@ export function UnifiedCollectionsGraphView({
                   </p>
                   <div className="pt-1 flex justify-end">
                     <button
-                      onClick={() => {
-                        setSearchQuery(item.topic);
-                        setActiveTab("graph");
-                      }}
+                      onClick={() => focusNodeOnGraph(item.topic)}
                       className="text-[10px] font-sans font-bold text-[#DE5239] hover:underline flex items-center gap-0.5 cursor-pointer"
                     >
                       Focus in Graph <ArrowUpRight size={10} />
