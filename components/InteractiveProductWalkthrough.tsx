@@ -105,11 +105,11 @@ export const WALKTHROUGH_STEPS: WalkthroughStep[] = [
     title: "AI Reflection Chatboard",
     badge: "Personal AI Guide",
     targetView: "reflect",
-    selector: "[data-tour='chat-reflect']",
+    selector: "[data-tour='nav-reflect']",
     icon: MessageSquare,
     description: "Chat directly with your personal journal AI assistant. Ask questions about past memories, synthesize patterns, and save chat threads to your timeline.",
     aiExplanation: "Queries your encrypted memory context to provide empathetic, context-aware answers, allowing one-click saving of chat threads back into your journal feed.",
-    highlightNote: "Click 'Save Chat Reflection' to persist key AI conversations directly to your timeline."
+    highlightNote: "Tap this Reflect icon anytime to chat with your personal AI journal guide!"
   },
   {
     id: 8,
