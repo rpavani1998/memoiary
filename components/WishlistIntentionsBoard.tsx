@@ -29,10 +29,18 @@ function parseAndClassifySentences(
   const sentences = text.split(/[.!?\n]/).map((s) => s.trim()).filter((s) => s.length > 8);
 
   sentences.forEach((sentence, sIdx) => {
+    // Check for negative resolutions / prohibitions (e.g., "promised I would never", "will not visit again", "no longer want")
+    const hasNegativeModifier = /\b(never|no longer|stop|don't|dont|won't|wont|not|refuse|quit|avoid|cannot|can't|cant)\b/i.test(sentence);
+
     // Exclude past tense completed statements (e.g. "I cooked pasta", "We visited KBR park", "I ate sourdough")
     const isPastCompletedEvent = /^(i|we|they|she|he)?\s*(ate|cooked|visited|went|traveled|bought|baked|dined|met|had|enjoyed|drank|tasted|ordered|flew|walked|recorded|finished|completed)\b/i.test(sentence) && !/want to|hope to|would love|wish|plan to|promise|need to|must/i.test(sentence);
     if (isPastCompletedEvent) {
       return; // Does NOT belong in Wishlist or Action Intentions
+    }
+
+    // If the sentence expresses a negative prohibition ("promised myself never to...", "will never go back"), skip adding as active positive wishlist/todo
+    if (hasNegativeModifier && /\b(never|no longer|stop|quit|avoid|not)\b/i.test(sentence) && /\b(eat|go|visit|call|buy|do|talk)\b/i.test(sentence)) {
+      return;
     }
 
     // 1. Check for Action Intentions & Promises FIRST (Explicit commitments or obligations)
