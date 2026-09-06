@@ -208,11 +208,6 @@ export function InteractiveProductWalkthrough({
 
   return (
     <div className="fixed inset-0 z-50 pointer-events-none font-sans select-none">
-      {/* Dark backdrop overlay */}
-      <div
-        className="absolute inset-0 bg-[#1C1917]/40 backdrop-blur-[1px] pointer-events-auto transition-opacity"
-        onClick={onClose}
-      />
 
       {/* Target Element Spotlight Ring */}
       {targetRect && (
