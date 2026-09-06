@@ -96,9 +96,13 @@ const imageAssets = {
 
 
 
-function SplashScreen() {
+function SplashScreen({ onClick }: { onClick?: () => void }) {
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#FAF7F2] p-6 animate-fade-in select-none">
+    <div
+      onClick={onClick}
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#FAF7F2] p-6 animate-fade-in select-none cursor-pointer"
+      title="Click anywhere to skip intro"
+    >
       <div className="my-auto flex flex-col items-center justify-center text-center">
         <video
           autoPlay
@@ -117,7 +121,7 @@ function SplashScreen() {
         </p>
       </div>
       <div className="pb-8 text-xs text-stone-400 font-sans tracking-wide">
-        Loading your story…
+        Loading your story… (click to skip)
       </div>
     </div>
   );
@@ -704,7 +708,7 @@ function PeopleViewSection({ go, onSelectPerson }: { go: (view: View) => void; o
 }
 
 
-function PersonViewSection({ go, selectedPerson = "Maya" }: { go: (view: View) => void; selectedPerson?: string }) {
+function PersonViewSection({ go, onBack, selectedPerson = "Maya" }: { go: (view: View) => void; onBack?: () => void; selectedPerson?: string }) {
   const { captures } = useJournal();
   
   // Filter ONLY entries where this person is tagged or explicitly mentioned
@@ -723,7 +727,7 @@ function PersonViewSection({ go, selectedPerson = "Maya" }: { go: (view: View) =
       <PageHeader
         title={selectedPerson}
         eyebrow={`${personCaptures.length} entries grounded strictly in your journal`}
-        onBack={() => go("people")}
+        onBack={onBack || (() => go("people"))}
       />
       <main className="px-5 sm:px-8 space-y-5 mt-2">
         {/* Person Header with Persistent Pencil Sketch Avatar */}
@@ -890,7 +894,7 @@ function PlacesViewSection({ go, onSelectPlace }: { go: (view: View) => void; on
 }
 
 
-function PlaceViewSection({ go, selectedPlace = "Third Wave Coffee, Jubilee Hills" }: { go: (view: View) => void; selectedPlace?: string }) {
+function PlaceViewSection({ go, onBack, selectedPlace = "Third Wave Coffee, Jubilee Hills" }: { go: (view: View) => void; onBack?: () => void; selectedPlace?: string }) {
   const { captures } = useJournal();
   
   const placeCaptures = captures.filter((c) => {
@@ -906,7 +910,7 @@ function PlaceViewSection({ go, selectedPlace = "Third Wave Coffee, Jubilee Hill
       <PageHeader
         title={selectedPlace}
         eyebrow={`${placeCaptures.length} memories grounded in this location`}
-        onBack={() => go("places")}
+        onBack={onBack || (() => go("places"))}
       />
       <main className="px-5 sm:px-8 space-y-5 mt-2">
         <div className="p-6 border-[1.5px] border-[#1C1917] bg-[#FAF7F0] rounded-3xl shadow-[3px_4px_0px_#1C1917] flex flex-col items-center text-center space-y-3">
@@ -1098,11 +1102,13 @@ function StoryViewSection({ go }: { go: (view: View) => void }) {
 
 function SearchViewSection({
   go,
+  onBack,
   onSelectCapture,
   initialQuery = "",
   onQueryChange,
 }: {
   go: (view: View) => void;
+  onBack?: () => void;
   onSelectCapture: (c: any) => void;
   initialQuery?: string;
   onQueryChange?: (q: string) => void;
@@ -1194,7 +1200,7 @@ function SearchViewSection({
             reasons.push(`Title/summary match`);
           } else if (contentLower.includes(kw)) {
             score += 0.2;
-            reasons.push(`Mentioned: ${kw}`);
+            reasons.push(`Content match`);
           }
         });
 
@@ -1211,8 +1217,8 @@ function SearchViewSection({
 
         return {
           capture: c,
-          relevance: Math.min(1, score),
-          reason: Array.from(new Set(reasons)).join(" · ") || "Matched search term"
+          relevance: score,
+          reasons: Array.from(new Set(reasons))
         };
       });
 
@@ -1237,7 +1243,7 @@ function SearchViewSection({
     }
   }, [initialQuery]);
 
-  const getSourceIcon = (source?: string) => {
+  const renderSourceIcon = (source?: string) => {
     switch (source) {
       case "voice": return <Mic size={14} />;
       case "image": return <Camera size={14} />;
@@ -1248,7 +1254,7 @@ function SearchViewSection({
 
   return (
     <div className="pb-24">
-      <PageHeader title="Search your life" eyebrow="Remember with help" onBack={() => go("life")} />
+      <PageHeader title="Search your life" eyebrow="Remember with help" onBack={onBack || (() => go("life"))} />
       <main className="px-5 sm:px-8">
         <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }} className="search-box">
           <Search size={19} className="text-stone-400" />
@@ -1349,7 +1355,7 @@ function ConnectionsViewSection({ go }: { go: (view: View) => void }) {
   );
 }
 
-function MemoryDetailSection({ go, capture }: { go: (view: View) => void; capture: any }) {
+function MemoryDetailSection({ go, onBack, capture }: { go: (view: View) => void; onBack?: () => void; capture: any }) {
   const { updateCapture, reanalyzeCapture, deleteCapture } = useJournal();
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -1380,33 +1386,19 @@ function MemoryDetailSection({ go, capture }: { go: (view: View) => void; captur
   if (!capture) {
     return (
       <div className="pb-32 font-sans px-5 sm:px-8 mt-6">
-        <PageHeader title="Memory Not Found" eyebrow="Memoiary Entry" onBack={() => go("life")} />
+        <PageHeader title="Memory Not Found" eyebrow="Memoiary Entry" onBack={onBack || (() => go("life"))} />
         <div className="mt-8 text-center p-8 bg-white border-[1.5px] border-[#1C1917] rounded-3xl shadow-[3px_4px_0px_#1C1917] space-y-4">
           <p className="text-stone-500 font-serif text-lg">This memory entry is no longer available or was deleted.</p>
           <button
-            onClick={() => go("life")}
+            onClick={onBack || (() => go("life"))}
             className="px-5 py-2.5 bg-[#DE5239] border-[1.5px] border-[#1C1917] text-white font-bold text-xs rounded-xl shadow-[2px_3px_0px_#1C1917]"
           >
-            Return to Sanctuary Feed
+            Return to Feed
           </button>
         </div>
       </div>
     );
   }
-
-  const dims = capture?.dimensions;
-  const isAiProcessing = capture?.status === "processing";
-  const date = capture?.createdAt ? new Date(capture.createdAt) : new Date();
-  const timeStr = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-  const dateStr = date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
-  
-  const displayTitle = capture?.title || dims?.title || dims?.summary || (capture?.content ? capture.content.substring(0, 45) + (capture.content.length > 45 ? "..." : "") : "Memory Moment");
-
-  const handleSaveEdit = async () => {
-    if (!editedContent.trim() && !editedTitle.trim()) return;
-    await updateCapture(capture.id, { content: editedContent.trim(), title: editedTitle.trim() });
-    setIsEditing(false);
-  };
 
   const handleCopyText = () => {
     if (capture?.content) {
@@ -1416,54 +1408,45 @@ function MemoryDetailSection({ go, capture }: { go: (view: View) => void; captur
     }
   };
 
-  const handleSaveDimensions = async () => {
-    await updateCapture(capture.id, {
-      dimensions: {
-        mood: editedMood.trim(),
-        people: editedPeople,
-        topics: editedTopics,
-        summary: editedSummary.trim()
-      }
-    });
-    setSaveSuccessMsg("✓ AI dimensions & entities updated!");
-    setTimeout(() => setSaveSuccessMsg(""), 3000);
-  };
-
-  const handleSendAiFeedback = async () => {
-    if (!aiFeedbackText.trim()) return;
-    setIsSubmittingFeedback(true);
+  const handleSaveEdits = async () => {
+    if (!editedTitle.trim() && !editedContent.trim()) return;
     try {
-      await reanalyzeCapture(capture.id, aiFeedbackText.trim());
-      setAiFeedbackText("");
-      setSaveSuccessMsg("✨ AI re-analyzed with your feedback!");
+      await updateCapture(capture.id, {
+        title: editedTitle.trim(),
+        content: editedContent.trim(),
+        dimensions: {
+          ...(capture.dimensions || {}),
+          title: editedTitle.trim(),
+          mood: editedMood.trim(),
+          people: editedPeople,
+          topics: editedTopics,
+          summary: editedSummary.trim()
+        }
+      });
+      setIsEditing(false);
+      setSaveSuccessMsg("Saved changes successfully!");
       setTimeout(() => setSaveSuccessMsg(""), 3000);
     } catch (err) {
-      console.error("AI feedback error:", err);
-    } finally {
-      setIsSubmittingFeedback(false);
+      console.error("Failed to save memory edits:", err);
     }
   };
 
   const handleAddPerson = () => {
-    if (!newPersonInput.trim()) return;
-    const name = newPersonInput.trim();
-    if (!editedPeople.includes(name)) {
-      setEditedPeople([...editedPeople, name]);
+    if (newPersonInput.trim() && !editedPeople.includes(newPersonInput.trim())) {
+      setEditedPeople([...editedPeople, newPersonInput.trim()]);
+      setNewPersonInput("");
     }
-    setNewPersonInput("");
   };
 
-  const handleRemovePerson = (name: string) => {
-    setEditedPeople(editedPeople.filter((p) => p !== name));
+  const handleRemovePerson = (person: string) => {
+    setEditedPeople(editedPeople.filter((p) => p !== person));
   };
 
   const handleAddTopic = () => {
-    if (!newTopicInput.trim()) return;
-    const topic = newTopicInput.trim();
-    if (!editedTopics.includes(topic)) {
-      setEditedTopics([...editedTopics, topic]);
+    if (newTopicInput.trim() && !editedTopics.includes(newTopicInput.trim())) {
+      setEditedTopics([...editedTopics, newTopicInput.trim()]);
+      setNewTopicInput("");
     }
-    setNewTopicInput("");
   };
 
   const handleRemoveTopic = (topic: string) => {
@@ -1475,12 +1458,15 @@ function MemoryDetailSection({ go, capture }: { go: (view: View) => void; captur
     capture?.source === "voice" ? "Voice Recording" :
     capture?.source === "image" ? "Photo Memory" : "Written Memory";
 
+  const dateStr = capture?.createdAt ? new Date(capture.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "Recent";
+  const displayTitle = capture?.title || capture?.dimensions?.title || "Journal Entry";
+
   return (
     <div className="pb-32 font-sans">
       <PageHeader
         title={displayTitle}
         eyebrow={`${sourceTypeLabel} · ${dateStr}`}
-        onBack={() => go("life")}
+        onBack={onBack || (() => go("life"))}
         action={
           <div className="flex items-center gap-2">
             <button
@@ -1924,10 +1910,12 @@ function MemoryDetailSection({ go, capture }: { go: (view: View) => void; captur
 function CollectionsSection({
   go,
   onSelectPerson,
+  onSelectPlace,
   onSelectCapture
 }: {
   go: (view: View) => void;
   onSelectPerson?: (name: string) => void;
+  onSelectPlace?: (name: string) => void;
   onSelectCapture?: (c: any) => void;
 }) {
   const { captures } = useJournal();
@@ -1936,6 +1924,7 @@ function CollectionsSection({
       <UnifiedCollectionsGraphView
         captures={captures}
         onSelectPerson={onSelectPerson}
+        onSelectPlace={onSelectPlace}
         onSelectCapture={onSelectCapture}
         onSearchQuery={() => go("search")}
       />
@@ -2755,8 +2744,9 @@ function BottomNav({
 export function MemoiaryAppShell() {
   const { user, isDemoMode, captures, streak = 0 } = useJournal();
   const [view, setView] = useState<View>("life");
+  const [viewStack, setViewStack] = useState<View[]>(["life"]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [isSplash, setIsSplash] = useState(true);
+  const [isSplash, setIsSplash] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [isTourOpen, setIsTourOpen] = useState(false);
   const [captureMode, setCaptureMode] = useState<CaptureMode>(null);
@@ -2770,13 +2760,26 @@ export function MemoiaryAppShell() {
   const [selectedPlaceName, setSelectedPlaceName] = useState<string>("Third Wave Coffee, Jubilee Hills");
   const [reflectMessages, setReflectMessages] = useState<any[]>([]);
 
-  // Splash loading screen timer (2.5 seconds like Swiggy/Blinkit)
+  // Auto-start guided tour for first-time users
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsSplash(false);
-    }, 2500);
-    return () => clearTimeout(timer);
+    try {
+      const tourSeen = localStorage.getItem("memoiary_tour_seen");
+      if (!tourSeen) {
+        setIsTourOpen(true);
+      }
+    } catch {
+      setIsTourOpen(true);
+    }
   }, []);
+
+  const handleCloseTour = () => {
+    setIsTourOpen(false);
+    try {
+      localStorage.setItem("memoiary_tour_seen", "true");
+    } catch {
+      // ignore storage errors
+    }
+  };
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -2787,8 +2790,31 @@ export function MemoiaryAppShell() {
       setShowLoginModal(true);
       return;
     }
+    const rootTabs: View[] = ["life", "entities", "collections", "reflect", "profile"];
+    if (rootTabs.includes(v)) {
+      setViewStack([v]);
+    } else {
+      setViewStack((prev) => {
+        if (prev[prev.length - 1] === v) return prev;
+        return [...prev, v];
+      });
+    }
     setView(v);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const goBack = () => {
+    if (viewStack.length > 1) {
+      const newStack = viewStack.slice(0, -1);
+      const targetView = newStack[newStack.length - 1];
+      setViewStack(newStack);
+      setView(targetView);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      setViewStack(["life"]);
+      setView("life");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   };
 
   const handleOpenCapture = (promptOrMode?: string | CaptureMode, targetDate?: Date) => {
@@ -2838,7 +2864,14 @@ export function MemoiaryAppShell() {
           </div>
         );
       case "collections":
-        return <CollectionsSection go={go} onSelectPerson={(name: string) => { setSelectedPersonName(name); go("person"); }} onSelectCapture={(c: any) => { setSelectedCapture(c); go("memory"); }} />;
+        return (
+          <CollectionsSection
+            go={go}
+            onSelectPerson={(name: string) => { setSelectedPersonName(name); go("person"); }}
+            onSelectPlace={(name: string) => { setSelectedPlaceName(name); go("place"); }}
+            onSelectCapture={(c: any) => { setSelectedCapture(c); go("memory"); }}
+          />
+        );
       case "reflect":
         return (
           <div className="px-3 sm:px-6 h-full flex-1 flex flex-col overflow-hidden pb-1">
@@ -2852,13 +2885,13 @@ export function MemoiaryAppShell() {
       case "people":
         return <PeopleViewSection go={go} onSelectPerson={(name: string) => setSelectedPersonName(name)} />;
       case "person":
-        return <PersonViewSection go={go} selectedPerson={selectedPersonName} />;
+        return <PersonViewSection go={go} onBack={goBack} selectedPerson={selectedPersonName} />;
       case "explore":
         return <ExploreViewSection go={go} />;
       case "places":
         return <PlacesViewSection go={go} onSelectPlace={(name: string) => setSelectedPlaceName(name)} />;
       case "place":
-        return <PlaceViewSection go={go} selectedPlace={selectedPlaceName} />;
+        return <PlaceViewSection go={go} onBack={goBack} selectedPlace={selectedPlaceName} />;
       case "thoughts":
         return <ThoughtsViewSection go={go} />;
       case "thought":
@@ -2875,6 +2908,7 @@ export function MemoiaryAppShell() {
         return (
           <SearchViewSection
             go={go}
+            onBack={goBack}
             initialQuery={searchQuery}
             onQueryChange={setSearchQuery}
             onSelectCapture={(c) => { setSelectedCapture(c); go("memory"); }}
@@ -2883,7 +2917,7 @@ export function MemoiaryAppShell() {
       case "profile":
         return <ProfileViewSection go={go} onOpenLogin={() => setShowLoginModal(true)} />;
       case "memory":
-        return <MemoryDetailSection go={go} capture={selectedCapture} />;
+        return <MemoryDetailSection go={go} onBack={goBack} capture={selectedCapture} />;
       case "empty":
         return <EmptyViewSection go={go} capture={() => handleOpenCapture("menu")} />;
       case "onboarding":
@@ -2895,7 +2929,7 @@ export function MemoiaryAppShell() {
 
   return (
     <div className="app-shell h-screen flex flex-col overflow-hidden bg-[#FAF7F0]">
-      {isSplash && <SplashScreen />}
+      {isSplash && <SplashScreen onClick={() => setIsSplash(false)} />}
       <div className="app-frame flex flex-col flex-1 h-full overflow-hidden relative max-w-3xl mx-auto w-full">
         <GlobalAppHeader
           activeView={view}
@@ -2907,7 +2941,7 @@ export function MemoiaryAppShell() {
           onStartTour={() => setIsTourOpen(true)}
           searchQuery={searchQuery}
           onSearchQueryChange={setSearchQuery}
-          onBack={["person", "place", "search", "thought", "story", "memory"].includes(view) ? () => go("life") : undefined}
+          onBack={viewStack.length > 1 ? goBack : undefined}
         />
         <main className={`flex-1 min-h-0 ${view === "reflect" ? "flex flex-col overflow-hidden pb-0" : "overflow-y-auto pb-28 scroll-smooth"}`}>
           {content}
@@ -2929,7 +2963,7 @@ export function MemoiaryAppShell() {
       />
       <InteractiveProductWalkthrough
         isOpen={isTourOpen}
-        onClose={() => setIsTourOpen(false)}
+        onClose={handleCloseTour}
         onNavigateView={(targetView) => {
           setView(targetView);
           window.scrollTo({ top: 0, behavior: "smooth" });

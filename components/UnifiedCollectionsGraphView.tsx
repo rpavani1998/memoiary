@@ -35,6 +35,7 @@ interface UnifiedCollectionsGraphViewProps {
   captures: CaptureSession[];
   onSelectCapture?: (capture: CaptureSession) => void;
   onSelectPerson?: (personName: string) => void;
+  onSelectPlace?: (placeName: string) => void;
   onSearchQuery?: (query: string) => void;
 }
 
@@ -94,6 +95,7 @@ export function UnifiedCollectionsGraphView({
   captures = [],
   onSelectCapture,
   onSelectPerson,
+  onSelectPlace,
   onSearchQuery
 }: UnifiedCollectionsGraphViewProps) {
   const [activeTab, setActiveTab] = useState<"graph" | "topics">("graph");
@@ -1152,6 +1154,9 @@ export function UnifiedCollectionsGraphView({
                         focusNodeOnGraph(node.id);
                         if (onSelectPerson && isPerson) {
                           onSelectPerson(node.label);
+                        }
+                        if (onSelectPlace && isPlace) {
+                          onSelectPlace(node.label);
                         }
                       }}
                       className={`absolute rounded-full border-[2.5px] border-[#1C1917] flex flex-col items-center justify-center p-2 text-center cursor-grab active:cursor-grabbing transition-all duration-200 ${node.colorTheme.bg} ${opacityClass} ${

@@ -18,6 +18,7 @@ export function BottomNavigation({ activeTab, onSelectTab, onOpenCapture }: Prop
       <div className="max-w-md mx-auto flex items-center justify-between relative px-2">
         {/* 1. Home / Daily Sanctuary */}
         <button
+          data-tour="nav-sanctuary"
           onClick={() => onSelectTab("home")}
           title="Journal Sanctuary"
           aria-label="Journal Sanctuary"
@@ -51,7 +52,7 @@ export function BottomNavigation({ activeTab, onSelectTab, onOpenCapture }: Prop
         </button>
 
         {/* 3. Persistent Central Capture Action */}
-        <div className="relative -top-3">
+        <div className="relative -top-3" data-tour="nav-capture">
           <div className="absolute inset-0 rounded-full bg-[#DE5239]/20 blur-md animate-pulse" />
           <button
             onClick={onOpenCapture}
@@ -65,6 +66,7 @@ export function BottomNavigation({ activeTab, onSelectTab, onOpenCapture }: Prop
 
         {/* 4. Elements (People, Places, Wishlist & Intentions) */}
         <button
+          data-tour="nav-elements"
           onClick={() => onSelectTab("memories")}
           title="Elements (People, Places & Wishlist)"
           aria-label="Elements"
@@ -82,6 +84,7 @@ export function BottomNavigation({ activeTab, onSelectTab, onOpenCapture }: Prop
 
         {/* 5. Talk AI / Reflect */}
         <button
+          data-tour="nav-reflect"
           onClick={() => onSelectTab("reflect")}
           title="AI Reflect & Chat"
           aria-label="AI Reflect & Chat"

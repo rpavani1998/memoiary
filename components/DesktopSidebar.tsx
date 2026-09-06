@@ -41,9 +41,16 @@ export function DesktopSidebar({ activeTab, onSelectTab, onOpenCapture }: Props)
         <nav className="space-y-1.5">
           {links.map((link) => {
             const isActive = activeTab === link.id;
+            let tourAttr = undefined;
+            if (link.id === "home") tourAttr = "nav-sanctuary";
+            else if (link.id === "memories") tourAttr = "nav-elements";
+            else if (link.id === "collections") tourAttr = "nav-mindmap";
+            else if (link.id === "reflect") tourAttr = "nav-reflect";
+
             return (
               <button
                 key={link.id}
+                data-tour={tourAttr}
                 onClick={() => onSelectTab(link.id)}
                 className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-sm font-semibold transition-all cursor-pointer ${
                   isActive
@@ -64,6 +71,7 @@ export function DesktopSidebar({ activeTab, onSelectTab, onOpenCapture }: Props)
       {/* Primary Capture Action Button & Security Badge */}
       <div className="pt-4 space-y-3">
         <button
+          data-tour="nav-capture"
           onClick={onOpenCapture}
           className="w-full flex items-center justify-center gap-2.5 py-3.5 px-4 bg-[#DE5239] hover:bg-[#C6422A] text-white border-[1.5px] border-[#1C1917] rounded-2xl text-sm font-semibold shadow-[2px_3px_0px_#1C1917] transition-all active:scale-[0.98] cursor-pointer group"
         >
