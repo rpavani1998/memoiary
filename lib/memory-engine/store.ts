@@ -26,9 +26,14 @@ import {
 } from "./types";
 
 export function sanitizePayload<T>(obj: T): T {
-  return JSON.parse(
-    JSON.stringify(obj, (_, value) => (value === undefined ? null : value))
-  );
+  if (obj === null || typeof obj !== "object") return obj;
+  if (Array.isArray(obj)) return obj.map(sanitizePayload) as any;
+  const result: any = {};
+  for (const key of Object.keys(obj as any)) {
+    const val = (obj as any)[key];
+    result[key] = val === undefined ? null : sanitizePayload(val);
+  }
+  return result as T;
 }
 
 export class MemoryStore {

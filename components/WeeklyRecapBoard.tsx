@@ -104,7 +104,7 @@ export function WeeklyRecapBoard({
           </button>
 
           <span className="text-xs font-mono font-bold text-[#1C1917] px-2 min-w-[7.5rem] text-center">
-            {weekIndex === 0 ? "Current Week" : `${Math.abs(weekIndex)} Week${Math.abs(weekIndex) > 1 ? "s" : ""} Ago`}
+            {weekIndex === 0 ? "Sept 1 – Sept 7" : weekIndex === -1 ? "Aug 25 – Aug 31" : `Aug ${18 + (weekIndex + 2) * 7} – Aug ${24 + (weekIndex + 2) * 7}`}
           </span>
 
           <button

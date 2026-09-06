@@ -159,8 +159,8 @@ interface JournalContextType {
   ) => Promise<void>;
   submitCapture: (content: string, source?: string, mediaContext?: string, mediaUrl?: string, dateOverride?: string, customTitle?: string) => Promise<any>;
   deleteCapture: (captureId: string) => Promise<void>;
-  updateCapture: (captureId: string, updates: Partial<{ content: string; source: string; title: string }>) => Promise<void>;
-  reanalyzeCapture: (captureId: string) => Promise<void>;
+  updateCapture: (captureId: string, updates: Partial<{ content: string; source: string; title: string; dimensions: Partial<CaptureDimensions> }>) => Promise<void>;
+  reanalyzeCapture: (captureId: string, userFeedback?: string) => Promise<void>;
   clearAllData: () => Promise<void>;
 }
 
@@ -192,25 +192,42 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [memories, setMemories] = useState<UserMemory[]>([]);
   const sanitizeCaptures = (caps: CaptureSession[]): CaptureSession[] => {
-    return caps.map((c) => ({
-      ...c,
-      status: "reconciled",
-      dimensions: c.dimensions || {
-        summary: c.content ? (c.content.substring(0, 120) + (c.content.length > 120 ? "..." : "")) : "Captured memory moment.",
-        mood: "Reflective",
-        tone: "Personal",
-        emotions: [{ label: "Presence", intensity: 0.9, valence: "positive" }],
-        people: [],
-        places: [],
-        topics: ["Personal Memory"],
-        timeContext: "Now",
-        rawAnalysis: c.content
-      }
-    }));
+    const invalidPeopleNames = new Set(["Hearing", "Moving", "Ending", "Started", "Morning", "Afternoon", "Evening", "Today", "Yesterday", "Coffee", "Cardamom", "Chai", "Studio", "Project", "Decision", "Thought"]);
+    return caps.map((c) => {
+      const existingPeople = c.dimensions?.people || c.episodes?.[0]?.entitiesInvolved || [];
+      const cleanPeople = existingPeople.filter(
+        (p) => p && typeof p === "string" && !invalidPeopleNames.has(p) && !/ing$|ed$|ly$|tion$|ment$|ness$|able$/i.test(p)
+      );
+      const updatedEpisodes = (c.episodes || []).map((ep) => ({
+        ...ep,
+        entitiesInvolved: (ep.entitiesInvolved || []).filter(
+          (p) => p && typeof p === "string" && !invalidPeopleNames.has(p) && !/ing$|ed$|ly$|tion$|ment$|ness$|able$/i.test(p)
+        )
+      }));
+      return {
+        ...c,
+        status: c.status || "reconciled",
+        episodes: updatedEpisodes,
+        dimensions: c.dimensions ? {
+          ...c.dimensions,
+          people: cleanPeople
+        } : {
+          summary: c.content ? (c.content.substring(0, 120) + (c.content.length > 120 ? "..." : "")) : "Captured memory moment.",
+          mood: "Reflective",
+          tone: "Personal",
+          emotions: [{ label: "Presence", intensity: 0.9, valence: "positive" }],
+          people: cleanPeople,
+          places: [],
+          topics: ["Personal Memory"],
+          timeContext: "Now",
+          rawAnalysis: c.content
+        }
+      };
+    });
   };
 
   const [captures, setCapturesState] = useState<CaptureSession[]>(() => {
-    const seeded = getSeededCaptures();
+    const seeded = sanitizeCaptures(getSeededCaptures());
     if (typeof window !== "undefined") {
       try {
         const stored = localStorage.getItem("memoiary_local_captures");
@@ -220,7 +237,11 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
             const sanitized = sanitizeCaptures(parsed);
             const seededIds = new Set(seeded.map((s) => s.id));
             const extraLocal = sanitized.filter((c) => !seededIds.has(c.id));
-            return [...seeded, ...extraLocal];
+            const full = [...extraLocal, ...seeded];
+            try {
+              localStorage.setItem("memoiary_local_captures", JSON.stringify(full));
+            } catch {}
+            return full;
           }
         }
       } catch (e) {
@@ -234,14 +255,15 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
   const setCaptures = (updater: React.SetStateAction<CaptureSession[]>) => {
     setCapturesState((prev) => {
       const next = typeof updater === "function" ? updater(prev) : updater;
+      const sanitizedNext = sanitizeCaptures(next);
       try {
         if (typeof window !== "undefined") {
-          localStorage.setItem("memoiary_local_captures", JSON.stringify(next));
+          localStorage.setItem("memoiary_local_captures", JSON.stringify(sanitizedNext));
         }
       } catch (e) {
         console.warn("Failed to save captures to localStorage:", e);
       }
-      return next;
+      return sanitizedNext;
     });
   };
 
@@ -250,20 +272,20 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
     try {
       if (typeof window !== "undefined") {
         const stored = localStorage.getItem("memoiary_local_captures");
-        const seeded = getSeededCaptures();
+        const seeded = sanitizeCaptures(getSeededCaptures());
         if (stored) {
           const parsed = JSON.parse(stored);
           if (Array.isArray(parsed) && parsed.length > 0) {
             const sanitized = sanitizeCaptures(parsed);
             const seededIds = new Set(seeded.map((s) => s.id));
             const extraLocal = sanitized.filter((c) => !seededIds.has(c.id));
-            setCapturesState([...seeded, ...extraLocal]);
-          } else {
-            setCapturesState(seeded);
+            const full = [...extraLocal, ...seeded];
+            setCapturesState(full);
+            localStorage.setItem("memoiary_local_captures", JSON.stringify(full));
+            return;
           }
-        } else {
-          setCapturesState(seeded);
         }
+        setCapturesState(seeded);
       }
     } catch (e) {
       console.warn("Failed to load captures from localStorage:", e);
@@ -405,8 +427,26 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
 
   // Real-time listeners for entries, memories, captures, clarifications
   useEffect(() => {
-    if (!user) {
-      // Demo Mode: Ensure captures are initialized to seeded demo dataset
+    if (!user || user.uid?.startsWith("guest_user_") || user.uid?.startsWith("user_guest_")) {
+      // Guest / Demo Mode: Preserve local captures from localStorage + seeded dataset
+      try {
+        if (typeof window !== "undefined") {
+          const stored = localStorage.getItem("memoiary_local_captures");
+          const seeded = getSeededCaptures();
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              const sanitized = sanitizeCaptures(parsed);
+              const seededIds = new Set(seeded.map((s) => s.id));
+              const extraLocal = sanitized.filter((c) => !seededIds.has(c.id));
+              setCapturesState([...extraLocal, ...seeded]);
+              return;
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("Failed loading guest captures from localStorage:", e);
+      }
       setCapturesState(getSeededCaptures());
       return;
     }
@@ -451,6 +491,20 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
       snapshot.forEach((docSnap) => {
         loaded.push({ id: docSnap.id, ...docSnap.data() } as CaptureSession);
       });
+      if (typeof window !== "undefined") {
+        try {
+          const stored = localStorage.getItem("memoiary_local_captures");
+          if (stored) {
+            const parsed: CaptureSession[] = JSON.parse(stored);
+            const loadedIds = new Set(loaded.map((c) => c.id));
+            const extraLocal = parsed.filter((c) => !loadedIds.has(c.id));
+            setCapturesState([...extraLocal, ...loaded]);
+            return;
+          }
+        } catch (e) {
+          console.warn("Failed merging local captures with Firestore:", e);
+        }
+      }
       setCapturesState(loaded);
     }, (error) => {
       console.warn("Firestore captures offline fallback:", error?.message);
@@ -700,9 +754,19 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
   };
 
   const submitCapture = async (content: string, source = "text", mediaContext?: string, mediaUrl?: string, dateOverride?: string, customTitle?: string) => {
-    const knownPeople = ["Maya", "Kabir", "Ananya", "Priya", "Rohan", "Sanya", "Sarah", "Vikram"];
+    const knownPeople = ["Kirti", "Mansa", "Maya", "Kabir", "Ananya", "Priya", "Rohan", "Sanya", "Sarah", "Vikram"];
     const textToSearch = `${content} ${mediaContext || ""}`;
-    const detectedPeople = knownPeople.filter((p) => textToSearch.toLowerCase().includes(p.toLowerCase()));
+    const defaultMatches = knownPeople.filter((p) => textToSearch.toLowerCase().includes(p.toLowerCase()));
+    
+    // Extract mid-sentence proper names (exclude sentence starters after . ! ? \n and words ending in -ing/-ed/-ly/etc)
+    const ignoreWords = new Set([
+      "The", "This", "That", "Started", "Morning", "September", "Afternoon", "Evening", "We", "We're", "I", "My", "In", "By", "As", "And", "Or", "For", "With", "From", "Captured", "Coffee", "Cardamom", "Chai", "Studio", "Project", "Decision", "Thought"
+    ]);
+    const nonSentenceStarterText = textToSearch.replace(/([.!?\n]\s*)([A-Z][a-z]+)/g, "$1");
+    const properNameMatches = (nonSentenceStarterText.match(/\b[A-Z][a-z]{2,15}\b/g) || []).filter(
+      (w) => !ignoreWords.has(w) && !/ing$|ed$|ly$|tion$|ment$|ness$|able$/i.test(w)
+    );
+    const detectedPeople = Array.from(new Set([...defaultMatches, ...properNameMatches]));
 
     const capId = `cap_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const nowIso = dateOverride || new Date().toISOString();
@@ -747,7 +811,10 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
     };
 
     // Always optimistically update local state immediately so user sees their new capture!
-    setCaptures((prev) => [newCap, ...prev]);
+    setCaptures((prev) => {
+      const list = [newCap, ...prev];
+      return list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    });
 
     // Asynchronously perform AI analysis extraction immediately (zero artificial delay)
     (async () => {
@@ -761,6 +828,12 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
           const resObj = await analyzeRes.json();
           const analysis = resObj.analysis || resObj;
           const aiGeneratedTitle = analysis.title || analysis.cards?.find((c: any) => c.title)?.title;
+          const aiPersonCards = Array.isArray(analysis.cards)
+            ? analysis.cards.filter((c: any) => c.type === "Person").map((c: any) => c.title)
+            : [];
+          const sanitizedDetected = detectedPeople.filter((p) => !/ing$|ed$|ly$|tion$|ment$/i.test(p));
+          const finalPeople = Array.from(new Set([...sanitizedDetected, ...aiPersonCards]));
+
           const extractedDims: CaptureDimensions = {
             title: customTitle || aiGeneratedTitle,
             summary: analysis.summary || analysis.witnessReflection || analysis.title || content.substring(0, 120),
@@ -769,7 +842,7 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
             emotions: Array.isArray(analysis.emotions) && analysis.emotions.length > 0
               ? analysis.emotions.map((e: any) => typeof e === "string" ? { label: e, intensity: 0.9, valence: "positive" } : { label: e.label || "Presence", intensity: e.intensity || 0.9, valence: "positive" })
               : [{ label: "Presence", intensity: 0.9, valence: "positive" }],
-            people: detectedPeople,
+            people: finalPeople,
             places: [],
             topics: Array.isArray(analysis.topics) && analysis.topics.length > 0
               ? analysis.topics
@@ -834,9 +907,11 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({
           content: content || mediaContext || "Captured Media Memory",
           source,
-          mediaUrl,
+          mediaUrl: mediaUrl || undefined,
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-          mediaContext
+          mediaContext,
+          dateOverride,
+          customTitle
         })
       });
 
@@ -895,7 +970,7 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const reanalyzeCapture = async (captureId: string) => {
+  const reanalyzeCapture = async (captureId: string, userFeedback?: string) => {
     const target = captures.find((c) => c.id === captureId);
     if (!target) return;
 
@@ -907,12 +982,19 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
       const res = await fetch("/api/gemini/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: target.content })
+        body: JSON.stringify({ content: target.content, userFeedback })
       });
       if (res.ok) {
         const resObj = await res.json();
         const analysis = resObj.analysis || resObj;
         const aiGeneratedTitle = analysis.title || analysis.cards?.find((c: any) => c.title)?.title;
+        const aiPersonCards = Array.isArray(analysis.cards)
+          ? analysis.cards.filter((c: any) => c.type === "Person").map((c: any) => c.title)
+          : [];
+        const existingPeople = target.dimensions?.people || [];
+        const cleanExisting = existingPeople.filter((p) => !/ing$|ed$|ly$|tion$|ment$/i.test(p));
+        const finalPeople = Array.from(new Set([...cleanExisting, ...aiPersonCards]));
+
         const extractedDims: CaptureDimensions = {
           title: target.title || aiGeneratedTitle,
           summary: analysis.summary || analysis.witnessReflection || analysis.title || target.content.substring(0, 120),
@@ -921,7 +1003,7 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
           emotions: Array.isArray(analysis.emotions) && analysis.emotions.length > 0
             ? analysis.emotions.map((e: any) => typeof e === "string" ? { label: e, intensity: 0.9, valence: "positive" } : { label: e.label || "Presence", intensity: e.intensity || 0.9, valence: "positive" })
             : [{ label: "Presence", intensity: 0.9, valence: "positive" }],
-          people: target.dimensions?.people || [],
+          people: finalPeople,
           places: target.dimensions?.places || [],
           topics: Array.isArray(analysis.topics) && analysis.topics.length > 0
             ? analysis.topics
@@ -954,13 +1036,23 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const updateCapture = async (captureId: string, updates: Partial<{ content: string; source: string; title: string }>) => {
+  const updateCapture = async (
+    captureId: string,
+    updates: Partial<{ content: string; source: string; title: string; dimensions: Partial<CaptureDimensions> }>
+  ) => {
     setCaptures((prev) =>
-      prev.map((c) =>
-        c.id === captureId
-          ? ({ ...c, ...updates, status: updates.content ? "processing" : "reconciled" } as CaptureSession)
-          : c
-      )
+      prev.map((c) => {
+        if (c.id !== captureId) return c;
+        const mergedDims = updates.dimensions
+          ? ({ ...(c.dimensions || {}), ...updates.dimensions } as CaptureDimensions)
+          : c.dimensions;
+        return {
+          ...c,
+          ...updates,
+          dimensions: mergedDims,
+          status: updates.content ? "processing" : "reconciled"
+        } as CaptureSession;
+      })
     );
 
     if (updates.content) {

@@ -20,6 +20,12 @@ export interface RetrievedContext {
   pendingClarifications: ClarificationCandidate[];
 }
 
+const STOP_WORDS = new Set([
+  "what", "were", "with", "have", "about", "from", "that", "this", "some",
+  "your", "they", "them", "then", "than", "when", "where", "which", "could",
+  "would", "should", "does", "think", "my", "reflections", "are"
+]);
+
 export class MemoryRetriever {
   private store: MemoryStore;
 
@@ -96,11 +102,10 @@ export class MemoryRetriever {
     );
 
     // Filter significant tokens from query
-    const stopWords = new Set(["what", "were", "with", "have", "about", "from", "that", "this", "some", "your", "they", "them", "then", "than", "when", "where", "which", "could", "would", "should", "does", "think", "my", "reflections", "are"]);
     const queryTokens = queryLower
       .replace(/[^\w\s]/g, "")
       .split(/\s+/)
-      .filter((w) => w.length >= 3 && !stopWords.has(w));
+      .filter((w) => w.length >= 3 && !STOP_WORDS.has(w));
 
     // Score & select episodes properly
     const scoredEpisodes = allEpisodes.map((ep) => {

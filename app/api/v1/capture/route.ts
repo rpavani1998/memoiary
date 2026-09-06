@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     }
 
     const body = (await req.json().catch(() => ({}))) || {};
-    let { content, source = "text", mediaUrl, timezone = "UTC", mediaContext } = body;
+    let { content, source = "text", mediaUrl, timezone = "UTC", mediaContext, dateOverride, customTitle, title } = body;
 
     if (!content || typeof content !== "string" || !content.trim()) {
       if (mediaUrl || mediaContext) {
@@ -26,16 +26,21 @@ export async function POST(req: Request) {
     const db = getFirestore();
     const captureRef = db.collection("users").doc(userId).collection("captures").doc(captureId);
 
-    const captureSession: CaptureSession = {
+    const createdAtIso = dateOverride || new Date().toISOString();
+    const entryTitle = customTitle || title || undefined;
+
+    const captureSession: Record<string, any> = {
       id: captureId,
       userId,
       content: content.trim(),
       source,
-      mediaUrl,
       timezone,
-      createdAt: new Date().toISOString(),
+      createdAt: createdAtIso,
       status: "received"
     };
+
+    if (mediaUrl) captureSession.mediaUrl = mediaUrl;
+    if (entryTitle) captureSession.title = entryTitle;
 
     // Save immediately with admin SDK
     await captureRef.set(captureSession);

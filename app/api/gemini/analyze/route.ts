@@ -27,7 +27,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
     }
 
-    const { content, pastEntries = [], memories = [], customTopics = [] } = body;
+    const { content, pastEntries = [], memories = [], customTopics = [], userFeedback } = body;
     if (!content || typeof content !== "string" || !content.trim()) {
       return NextResponse.json({ error: "Content is required and must be a valid string" }, { status: 400 });
     }
@@ -44,6 +44,10 @@ export async function POST(req: Request) {
       ? `\nPREFERRED USER TOPICS FOR CATEGORIZATION:\nThe user has explicitly created these target topics for their journal: ${JSON.stringify(customTopics)}. If the journal entry connects to or fits any of these custom topics, prioritize assigning those exact topic labels in the "topics" array!`
       : "";
 
+    const userFeedbackContext = userFeedback
+      ? `\nUSER CORRECTION / FEEDBACK:\nThe user provided this specific correction or feedback on your previous analysis: "${userFeedback}". Strictly incorporate their correction into your analysis, update extracted entities/people, mood, cards, and topics accordingly.`
+      : "";
+
     const memoriesContext = memories.length > 0 
       ? `Here are some things the user has explicitly asked you to remember about them:\n${memories.map((m: string) => `- ${m}`).join("\n")}`
       : "The user has no stored memories yet.";
@@ -57,6 +61,7 @@ CRITICAL BEHAVIOR & TONE RULES:
 - If they share a new thought, reflect it back naturally in 2-3 simple sentences without being preachy or overly dramatic.
 - Keep your tone grounded, relatable, authentic, and easy to read.
 ${userTopicsContext}
+${userFeedbackContext}
 
 Analyze the provided journal entry and return a structured JSON object containing:
 1. "title": A short, evocative 3-5 word title for this entry (e.g., "The Pull of the Quiet" or "Vibrant Dance Floor").

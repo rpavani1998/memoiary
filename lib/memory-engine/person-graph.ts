@@ -104,29 +104,3 @@ export function getPersonVisualIdentity(name: string): PersonVisualIdentity {
     lastUpdated: new Date().toISOString()
   };
 }
-
-/**
- * Dynamically evolves a person's character visual identity based on AI analysis of new inputs.
- * E.g. If the user mentions "Maya cut her hair short", this appends the trait without changing her core face.
- */
-export function evolvePersonVisualIdentity(name: string, newTrait: string): PersonVisualIdentity {
-  const identity = getPersonVisualIdentity(name);
-  const normalizedKey = name.trim().toLowerCase();
-
-  if (!identity.evolvedTraits.includes(newTrait)) {
-    identity.evolvedTraits.push(newTrait);
-    identity.version += 1;
-    identity.lastUpdated = new Date().toISOString();
-    PERSON_VISUAL_REGISTRY[normalizedKey] = identity;
-  }
-
-  return identity;
-}
-
-/**
- * Constructs the full prompt descriptor for a person to be passed to image generation APIs.
- */
-export function buildPersonPromptDescriptor(name: string): string {
-  const identity = getPersonVisualIdentity(name);
-  return `${identity.name} (${identity.baseDescriptor}, ${identity.evolvedTraits.join(", ")})`;
-}

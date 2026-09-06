@@ -110,28 +110,16 @@ export async function generateContentWithFallback(
  */
 export function safeParseJson<T>(text: string, fallback: T): T {
   try {
-    // Attempt straight parse
-    return JSON.parse(text.trim()) as T;
+    const cleaned = text.replace(/```(?:json)?|```/g, "").trim();
+    return JSON.parse(cleaned) as T;
   } catch {
-    try {
-      // Look for ```json ... ``` blocks
-      const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-      if (jsonMatch && jsonMatch[1]) {
-        return JSON.parse(jsonMatch[1].trim()) as T;
-      }
-    } catch {
-      // Look for first '{' and last '}'
+    const start = text.indexOf("{");
+    const end = text.lastIndexOf("}");
+    if (start !== -1 && end > start) {
       try {
-        const start = text.indexOf('{');
-        const end = text.lastIndexOf('}');
-        if (start !== -1 && end !== -1) {
-          const jsonSub = text.substring(start, end + 1);
-          return JSON.parse(jsonSub.trim()) as T;
-        }
-      } catch (innerError) {
-        console.error("Defensive JSON parsing failed:", innerError);
-      }
+        return JSON.parse(text.substring(start, end + 1)) as T;
+      } catch {}
     }
+    return fallback;
   }
-  return fallback;
 }

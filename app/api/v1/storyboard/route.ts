@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateContentWithFallback } from "@/lib/gemini";
-import { buildPersonPromptDescriptor } from "@/lib/memory-engine/person-graph";
+import { getPersonVisualIdentity } from "@/lib/memory-engine/person-graph";
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,7 +12,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Resolve persistent visual character prompt descriptors for all people tagged
-    const personDescriptors = (people || []).map((name: string) => buildPersonPromptDescriptor(name)).join("; ");
+    const personDescriptors = (people || [])
+      .map((name: string) => {
+        const id = getPersonVisualIdentity(name);
+        return `${id.name} (${id.baseDescriptor}, ${id.evolvedTraits.join(", ")})`;
+      })
+      .join("; ");
 
     const systemPrompt = `You are Memoiary's AI Art Director. Your goal is to synthesize a single, unified daily hand-drawn narrative collage prompt for an entire day's entries (${dateStr}).
 Art Style Requested: ${artStyle.toUpperCase()} (e.g. Pencil & Graphite Sketch, Studio Ghibli, Risograph).

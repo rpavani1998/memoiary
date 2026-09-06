@@ -266,7 +266,7 @@ function LifeHome({
   onSelectCapture,
 }: {
   go: (view: View) => void;
-  openCapture: (prompt?: string) => void;
+  openCapture: (prompt?: string, targetDate?: Date) => void;
   newMemory: CapturedMemory | null;
   onSelectCapture: (c: any) => void;
 }) {
@@ -313,15 +313,18 @@ function LifeHome({
 
   return (
     <div className="pb-32 font-sans px-4 sm:px-8 pt-2 space-y-4">
-      {/* Daily Sanctuary Hero Section (Sleek Compact Top Bar) */}
-      <DailySanctuaryHero
-        user={user}
-        streak={streak}
-        openCapture={openCapture}
-        go={go}
-        capturesCount={dayCaptures.length}
-        captures={captures}
-      />
+      {/* Daily Sanctuary Hero Section (Sleek Compact Top Bar) ONLY on first diary page (Day mode) */}
+      {timelineMode === "day" && (
+        <DailySanctuaryHero
+          user={user}
+          streak={streak}
+          openCapture={(prompt, targetDate) => openCapture(prompt, targetDate || selectedDate)}
+          go={go}
+          capturesCount={dayCaptures.length}
+          captures={captures}
+          mode={timelineMode}
+        />
+      )}
 
       {/* Timeline View Mode Switcher: DAY | WEEK | MONTH */}
       <TimelineViewSwitcher
@@ -424,11 +427,7 @@ function LifeHome({
             uniqueDaysLogged={uniqueDaysLogged}
             isUnlocked={uniqueDaysLogged >= 30}
             monthlyPeople={Array.from(new Set(captures.flatMap((c) => c.dimensions?.people || [])))}
-            monthlySummary={
-              captures.length > 0
-                ? Array.from(new Set(captures.map((c) => c.dimensions?.summary || c.content.substring(0, 35)).filter(Boolean))).slice(0, 3).join(" · ")
-                : undefined
-            }
+            monthlySummary="Creative focus, studio priorities & grounded collaboration"
             onSelectCollage={() => setTimelineMode("day")}
             onOpenCapture={openCapture}
             onGoReflect={go}
@@ -603,50 +602,50 @@ function LifeHome({
                   You haven&apos;t recorded any moments for this day yet. Capture a voice note, photo, or thought to remember how it felt.
                 </p>
                 <button
-                  onClick={() => openCapture()}
+                  onClick={() => openCapture(undefined, selectedDate)}
                   className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#1C1917] hover:bg-[#DE5239] text-white text-xs font-bold rounded-2xl shadow-[2px_3px_0px_#1C1917] hover:shadow-[4px_5px_0px_#1C1917] transition-all cursor-pointer"
                 >
                   <Plus size={14} /> Add memory for this day
                 </button>
               </div>
             )}
-          </div>
-        )}
 
-        {/* Prompt suggestion tiles */}
-        {recentCaptures.length === 0 && !newMemory && (
-          <div className="space-y-2.5 pt-4 relative z-10">
-            <p className="text-[11px] uppercase tracking-wider font-sans font-bold text-[#DE5239] flex items-center gap-1.5">
-              <span className="node-dot" />
-              Start with something simple
-            </p>
-            <div className="grid grid-cols-2 gap-2.5">
-              {[
-                "What made you smile today?",
-                "A place that felt like home…",
-                "Someone you're grateful for",
-                "A conversation that stayed with you",
-                "Something you don't want to forget",
-              ].map((prompt, i) => (
-                <button
-                  key={prompt}
-                  onClick={() => openCapture(prompt)}
-                  className={`text-left p-3.5 border-[1.5px] border-[#1C1917] bg-[#FBF9F4] rounded-2xl shadow-[2px_3px_0px_#1C1917] hover:shadow-[4px_6px_0px_#1C1917] hover:-translate-y-0.5 transition-all cursor-pointer group ${
-                    i === 4 ? "col-span-2" : ""
-                  }`}
-                >
-                  <span className="font-serif text-sm text-[#1C1917] leading-snug group-hover:text-[#DE5239] transition-colors">&quot;{prompt}&quot;</span>
-                </button>
-              ))}
+            {/* Prompt suggestion tiles ONLY in day mode */}
+            {recentCaptures.length === 0 && !newMemory && (
+              <div className="space-y-2.5 pt-4 relative z-10">
+                <p className="text-[11px] uppercase tracking-wider font-sans font-bold text-[#DE5239] flex items-center gap-1.5">
+                  <span className="node-dot" />
+                  Start with something simple
+                </p>
+                <div className="grid grid-cols-2 gap-2.5">
+                  {[
+                    "What made you smile today?",
+                    "A place that felt like home…",
+                    "Someone you're grateful for",
+                    "A conversation that stayed with you",
+                    "Something you don't want to forget",
+                  ].map((prompt, i) => (
+                    <button
+                      key={prompt}
+                      onClick={() => openCapture(prompt, selectedDate)}
+                      className={`text-left p-3.5 border-[1.5px] border-[#1C1917] bg-[#FBF9F4] rounded-2xl shadow-[2px_3px_0px_#1C1917] hover:shadow-[4px_6px_0px_#1C1917] hover:-translate-y-0.5 transition-all cursor-pointer group ${
+                        i === 4 ? "col-span-2" : ""
+                      }`}
+                    >
+                      <span className="font-serif text-sm text-[#1C1917] leading-snug group-hover:text-[#DE5239] transition-colors">&quot;{prompt}&quot;</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="pt-2 relative z-10">
+              <button className="w-full text-center py-3.5 border-[1.5px] border-dashed border-[#1C1917]/40 bg-[#FBF9F4] rounded-2xl text-sm font-sans font-medium text-[#665F56] hover:border-[#DE5239] hover:text-[#DE5239] transition-all cursor-pointer" onClick={() => openCapture(undefined, selectedDate)}>
+                <Plus size={16} className="inline -mt-0.5 mr-1" /> Capture what this moment feels like
+              </button>
             </div>
           </div>
         )}
-
-        <div className="pt-2 relative z-10">
-          <button className="w-full text-center py-3.5 border-[1.5px] border-dashed border-[#1C1917]/40 bg-[#FBF9F4] rounded-2xl text-sm font-sans font-medium text-[#665F56] hover:border-[#DE5239] hover:text-[#DE5239] transition-all cursor-pointer" onClick={() => openCapture()}>
-            <Plus size={16} className="inline -mt-0.5 mr-1" /> Capture what this moment feels like
-          </button>
-        </div>
       </main>
     </div>
   );
@@ -1285,10 +1284,25 @@ function MemoryDetailSection({ go, capture }: { go: (view: View) => void; captur
   const [editedContent, setEditedContent] = useState(capture?.content || "");
   const [copiedText, setCopiedText] = useState(false);
 
+  const [showAiFeedbackPanel, setShowAiFeedbackPanel] = useState(false);
+  const [aiFeedbackText, setAiFeedbackText] = useState("");
+  const [editedMood, setEditedMood] = useState(capture?.dimensions?.mood || "");
+  const [editedPeople, setEditedPeople] = useState<string[]>(capture?.dimensions?.people || []);
+  const [editedTopics, setEditedTopics] = useState<string[]>(capture?.dimensions?.topics || []);
+  const [editedSummary, setEditedSummary] = useState(capture?.dimensions?.summary || "");
+  const [newPersonInput, setNewPersonInput] = useState("");
+  const [newTopicInput, setNewTopicInput] = useState("");
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
+  const [saveSuccessMsg, setSaveSuccessMsg] = useState("");
+
   useEffect(() => {
     setEditedTitle(capture?.title || capture?.dimensions?.title || "");
     setEditedContent(capture?.content || "");
-  }, [capture?.title, capture?.content, capture?.dimensions?.title]);
+    setEditedMood(capture?.dimensions?.mood || "");
+    setEditedPeople(capture?.dimensions?.people || []);
+    setEditedTopics(capture?.dimensions?.topics || []);
+    setEditedSummary(capture?.dimensions?.summary || "");
+  }, [capture?.title, capture?.content, capture?.dimensions]);
 
   if (!capture) {
     return (
@@ -1327,6 +1341,60 @@ function MemoryDetailSection({ go, capture }: { go: (view: View) => void; captur
       setCopiedText(true);
       setTimeout(() => setCopiedText(false), 2000);
     }
+  };
+
+  const handleSaveDimensions = async () => {
+    await updateCapture(capture.id, {
+      dimensions: {
+        mood: editedMood.trim(),
+        people: editedPeople,
+        topics: editedTopics,
+        summary: editedSummary.trim()
+      }
+    });
+    setSaveSuccessMsg("✓ AI dimensions & entities updated!");
+    setTimeout(() => setSaveSuccessMsg(""), 3000);
+  };
+
+  const handleSendAiFeedback = async () => {
+    if (!aiFeedbackText.trim()) return;
+    setIsSubmittingFeedback(true);
+    try {
+      await reanalyzeCapture(capture.id, aiFeedbackText.trim());
+      setAiFeedbackText("");
+      setSaveSuccessMsg("✨ AI re-analyzed with your feedback!");
+      setTimeout(() => setSaveSuccessMsg(""), 3000);
+    } catch (err) {
+      console.error("AI feedback error:", err);
+    } finally {
+      setIsSubmittingFeedback(false);
+    }
+  };
+
+  const handleAddPerson = () => {
+    if (!newPersonInput.trim()) return;
+    const name = newPersonInput.trim();
+    if (!editedPeople.includes(name)) {
+      setEditedPeople([...editedPeople, name]);
+    }
+    setNewPersonInput("");
+  };
+
+  const handleRemovePerson = (name: string) => {
+    setEditedPeople(editedPeople.filter((p) => p !== name));
+  };
+
+  const handleAddTopic = () => {
+    if (!newTopicInput.trim()) return;
+    const topic = newTopicInput.trim();
+    if (!editedTopics.includes(topic)) {
+      setEditedTopics([...editedTopics, topic]);
+    }
+    setNewTopicInput("");
+  };
+
+  const handleRemoveTopic = (topic: string) => {
+    setEditedTopics(editedTopics.filter((t) => t !== topic));
   };
 
   const sourceTypeLabel = 
@@ -1504,9 +1572,13 @@ function MemoryDetailSection({ go, capture }: { go: (view: View) => void; captur
                   </div>
                   <h3 className="font-serif text-lg font-bold text-[#1C1917]">AI Witness Reflection &amp; Understanding</h3>
                 </div>
-                <span className="text-[10px] font-mono uppercase font-bold text-[#D97706] bg-[#FEF3C7] px-2.5 py-0.5 rounded-full border border-[#D97706]/40">
-                  Single-Pass Gemini
-                </span>
+                <button
+                  onClick={() => setShowAiFeedbackPanel(!showAiFeedbackPanel)}
+                  className="flex items-center gap-1 px-3 py-1 bg-[#F5E5DC] border border-[#DE5239]/40 rounded-full text-xs font-bold text-[#DE5239] hover:bg-[#F0D5C7] cursor-pointer transition-all shadow-2xs"
+                >
+                  <Sparkles size={13} />
+                  <span>{showAiFeedbackPanel ? "Close Feedback" : "Edit AI Analysis & Feedback"}</span>
+                </button>
               </div>
 
               {isAiProcessing ? (
@@ -1554,6 +1626,134 @@ function MemoryDetailSection({ go, capture }: { go: (view: View) => void; captur
                       ))}
                     </div>
                   </div>
+
+                  {saveSuccessMsg && (
+                    <div className="p-2.5 bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold rounded-xl text-center animate-in fade-in">
+                      {saveSuccessMsg}
+                    </div>
+                  )}
+
+                  {/* AI FEEDBACK & EDITING PANEL */}
+                  {showAiFeedbackPanel && (
+                    <div className="mt-4 p-5 bg-white border-[1.5px] border-[#1C1917] rounded-2xl shadow-[2px_3px_0px_#1C1917] space-y-5 font-sans animate-in fade-in duration-200">
+                      <div className="border-b border-[#1C1917]/15 pb-2">
+                        <h4 className="font-serif font-bold text-base text-[#1C1917] flex items-center gap-2">
+                          <Sparkles size={16} className="text-[#DE5239]" />
+                          Give Feedback to AI &amp; Edit Entities
+                        </h4>
+                        <p className="text-xs text-[#665F56]">Correct Gemini's mood, add missed people, adjust topics, or provide natural language feedback to teach the model.</p>
+                      </div>
+
+                      {/* 1. Natural Language AI Feedback */}
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-[#1C1917] block">
+                          💬 Feedback or Correction for Gemini
+                        </label>
+                        <textarea
+                          value={aiFeedbackText}
+                          onChange={(e) => setAiFeedbackText(e.target.value)}
+                          placeholder="e.g., 'Tag Mansa as my creative partner', 'Adjust mood to Grounded Clarity', 'Remove Hearing from people'..."
+                          className="w-full p-3 text-xs font-sans border border-[#1C1917]/30 bg-[#FBF9F4] rounded-xl text-[#1C1917] focus:outline-none focus:border-[#DE5239]"
+                          rows={2}
+                        />
+                        <button
+                          onClick={handleSendAiFeedback}
+                          disabled={isSubmittingFeedback || !aiFeedbackText.trim()}
+                          className="px-4 py-2 bg-[#DE5239] text-white text-xs font-bold rounded-xl border border-[#1C1917] shadow-2xs hover:bg-[#c9452d] cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                        >
+                          <Sparkles size={13} className={isSubmittingFeedback ? "animate-spin" : ""} />
+                          <span>{isSubmittingFeedback ? "Updating AI..." : "Re-Analyze with Feedback"}</span>
+                        </button>
+                      </div>
+
+                      <hr className="border-[#1C1917]/10" />
+
+                      {/* 2. Direct Field Editors */}
+                      <div className="space-y-4">
+                        <h5 className="text-xs font-bold uppercase tracking-wider text-[#665F56]">Direct Entity &amp; Dimension Editing</h5>
+
+                        {/* Summary */}
+                        <div className="space-y-1">
+                          <label className="text-xs font-semibold text-[#1C1917]">AI Summary</label>
+                          <textarea
+                            value={editedSummary}
+                            onChange={(e) => setEditedSummary(e.target.value)}
+                            className="w-full p-2.5 text-xs font-serif border border-[#1C1917]/30 bg-[#FBF9F4] rounded-xl text-[#1C1917] focus:outline-none"
+                            rows={2}
+                          />
+                        </div>
+
+                        {/* Mood */}
+                        <div className="space-y-1">
+                          <label className="text-xs font-semibold text-[#1C1917]">Mood</label>
+                          <input
+                            type="text"
+                            value={editedMood}
+                            onChange={(e) => setEditedMood(e.target.value)}
+                            placeholder="e.g., Grounded & Relieved"
+                            className="w-full px-3 py-2 text-xs border border-[#1C1917]/30 bg-[#FBF9F4] rounded-xl text-[#1C1917] focus:outline-none"
+                          />
+                        </div>
+
+                        {/* People Entities */}
+                        <div className="space-y-2">
+                          <label className="text-xs font-semibold text-[#1C1917]">People Entities</label>
+                          <div className="flex flex-wrap gap-1.5">
+                            {editedPeople.map((p) => (
+                              <span key={p} className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 border border-amber-300 rounded-full text-xs font-semibold text-amber-900">
+                                {p}
+                                <button onClick={() => handleRemovePerson(p)} className="hover:text-rose-600 cursor-pointer font-bold ml-1">×</button>
+                              </span>
+                            ))}
+                          </div>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={newPersonInput}
+                              onChange={(e) => setNewPersonInput(e.target.value)}
+                              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddPerson(); } }}
+                              placeholder="Add person name (e.g. Mansa, Kirti)…"
+                              className="flex-1 px-3 py-1.5 text-xs border border-[#1C1917]/30 bg-[#FBF9F4] rounded-xl text-[#1C1917] focus:outline-none"
+                            />
+                            <button onClick={handleAddPerson} className="px-3 py-1.5 bg-[#1C1917] text-white text-xs font-bold rounded-xl cursor-pointer">+ Add</button>
+                          </div>
+                        </div>
+
+                        {/* Topics */}
+                        <div className="space-y-2">
+                          <label className="text-xs font-semibold text-[#1C1917]">Topics &amp; Tags</label>
+                          <div className="flex flex-wrap gap-1.5">
+                            {editedTopics.map((t) => (
+                              <span key={t} className="inline-flex items-center gap-1 px-2.5 py-1 bg-stone-100 border border-stone-300 rounded-full text-xs font-semibold text-stone-800">
+                                #{t}
+                                <button onClick={() => handleRemoveTopic(t)} className="hover:text-rose-600 cursor-pointer font-bold ml-1">×</button>
+                              </span>
+                            ))}
+                          </div>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={newTopicInput}
+                              onChange={(e) => setNewTopicInput(e.target.value)}
+                              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddTopic(); } }}
+                              placeholder="Add topic (e.g. Studio Work, Project Planning)…"
+                              className="flex-1 px-3 py-1.5 text-xs border border-[#1C1917]/30 bg-[#FBF9F4] rounded-xl text-[#1C1917] focus:outline-none"
+                            />
+                            <button onClick={handleAddTopic} className="px-3 py-1.5 bg-[#1C1917] text-white text-xs font-bold rounded-xl cursor-pointer">+ Add</button>
+                          </div>
+                        </div>
+
+                        <div className="pt-2 flex justify-end">
+                          <button
+                            onClick={handleSaveDimensions}
+                            className="px-5 py-2 bg-[#1C1917] text-white text-xs font-bold rounded-xl shadow-2xs hover:bg-stone-800 cursor-pointer"
+                          >
+                            Save Manual Dimension Edits
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -2056,6 +2256,7 @@ function CaptureOverlay({
       await submitCapture(content, detectedSource, mediaCtx || undefined, mediaUrl, dateIso, customTitleInput.trim() || undefined);
       onSaved({ kind: "written", text: content, location });
       resetCaptureState(); // Clear all capture inputs immediately after save!
+      setMode(null); // Automatically close modal after saving!
     } catch (err) {
       console.error("Save memory error:", err);
     } finally {
@@ -2490,6 +2691,7 @@ export function MemoiaryAppShell() {
   const [captureMode, setCaptureMode] = useState<CaptureMode>(null);
   const [capturePrompt, setCapturePrompt] = useState<string>("");
   const [pendingCaptureMode, setPendingCaptureMode] = useState<CaptureMode>(null);
+  const [selectedCaptureDate, setSelectedCaptureDate] = useState<Date | undefined>(undefined);
   const [saved, setSaved] = useState(false);
   const [newMemory, setNewMemory] = useState<CapturedMemory | null>(null);
   const [selectedCapture, setSelectedCapture] = useState<any>(null);
@@ -2518,7 +2720,8 @@ export function MemoiaryAppShell() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handleOpenCapture = (promptOrMode?: string | CaptureMode) => {
+  const handleOpenCapture = (promptOrMode?: string | CaptureMode, targetDate?: Date) => {
+    setSelectedCaptureDate(targetDate);
     const isPrompt = typeof promptOrMode === "string" && !["menu", "write", "voice", "photo", "video"].includes(promptOrMode);
     const mode: CaptureMode = isPrompt ? "write" : ((promptOrMode || "menu") as CaptureMode);
 
@@ -2551,7 +2754,7 @@ export function MemoiaryAppShell() {
   const content = useMemo(() => {
     switch (view) {
       case "life":
-        return <LifeHome go={go} openCapture={(prompt) => handleOpenCapture(prompt || "menu")} newMemory={newMemory} onSelectCapture={(c) => { setSelectedCapture(c); go("memory"); }} />;
+        return <LifeHome go={go} openCapture={(prompt, targetDate) => handleOpenCapture(prompt || "menu", targetDate)} newMemory={newMemory} onSelectCapture={(c) => { setSelectedCapture(c); go("memory"); }} />;
       case "entities":
         return (
           <div className="px-5 sm:px-8 mt-2">
@@ -2645,7 +2848,7 @@ export function MemoiaryAppShell() {
           onSelectMode={(mode) => handleOpenCapture(mode)}
         />
       )}
-      <CaptureOverlay mode={captureMode} setMode={setCaptureMode} onSaved={onSaved} initialPrompt={capturePrompt} />
+      <CaptureOverlay mode={captureMode} setMode={setCaptureMode} onSaved={onSaved} initialPrompt={capturePrompt} selectedDate={selectedCaptureDate} />
       <AuthLoginModal
         isOpen={showLoginModal}
         onClose={() => setShowLoginModal(false)}
