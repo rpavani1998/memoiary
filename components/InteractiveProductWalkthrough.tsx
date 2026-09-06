@@ -72,12 +72,11 @@ export const WALKTHROUGH_STEPS: WalkthroughStep[] = [
     title: "Weekly Storyboard & Narrative Arc",
     badge: "Narrative Synthesis Engine",
     targetView: "life",
-    subTabSelector: "[data-tour='tab-week']",
-    selector: "[data-tour='weekly-recap']",
+    selector: "[data-tour='tab-week']",
     icon: Layers,
     description: "View your weekly story arc in a clean 2-column square collage grid with bold titles, summaries, and key companion tags.",
     aiExplanation: "AI synthesizes your weekly emotional trajectory, creating concise titles, highlight summaries, and key people lists for each period.",
-    highlightNote: "Click any highlight card to inspect the full journal detail!"
+    highlightNote: "Click this Weekly View pill button anytime to inspect your 7-day story arc collages!"
   },
   {
     id: 5,
