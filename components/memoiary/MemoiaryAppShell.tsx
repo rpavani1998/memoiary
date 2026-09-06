@@ -2391,10 +2391,10 @@ function BottomNav({
       <button
         className={`cursor-pointer ${active === "life" ? "active" : ""}`}
         onClick={() => go("life")}
-        title="Home Sanctuary"
-        aria-label="Home Sanctuary"
+        title="Journal Sanctuary"
+        aria-label="Journal Sanctuary"
       >
-        <House size={22} />
+        <BookOpen size={22} />
       </button>
 
       <button

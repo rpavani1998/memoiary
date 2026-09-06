@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Home, Clock, Layers, MessageSquare, Search } from "lucide-react";
+import { BookOpen, Clock, Layers, MessageSquare, Search } from "lucide-react";
 import { ThoughtBubbleIcon } from "@/components/ThoughtBubbleIcon";
 
 export type NavTab = "home" | "timeline" | "memories" | "search" | "people" | "places" | "reflect" | "collections";
@@ -19,15 +19,15 @@ export function BottomNavigation({ activeTab, onSelectTab, onOpenCapture }: Prop
         {/* 1. Home / Daily Sanctuary */}
         <button
           onClick={() => onSelectTab("home")}
-          title="Home Sanctuary"
-          aria-label="Home Sanctuary"
+          title="Journal Sanctuary"
+          aria-label="Journal Sanctuary"
           className={`flex flex-col items-center justify-center w-11 h-11 rounded-full cursor-pointer transition-all relative ${
             activeTab === "home"
               ? "text-[#DE5239] bg-[#F5E5DC] border border-[#DE5239]/20 scale-105"
               : "text-[#665F56] hover:text-[#1C1917] hover:bg-[#F5F1E8]"
           }`}
         >
-          <Home className="w-5.5 h-5.5" />
+          <BookOpen className="w-5.5 h-5.5" />
           {activeTab === "home" && (
             <span className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-[#DE5239]" />
           )}

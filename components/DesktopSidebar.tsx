@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Home, Clock, Layers, Sparkles, MessageSquare, Search, ShieldCheck } from "lucide-react";
+import { BookOpen, Clock, Layers, Sparkles, MessageSquare, Search, ShieldCheck } from "lucide-react";
 import { NavTab } from "./BottomNavigation";
 import { ThoughtBubbleIcon } from "./ThoughtBubbleIcon";
 
@@ -13,7 +13,7 @@ interface Props {
 
 export function DesktopSidebar({ activeTab, onSelectTab, onOpenCapture }: Props) {
   const links: { id: NavTab; label: string; icon: React.ReactNode }[] = [
-    { id: "home", label: "Home Sanctuary", icon: <Home className="w-5 h-5" /> },
+    { id: "home", label: "Journal Sanctuary", icon: <BookOpen className="w-5 h-5" /> },
     { id: "timeline", label: "Timeline", icon: <Clock className="w-5 h-5" /> },
     { id: "memories", label: "Elements", icon: <Layers className="w-5 h-5" /> },
     { id: "collections", label: "Mind Map & Themes", icon: <Sparkles className="w-5 h-5" /> },
