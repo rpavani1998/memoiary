@@ -2021,21 +2021,6 @@ function ProfileViewSection({ go, onOpenLogin }: { go: (view: View) => void; onO
           </p>
         </div>
 
-        {/* Artwork Theme Card */}
-        <div className="border-[1.5px] border-[#1C1917] bg-[#FAF7F0] rounded-2xl p-5 shadow-[3px_4px_0px_#1C1917] space-y-2 font-sans">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Palette size={18} className="text-[#D97706]" />
-              <h3 className="font-serif text-lg font-medium text-[#1C1917]">Signature Journal Aesthetic</h3>
-            </div>
-            <span className="text-[10px] font-mono uppercase font-bold text-[#D97706] bg-[#FDF2D0] border border-[#D97706]/30 px-2.5 py-0.5 rounded-full">
-              Pencil & Graphite Sketch
-            </span>
-          </div>
-          <p className="text-xs text-[#665F56] font-sans leading-relaxed">
-            All daily storyboards, narrative collages, and person visual identities are rendered in expressive hand-drawn graphite pencil sketch linework on warm parchment paper stock.
-          </p>
-        </div>
 
         <div className="settings-list font-sans">
           {isDemoMode && onOpenLogin ? (
