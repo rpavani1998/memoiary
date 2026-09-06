@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Calendar, CheckCircle2, Clock, Plus, Users, Sparkles, ChevronLeft, ChevronRight, PenLine } from "lucide-react";
 import { ArtisticAvatar } from "./ArtisticAvatar";
+import { useJournal } from "@/lib/context/JournalContext";
 
 interface Props {
   monthLabel?: string;
@@ -104,20 +105,32 @@ export function MonthlyCollageGrid({
   const activeIndex = Math.min(allMonths.length - 1, Math.max(0, Math.abs(monthIndex)));
   const activeMonth = allMonths[activeIndex];
 
-  // Load reflection from localStorage on month change
+  let user: any = null;
+  try {
+    const journalContext = useJournal();
+    user = journalContext?.user;
+  } catch {}
+
+  const userReflKey = user && !user.uid?.startsWith("guest_user_") && !user.uid?.startsWith("user_guest_") ? user.uid : "guest";
+
+  // Load reflection from localStorage on month change or user change
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(`memoiary_user_reflection_month_${activeMonth.id}`);
-      setUserReflection(saved || "");
+      if (typeof window !== "undefined") {
+        const saved = localStorage.getItem(`memoiary_user_reflection_${userReflKey}_month_${activeMonth.id}`);
+        setUserReflection(saved || "");
+      }
     } catch (e) {
       setUserReflection("");
     }
-  }, [activeMonth.id]);
+  }, [activeMonth.id, userReflKey]);
 
   const handleSaveReflection = (val: string) => {
     setUserReflection(val);
     try {
-      localStorage.setItem(`memoiary_user_reflection_month_${activeMonth.id}`, val);
+      if (typeof window !== "undefined") {
+        localStorage.setItem(`memoiary_user_reflection_${userReflKey}_month_${activeMonth.id}`, val);
+      }
       setSavedToast(true);
       setTimeout(() => setSavedToast(false), 2000);
     } catch (e) {

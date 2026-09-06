@@ -28,6 +28,7 @@ import {
   Compass
 } from "lucide-react";
 import { CaptureSession } from "@/lib/memory-engine/types";
+import { useJournal } from "@/lib/context/JournalContext";
 import { ArtisticAvatar } from "./ArtisticAvatar";
 
 interface UnifiedCollectionsGraphViewProps {
@@ -121,17 +122,32 @@ export function UnifiedCollectionsGraphView({
   // Physics Simulation Ref
   const animFrameRef = useRef<number | null>(null);
 
-  // Load user custom topics from localStorage on mount
+  let user: any = null;
+  try {
+    const journalContext = useJournal();
+    user = journalContext?.user;
+  } catch {}
+
+  const userTopicsKey = user && !user.uid?.startsWith("guest_user_") && !user.uid?.startsWith("user_guest_")
+    ? `memoiary_user_custom_topics_${user.uid}`
+    : "memoiary_user_custom_topics_guest";
+
+  // Load user custom topics from localStorage whenever user changes
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("memoiary_user_custom_topics");
-      if (saved) {
-        setCustomTopics(JSON.parse(saved));
+      if (typeof window !== "undefined") {
+        const saved = localStorage.getItem(userTopicsKey);
+        if (saved) {
+          setCustomTopics(JSON.parse(saved));
+        } else {
+          setCustomTopics([]);
+        }
       }
     } catch (e) {
       console.warn("Failed to load custom topics", e);
+      setCustomTopics([]);
     }
-  }, []);
+  }, [userTopicsKey]);
 
   const handleAddCustomTopic = (e: React.FormEvent) => {
     e.preventDefault();
@@ -146,7 +162,9 @@ export function UnifiedCollectionsGraphView({
     const updated = [topicObj, ...customTopics.filter((t) => t.name.toLowerCase() !== topicObj.name.toLowerCase())];
     setCustomTopics(updated);
     try {
-      localStorage.setItem("memoiary_user_custom_topics", JSON.stringify(updated));
+      if (typeof window !== "undefined") {
+        localStorage.setItem(userTopicsKey, JSON.stringify(updated));
+      }
     } catch (e) {
       console.warn("Failed to save custom topic", e);
     }
@@ -162,7 +180,9 @@ export function UnifiedCollectionsGraphView({
     const updated = customTopics.filter((t) => t.name.toLowerCase() !== topicName.toLowerCase());
     setCustomTopics(updated);
     try {
-      localStorage.setItem("memoiary_user_custom_topics", JSON.stringify(updated));
+      if (typeof window !== "undefined") {
+        localStorage.setItem(userTopicsKey, JSON.stringify(updated));
+      }
     } catch (e) {
       console.warn("Failed to save custom topic removal", e);
     }
@@ -243,10 +263,16 @@ export function UnifiedCollectionsGraphView({
     const centerX = 500;
     const centerY = 350;
 
+    const sanctuaryOwner = user?.displayName
+      ? `${user.displayName.split(" ")[0]}'s`
+      : user?.email
+      ? `${user.email.split("@")[0]}'s`
+      : "Maya's";
+
     // ROOT NODE (Central Hub for Mind Map Mode)
     allNodes.push({
       id: "root_sanctuary",
-      label: "Maya's Life Sanctuary",
+      label: `${sanctuaryOwner} Life Sanctuary`,
       type: "root",
       x: centerX,
       y: centerY,
@@ -477,7 +503,7 @@ export function UnifiedCollectionsGraphView({
         sampleNote: d.captures[0]?.content?.substring(0, 65) || ""
       })).sort((a, b) => b.count - a.count)
     };
-  }, [captures, customTopics]);
+  }, [captures, customTopics, user?.displayName, user?.email]);
 
   // Dynamic Positions State
   const [nodePositions, setNodePositions] = useState<Record<string, { x: number; y: number; vx: number; vy: number }>>({});

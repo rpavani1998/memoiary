@@ -94,36 +94,49 @@ export function ReflectionChatboard({
     return questionStarters.some((qs) => lower.startsWith(qs) || lower.includes(` ${qs} `));
   };
 
-  // Load saved chat threads from localStorage on mount
+  // Journal context for user auth and saving capture
+  let submitCapture: any = null;
+  let user: any = null;
+  try {
+    const journalContext = useJournal();
+    submitCapture = journalContext?.submitCapture;
+    user = journalContext?.user;
+  } catch {
+    // Graceful fallback if context isn't wrapped
+  }
+
+  const userThreadsKey = user && !user.uid?.startsWith("guest_user_") && !user.uid?.startsWith("user_guest_")
+    ? `memoiary_saved_chat_threads_${user.uid}`
+    : "memoiary_saved_chat_threads_guest";
+
+  // Load saved chat threads from localStorage whenever user changes
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("memoiary_saved_chat_threads");
-      if (saved) {
-        setSavedThreads(JSON.parse(saved));
+      if (typeof window !== "undefined") {
+        const saved = localStorage.getItem(userThreadsKey);
+        if (saved) {
+          setSavedThreads(JSON.parse(saved));
+        } else {
+          setSavedThreads([]);
+        }
       }
     } catch (e) {
       console.warn("Failed to load saved chat threads", e);
+      setSavedThreads([]);
     }
-  }, []);
+  }, [userThreadsKey]);
 
   // Sync active thread updates to localStorage
   const persistThreads = (threads: ChatSessionThread[]) => {
     setSavedThreads(threads);
     try {
-      localStorage.setItem("memoiary_saved_chat_threads", JSON.stringify(threads));
+      if (typeof window !== "undefined") {
+        localStorage.setItem(userThreadsKey, JSON.stringify(threads));
+      }
     } catch (e) {
       console.warn("Failed to persist saved chat threads", e);
     }
   };
-
-  // Journal context for saving capture
-  let submitCapture: any = null;
-  try {
-    const journalContext = useJournal();
-    submitCapture = journalContext?.submitCapture;
-  } catch {
-    // Graceful fallback if context isn't wrapped
-  }
 
   // 1. SAVE CHAT THREAD & TIMELINE
   const handleSaveChatToJournal = async () => {

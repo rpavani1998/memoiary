@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { CheckCircle2, Circle, Plus, Sparkles, Star, Tag, Trash2, HeartHandshake } from "lucide-react";
+import { CheckCircle2, Circle, Plus, Sparkles, Star, Tag, Trash2, HeartHandshake, BookOpen } from "lucide-react";
+import { useJournal } from "@/lib/context/JournalContext";
 
 export interface WishlistItem {
   id: string;
@@ -10,17 +11,33 @@ export interface WishlistItem {
   subCategory?: "promise" | "culinary" | "travel" | "action" | "creative";
   sourceDate?: string;
   personMentioned?: string;
+  sourceEntryTitle?: string;
+  sourceSnippet?: string;
+  sourceCapture?: any;
   completed: boolean;
 }
 
-function parseAndClassifySentences(text: string, dateStr: string, idx: number, person?: string): WishlistItem[] {
+function parseAndClassifySentences(
+  text: string,
+  dateStr: string,
+  idx: number,
+  person?: string,
+  entryTitle?: string,
+  sourceCapture?: any
+): WishlistItem[] {
   const results: WishlistItem[] = [];
   const sentences = text.split(/[.!?\n]/).map((s) => s.trim()).filter((s) => s.length > 8);
 
   sentences.forEach((sentence, sIdx) => {
-    // 1. Check for Action Intentions & Promises FIRST (Promises/commitments override general wishes)
-    const isPromise = /promise|promised|pledged|agreed to|swore|word to/i.test(sentence);
-    const isObligation = /need to|should|must|have to|supposed to|call|follow up|check in|remind me|schedule|bring|send|meet up|catch up/i.test(sentence);
+    // Exclude past tense completed statements (e.g. "I cooked pasta", "We visited KBR park", "I ate sourdough")
+    const isPastCompletedEvent = /^(i|we|they|she|he)?\s*(ate|cooked|visited|went|traveled|bought|baked|dined|met|had|enjoyed|drank|tasted|ordered|flew|walked|recorded|finished|completed)\b/i.test(sentence) && !/want to|hope to|would love|wish|plan to|promise|need to|must/i.test(sentence);
+    if (isPastCompletedEvent) {
+      return; // Does NOT belong in Wishlist or Action Intentions
+    }
+
+    // 1. Check for Action Intentions & Promises FIRST (Explicit commitments or obligations)
+    const isPromise = /\b(promise|promised|pledged|agreed to|swore|word to)\b/i.test(sentence);
+    const isObligation = /\b(need to|should|must|have to|supposed to|will call|need to call|should call|have to call|must call|remind me to|schedule a|will send|need to send|make sure to|remember to|plan to|follow up|check in|catch up with)\b/i.test(sentence);
 
     if (isPromise || isObligation) {
       results.push({
@@ -30,17 +47,21 @@ function parseAndClassifySentences(text: string, dateStr: string, idx: number, p
         subCategory: isPromise ? "promise" : "action",
         sourceDate: dateStr,
         personMentioned: person,
+        sourceEntryTitle: entryTitle,
+        sourceSnippet: sentence,
+        sourceCapture,
         completed: false,
       });
       return; // Deduplicate: do not add to wishlist if it's an explicit action intention/promise
     }
 
     // 2. Check for Wishlist & Dreams (Culinary, Travel, Aspirational)
-    const isWish = /want to|wish|love to|dream|hope to|someday|visit|learn|try|recipe|dish|cook|taste|bake|eat|sample|order|prepare|food|bistro|dine|dessert|bucket list|explore/i.test(sentence);
-    const isCulinary = /recipe|dish|cook|bake|taste|eat|food|bistro|dessert|chai|coffee|pasta|pizza|ramen|sourdough|tiramisu|haleem|biryani|pastry|cake|curry|tasting/i.test(sentence);
+    // MUST contain explicit future desire or aspirational intent
+    const hasAspirationalDesire = /want to|would love to|wish|dream|hope to|someday|bucket list|aim to|dying to|can't wait to|cant wait to|must try|recipe to try|food spot|planning to visit/i.test(sentence);
+    const isCulinary = /recipe|dish|cook|bake|taste|food|bistro|dessert|chai|coffee|pasta|pizza|ramen|sourdough|tiramisu|haleem|biryani|pastry|cake|curry|tasting/i.test(sentence);
     const isTravel = /visit|travel|fly|trip|vacation|hike|explore|trail|city|beach/i.test(sentence);
 
-    if (isWish || isCulinary || isTravel) {
+    if (hasAspirationalDesire || ((isCulinary || isTravel) && /try|visit|explore|learn|taste|cook|bake|make/i.test(sentence) && !/yesterday|last week|past|ago/i.test(sentence))) {
       let subCategory: "culinary" | "travel" | "creative" = "creative";
       if (isCulinary) subCategory = "culinary";
       else if (isTravel) subCategory = "travel";
@@ -52,6 +73,9 @@ function parseAndClassifySentences(text: string, dateStr: string, idx: number, p
         subCategory,
         sourceDate: dateStr,
         personMentioned: person,
+        sourceEntryTitle: entryTitle,
+        sourceSnippet: sentence,
+        sourceCapture,
         completed: false,
       });
     }
@@ -62,20 +86,31 @@ function parseAndClassifySentences(text: string, dateStr: string, idx: number, p
 
 export function WishlistIntentionsBoard({
   captures = [],
+  onSelectCapture,
 }: {
   captures?: any[];
+  onSelectCapture?: (capture: any) => void;
 }) {
   const [activeTab, setActiveTab] = useState<"wishlist" | "intention">("wishlist");
   const [customItems, setCustomItems] = useState<WishlistItem[]>([]);
   const [newItemText, setNewItemText] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
 
+  let user: any = null;
+  try {
+    const journalContext = useJournal();
+    user = journalContext?.user;
+  } catch {}
+
+  const isDemoMode = !user || user.uid?.startsWith("guest_user_") || user.uid?.startsWith("user_guest_");
+
   // Derive wishlist & subtle action intentions dynamically from user's journal captures
   const extractedItems = useMemo<WishlistItem[]>(() => {
     const items: WishlistItem[] = [];
 
-    // Seed default starter intentions if new user
+    // Seed default starter intentions ONLY if guest demo mode and user has no captures
     if (!captures || captures.length === 0) {
+      if (!isDemoMode) return [];
       return [
         {
           id: "def-1",
@@ -119,6 +154,7 @@ export function WishlistIntentionsBoard({
         ? new Date(c.createdAt?.seconds ? c.createdAt.seconds * 1000 : c.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })
         : "Recent";
       const person = c.extractedDimensions?.people?.[0] || c.dimensions?.people?.[0] || undefined;
+      const entryTitle = c.dimensions?.summary || c.title || (text ? text.substring(0, 35) + "..." : "Journal Entry");
 
       const aiWishes = c.dimensions?.wishes || c.extractedDimensions?.wishes;
       const aiIntentions = c.dimensions?.intentions || c.extractedDimensions?.intentions;
@@ -132,6 +168,9 @@ export function WishlistIntentionsBoard({
             subCategory: w.subCategory || "creative",
             sourceDate: dateStr,
             personMentioned: person,
+            sourceEntryTitle: entryTitle,
+            sourceSnippet: text,
+            sourceCapture: c,
             completed: false,
           });
         });
@@ -143,11 +182,14 @@ export function WishlistIntentionsBoard({
             subCategory: i.subCategory || "action",
             sourceDate: dateStr,
             personMentioned: i.personMentioned || person,
+            sourceEntryTitle: entryTitle,
+            sourceSnippet: text,
+            sourceCapture: c,
             completed: false,
           });
         });
       } else {
-        const classified = parseAndClassifySentences(text, dateStr, idx, person);
+        const classified = parseAndClassifySentences(text, dateStr, idx, person, entryTitle, c);
         items.push(...classified);
       }
     });
@@ -173,10 +215,11 @@ export function WishlistIntentionsBoard({
     }
 
     return items;
-  }, [captures]);
+  }, [captures, isDemoMode]);
 
   // Combine extracted & user-added custom items
   const [completedIds, setCompletedIds] = useState<Record<string, boolean>>({});
+  const [expandedSnippetIds, setExpandedSnippetIds] = useState<Record<string, boolean>>({});
 
   const allItems = useMemo(() => {
     return [...extractedItems, ...customItems];
@@ -319,7 +362,61 @@ export function WishlistIntentionsBoard({
                       ✈️ Travel &amp; Adventure
                     </span>
                   )}
+                  {item.sourceCapture && onSelectCapture ? (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelectCapture(item.sourceCapture);
+                      }}
+                      className="flex items-center gap-1 font-mono text-[10px] bg-[#DE5239] hover:bg-[#C6422A] text-white px-2.5 py-0.5 rounded-md font-bold shadow-2xs transition-colors cursor-pointer ml-auto"
+                      title="Directly open original journal entry"
+                    >
+                      <BookOpen size={10} />
+                      <span>Open Journal Entry</span>
+                    </button>
+                  ) : item.sourceSnippet ? (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setExpandedSnippetIds((prev) => ({ ...prev, [item.id]: !prev[item.id] }));
+                      }}
+                      className="flex items-center gap-1 font-mono text-[10px] bg-[#FAF7F0] hover:bg-[#F5E5DC] text-[#1C1917] px-2 py-0.5 rounded-md font-bold border border-[#1C1917]/20 transition-colors cursor-pointer ml-auto"
+                    >
+                      <BookOpen size={10} className="text-[#DE5239]" />
+                      <span>{expandedSnippetIds[item.id] ? "Hide Source" : "Journal Source"}</span>
+                    </button>
+                  ) : null}
                 </div>
+
+                {/* Collapsible Journal Excerpt View */}
+                {expandedSnippetIds[item.id] && item.sourceSnippet && (
+                  <div
+                    onClick={(e) => {
+                      if (item.sourceCapture && onSelectCapture) {
+                        e.stopPropagation();
+                        onSelectCapture(item.sourceCapture);
+                      }
+                    }}
+                    className={`mt-2.5 p-3 bg-[#FAF7F0] border border-[#1C1917]/20 rounded-xl text-xs font-serif text-[#1C1917] space-y-1 animate-in fade-in duration-200 ${
+                      item.sourceCapture && onSelectCapture ? "hover:border-[#DE5239] hover:bg-[#F5E5DC]/50 cursor-pointer" : ""
+                    }`}
+                  >
+                    <div className="flex items-center justify-between text-[10px] font-mono font-bold text-[#DE5239] uppercase">
+                      <span>📖 Captured Journal Excerpt</span>
+                      {item.sourceEntryTitle && <span className="text-[#665F56] truncate max-w-[12rem]">{item.sourceEntryTitle}</span>}
+                    </div>
+                    <p className="italic leading-relaxed text-[#1C1917]">
+                      &ldquo;{item.sourceSnippet}&rdquo;
+                    </p>
+                    {item.sourceCapture && onSelectCapture && (
+                      <span className="text-[10px] font-mono font-bold text-[#DE5239] block pt-1">
+                        → Click to view full entry
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           );

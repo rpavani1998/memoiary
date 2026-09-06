@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { CaptureSession } from "@/lib/memory-engine/types";
 import { ArtisticAvatar } from "./ArtisticAvatar";
+import { useJournal } from "@/lib/context/JournalContext";
 
 export interface CalendarEvent {
   id: string;
@@ -110,22 +111,41 @@ export function EventCalendarBoard({
   const [newPerson, setNewPerson] = useState("");
   const [newLocation, setNewLocation] = useState("");
 
+  let user: any = null;
+  try {
+    const journalContext = useJournal();
+    user = journalContext?.user;
+  } catch {}
+
+  const userEventsKey = user && !user.uid?.startsWith("guest_user_") && !user.uid?.startsWith("user_guest_")
+    ? `memoiary_custom_events_${user.uid}`
+    : "memoiary_custom_events_guest";
+
+  const isDemoMode = !user || user.uid?.startsWith("guest_user_") || user.uid?.startsWith("user_guest_");
+
   // Load custom events from localStorage
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("memoiary_custom_events");
-      if (saved) {
-        setCustomEvents(JSON.parse(saved));
+      if (typeof window !== "undefined") {
+        const saved = localStorage.getItem(userEventsKey);
+        if (saved) {
+          setCustomEvents(JSON.parse(saved));
+        } else {
+          setCustomEvents([]);
+        }
       }
     } catch (e) {
       console.warn("Failed to load custom events", e);
+      setCustomEvents([]);
     }
-  }, []);
+  }, [userEventsKey]);
 
   const saveCustomEvents = (updated: CalendarEvent[]) => {
     setCustomEvents(updated);
     try {
-      localStorage.setItem("memoiary_custom_events", JSON.stringify(updated));
+      if (typeof window !== "undefined") {
+        localStorage.setItem(userEventsKey, JSON.stringify(updated));
+      }
     } catch (e) {
       console.warn("Failed to persist custom events", e);
     }
@@ -175,8 +195,10 @@ export function EventCalendarBoard({
       }
     });
 
-    // Merge custom events, extracted events, and default seeded events
-    const combined = [...customEvents, ...extracted, ...DEFAULT_SEEDED_EVENTS];
+    // Merge custom events, extracted events, and default seeded events (only in demo mode)
+    const combined = isDemoMode
+      ? [...customEvents, ...extracted, ...DEFAULT_SEEDED_EVENTS]
+      : [...customEvents, ...extracted];
 
     // Deduplicate by title & date
     const uniqueMap = new Map<string, CalendarEvent>();
@@ -189,7 +211,7 @@ export function EventCalendarBoard({
 
     // Sort chronologically
     return Array.from(uniqueMap.values()).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  }, [captures, customEvents]);
+  }, [captures, customEvents, isDemoMode]);
 
   // Filter events for selected month & category
   const filteredEvents = useMemo(() => {

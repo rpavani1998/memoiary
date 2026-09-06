@@ -54,6 +54,7 @@ import { UnifiedCollectionsGraphView } from "@/components/UnifiedCollectionsGrap
 import { ReflectionChatboard } from "@/components/ReflectionChatboard";
 import { EntitiesViewSection } from "@/components/EntitiesViewSection";
 import { WishlistIntentionsBoard } from "@/components/WishlistIntentionsBoard";
+import { MemoryTimeCapsuleBanner } from "@/components/MemoryTimeCapsuleBanner";
 import { Brand, IconButton } from "./Brand";
 import { GlobalAppHeader, PageHeader } from "./GlobalAppHeader";
 import { DailySanctuaryHero } from "./DailySanctuaryHero";
@@ -415,6 +416,9 @@ function LifeHome({
             onGoReflect={go}
           />
         )}
+
+        {/* Memory Time Capsule / Revisiting Past Memories Banner */}
+        <MemoryTimeCapsuleBanner captures={recentCaptures} onSelectCapture={onSelectCapture} />
 
         {/* DAY MODE VIEW: Clean single timeline feed of your captures */}
         {timelineMode === "day" && (
@@ -1623,7 +1627,7 @@ function MemoryDetailSection({ go, capture }: { go: (view: View) => void; captur
                           <Sparkles size={16} className="text-[#DE5239]" />
                           Give Feedback to AI &amp; Edit Entities
                         </h4>
-                        <p className="text-xs text-[#665F56]">Correct Gemini's mood, add missed people, adjust topics, or provide natural language feedback to teach the model.</p>
+                        <p className="text-xs text-[#665F56]">Correct Gemini&apos;s mood, add missed people, adjust topics, or provide natural language feedback to teach the model.</p>
                       </div>
 
                       {/* 1. Natural Language AI Feedback */}

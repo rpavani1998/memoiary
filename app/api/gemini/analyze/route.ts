@@ -71,7 +71,13 @@ Analyze the provided journal entry and return a structured JSON object containin
 5. "topics": An array of 1-3 specific topics extracted from what they did or said. Match user custom topics whenever relevant (e.g., ["Dance Performance", "High Energy", "Evening Out"]).
 6. "emotions": An array of 1-3 emotion objects with "label" and "intensity" (0.1 to 1.0) (e.g., [{"label": "Exhilaration", "intensity": 0.95}, {"label": "Joy", "intensity": 0.85}]).
 7. "cards": A quiet collection of structured cards (limit to 1-4 highly meaningful ones per entry). Card types MUST be selected ONLY from: ["Thought", "Idea", "Question", "Decision", "Goal", "Moment", "Person", "Pattern"].
-8. "connections": Links to relevant past entries.
+8. "wishes": An array of genuine future wishes, dreams, travel aspirations, or culinary dishes/recipes to try. ONLY extract if the user expresses clear future desire. DO NOT include past completed actions.
+9. "intentions": An array of actionable commitments, promises made to self or others, or specific tasks to follow up on. ONLY extract if the user expresses an active obligation or pledge.
+10. "connections": Links to relevant past entries.
+
+CRITICAL CATEGORIZATION RULES:
+- WISHES & DREAMS: Extract ONLY items that the user explicitly desires or dreams of doing/trying/visiting in the FUTURE. Past events (e.g. "I cooked pasta yesterday") DO NOT belong here. Subcategories: "culinary", "travel", "creative", "lifestyle".
+- ACTION INTENTIONS & PROMISES: Extract ONLY concrete commitments, promises, or tasks (e.g. "I promised Kabir to send the slides", "I need to call mom"). Subcategories: "promise", "action", "habit".
 
 CRITICAL: Return ONLY valid JSON. Your response must be parseable as standard JSON. Do not include extra conversational text outside the JSON object.
 
@@ -91,6 +97,19 @@ The JSON schema must be EXACTLY:
       "type": "Thought",
       "title": "A concise title for the card",
       "content": "A detailed 1-2 sentence description of what was captured, reflecting it objectively."
+    }
+  ],
+  "wishes": [
+    {
+      "text": "Exact wish or dream statement",
+      "subCategory": "culinary"
+    }
+  ],
+  "intentions": [
+    {
+      "text": "Exact action intention or promise",
+      "subCategory": "promise",
+      "personMentioned": "Person Name"
     }
   ],
   "suggestedMemory": "A single declarative statement of a meaningful preference or insight the user might want remembered.",

@@ -138,7 +138,7 @@ export function EntitiesViewSection({
 
       {/* ── TAB 2: WISHLIST & ACTION INTENTIONS ── */}
       {internalTab === "intentions" && (
-        <WishlistIntentionsBoard captures={captures} />
+        <WishlistIntentionsBoard captures={captures} onSelectCapture={onSelectCapture} />
       )}
 
       {/* ── TAB 2: PEOPLE & PLACES (COMBINED TOGETHER) ── */}

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Calendar, Sparkles, TrendingUp, Users, Heart, Lock, ChevronLeft, ChevronRight, CheckCircle2, Clock, PenLine } from "lucide-react";
 import { ArtisticAvatar } from "./ArtisticAvatar";
+import { useJournal } from "@/lib/context/JournalContext";
 
 export interface WeeklyHighlight {
   id: string;
@@ -219,7 +220,6 @@ export function WeeklyRecapBoard({
   const [weekIndex, setWeekIndex] = useState<number>(0);
   const [userReflection, setUserReflection] = useState<string>("");
   const [savedToast, setSavedToast] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const currentDayOfWeek = 4;
   const totalDaysInWeek = 7;
@@ -283,20 +283,32 @@ export function WeeklyRecapBoard({
       ? synthesizeWeeklyNarrativeArc(filteredCaptures, preset.insight)
       : (isDemoMode ? preset.insight : "Your story canvas for this period is open. Log a reflection to synthesize your weekly arc.");
 
-  // Load reflection from localStorage on weekIndex change
+  let user: any = null;
+  try {
+    const journalContext = useJournal();
+    user = journalContext?.user;
+  } catch {}
+
+  const userReflKey = user && !user.uid?.startsWith("guest_user_") && !user.uid?.startsWith("user_guest_") ? user.uid : "guest";
+
+  // Load reflection from localStorage on weekIndex or user change
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(`memoiary_user_reflection_week_${weekIndex}`);
-      setUserReflection(saved || "");
+      if (typeof window !== "undefined") {
+        const saved = localStorage.getItem(`memoiary_user_reflection_${userReflKey}_week_${weekIndex}`);
+        setUserReflection(saved || "");
+      }
     } catch (e) {
       setUserReflection("");
     }
-  }, [weekIndex]);
+  }, [weekIndex, userReflKey]);
 
   const handleSaveReflection = (val: string) => {
     setUserReflection(val);
     try {
-      localStorage.setItem(`memoiary_user_reflection_week_${weekIndex}`, val);
+      if (typeof window !== "undefined") {
+        localStorage.setItem(`memoiary_user_reflection_${userReflKey}_week_${weekIndex}`, val);
+      }
       setSavedToast(true);
       setTimeout(() => setSavedToast(false), 2000);
     } catch (e) {
@@ -309,24 +321,14 @@ export function WeeklyRecapBoard({
       {/* Background paper texture glow */}
       <div className="absolute -top-10 -right-10 w-56 h-56 rounded-full bg-[#DE5239]/10 blur-3xl pointer-events-none" />
 
-      {/* Header with Week Navigation Controls & Collapse Toggle */}
+      {/* Header with Week Navigation Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#1C1917]/15 pb-4">
-        <div className="flex items-center justify-between w-full sm:w-auto">
-          <div>
-            <h3 className="font-serif text-xl sm:text-2xl font-medium text-[#1C1917] flex items-center gap-2">
-              <Sparkles size={20} className="text-[#DE5239]" />
-              <span>Your Story This Week</span>
-            </h3>
-            <p className="text-xs text-[#665F56] font-sans mt-0.5">{weekTitle}</p>
-          </div>
-
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="sm:hidden p-1.5 rounded-xl border border-[#1C1917]/20 bg-white text-[#1C1917]"
-            title={isCollapsed ? "Expand Section" : "Collapse Section"}
-          >
-            {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-          </button>
+        <div>
+          <h3 className="font-serif text-xl sm:text-2xl font-medium text-[#1C1917] flex items-center gap-2">
+            <Sparkles size={20} className="text-[#DE5239]" />
+            <span>Your Story This Week</span>
+          </h3>
+          <p className="text-xs text-[#665F56] font-sans mt-0.5">{weekTitle}</p>
         </div>
 
         {/* Week Navigator (Previous / Next Week Controls) */}
@@ -355,19 +357,8 @@ export function WeeklyRecapBoard({
           >
             <ChevronRight size={16} />
           </button>
-
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="hidden sm:block p-1.5 rounded-xl border border-[#1C1917]/20 bg-[#FAF7F0] text-[#1C1917] hover:bg-[#F5E5DC] cursor-pointer transition-colors ml-2"
-            title={isCollapsed ? "Expand Section" : "Collapse Section"}
-          >
-            {isCollapsed ? "Show" : "Hide"}
-          </button>
         </div>
       </div>
-
-      {!isCollapsed && (
-        <>
 
       {/* VIEW 1: CURRENT WEEK IN PROGRESS (SEPT 1 - SEPT 7) */}
       {weekIndex === 0 && !isUnlocked && (
@@ -481,78 +472,64 @@ export function WeeklyRecapBoard({
           </div>
 
           {/* Weekly Emotional & Narrative Arc Synthesis Banner */}
-          <div className="p-4 sm:p-5 bg-white border-[1.5px] border-[#1C1917] rounded-2xl shadow-[2px_3px_0px_#1C1917] flex items-start gap-3 font-sans">
-            <div className="p-2 bg-[#FDF2D0] border border-[#D97706]/40 rounded-xl text-[#D97706] shrink-0 mt-0.5">
-              <TrendingUp size={18} />
+          <div className="p-3.5 sm:p-4 bg-white border-[1.5px] border-[#1C1917] rounded-2xl shadow-[2px_3px_0px_#1C1917] flex items-center gap-3 font-sans">
+            <div className="p-2 bg-[#FDF2D0] border border-[#D97706]/40 rounded-xl text-[#D97706] shrink-0">
+              <TrendingUp size={16} />
             </div>
-            <div className="space-y-1">
-              <span className="text-[11px] font-bold text-[#D97706] uppercase tracking-wider block">
-                Weekly Emotional Arc &amp; Synthesis
+            <div className="flex-1 min-w-0">
+              <span className="text-[10px] font-bold text-[#D97706] uppercase tracking-wider block">
+                Weekly Story Arc Summary
               </span>
-              <p className="font-serif text-sm sm:text-base text-[#1C1917] leading-relaxed">
+              <p className="font-serif text-xs sm:text-sm text-[#1C1917] leading-relaxed">
                 &ldquo;{dynamicWeeklyInsight}&rdquo;
               </p>
             </div>
           </div>
 
-          {/* Grid of Scene Highlights for Selected Week */}
+          {/* Grid of Compact Square Scene Highlights for Selected Week (2 posts per line) */}
           {activeHighlights.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               {activeHighlights.map((item) => (
                 <div
                   key={item.id}
                   onClick={() => onSelectHighlight?.(item.id)}
-                  className="border-[1.5px] border-[#1C1917] bg-white rounded-2xl overflow-hidden shadow-[2px_3px_0px_#1C1917] flex flex-col justify-between hover:-translate-y-0.5 transition-all cursor-pointer group font-sans"
+                  className="aspect-square border-[1.5px] border-[#1C1917] bg-white rounded-2xl p-3.5 shadow-[2px_3px_0px_#1C1917] flex flex-col justify-between hover:-translate-y-0.5 transition-all cursor-pointer group font-sans relative overflow-hidden"
                 >
-                  {item.imageUrl && (
-                    <div className="h-40 w-full overflow-hidden relative">
-                      <img
-                        src={item.imageUrl}
-                        alt={item.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                      <div className="absolute top-2 left-2 bg-[#1C1917] text-white text-[10px] font-mono font-bold px-2 py-0.5 rounded-md uppercase tracking-wider">
-                        {item.dayLabel}
-                      </div>
-                      {item.mood && (
-                        <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-xs border border-[#1C1917]/20 text-[#1C1917] text-[10px] font-bold px-2 py-0.5 rounded-full">
-                          {item.mood}
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  {/* Subtle mood accent indicator */}
+                  <div className="flex items-center justify-between gap-1 w-full border-b border-[#1C1917]/10 pb-2">
+                    <span className="text-[10px] font-mono font-bold text-[#DE5239] uppercase truncate">
+                      {item.dayLabel}
+                    </span>
+                    {item.mood && (
+                      <span className="text-[9px] font-sans font-semibold text-[#1C1917] bg-[#FAF7F0] border border-[#1C1917]/20 px-1.5 py-0.5 rounded-md shrink-0">
+                        {item.mood}
+                      </span>
+                    )}
+                  </div>
 
-                  <div className="p-4 space-y-1.5 flex-1 flex flex-col justify-between">
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between gap-1 mb-1">
-                        <span className="text-[10px] font-mono font-bold text-[#DE5239] uppercase">
-                          {item.dayLabel}
-                        </span>
-                        {item.mood && !item.imageUrl && (
-                          <span className="text-[10px] font-sans font-semibold text-[#1C1917] bg-[#FAF7F0] border border-[#1C1917]/20 px-2 py-0.5 rounded-full">
-                            {item.mood}
-                          </span>
-                        )}
-                      </div>
-                      <h4 className="font-serif text-base font-medium text-[#1C1917] group-hover:text-[#DE5239] transition-colors leading-snug">
-                        {item.title}
-                      </h4>
-                      <p className="font-serif text-xs text-[#665F56] line-clamp-2 leading-relaxed">
-                        {item.summary}
-                      </p>
-                    </div>
+                  {/* Simple bold title and expanded 2-3 line description content */}
+                  <div className="my-auto space-y-1.5 py-1.5 flex-1 flex flex-col justify-center">
+                    <h4 className="font-serif text-sm sm:text-base font-bold text-[#1C1917] group-hover:text-[#DE5239] transition-colors leading-snug line-clamp-1">
+                      {item.title}
+                    </h4>
+                    <p className="font-serif text-xs text-[#55504A] line-clamp-3 leading-relaxed">
+                      {item.summary}
+                    </p>
+                  </div>
 
-                    {item.people && item.people.length > 0 && (
-                      <div className="pt-2 border-t border-[#1C1917]/10 flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-[#665F56] uppercase tracking-wider">
-                          With:
-                        </span>
-                        <div className="flex items-center gap-1">
-                          {item.people.map((p, idx) => (
-                            <ArtisticAvatar key={idx} name={p} size="sm" />
-                          ))}
-                        </div>
+                  {/* Footer with tagged people or entry badge */}
+                  <div className="pt-2 border-t border-[#1C1917]/10 flex items-center justify-between w-full mt-auto">
+                    <span className="text-[10px] font-mono font-medium text-[#665F56] uppercase tracking-wider">
+                      {item.people && item.people.length > 0 ? "Shared With" : "Journal Moment"}
+                    </span>
+                    {item.people && item.people.length > 0 ? (
+                      <div className="flex items-center gap-1">
+                        {item.people.slice(0, 3).map((p, idx) => (
+                          <ArtisticAvatar key={idx} name={p} size="sm" />
+                        ))}
                       </div>
+                    ) : (
+                      <span className="text-[10px] font-mono text-[#1C1917]/40">recap</span>
                     )}
                   </div>
                 </div>
@@ -560,8 +537,6 @@ export function WeeklyRecapBoard({
             </div>
           )}
         </div>
-      )}
-      </>
       )}
     </section>
   );

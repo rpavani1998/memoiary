@@ -226,21 +226,26 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
+  const getUserStorageKey = (u: User | null) => {
+    if (u && !u.uid?.startsWith("guest_user_") && !u.uid?.startsWith("user_guest_")) {
+      return `memoiary_local_captures_${u.uid}`;
+    }
+    return "memoiary_local_captures_guest";
+  };
+
   const [captures, setCapturesState] = useState<CaptureSession[]>(() => {
     const seeded = sanitizeCaptures(getSeededCaptures());
     if (typeof window !== "undefined") {
       try {
-        const stored = localStorage.getItem("memoiary_local_captures");
+        const key = getUserStorageKey(user);
+        const stored = localStorage.getItem(key);
         if (stored) {
           const parsed = JSON.parse(stored);
           if (Array.isArray(parsed) && parsed.length > 0) {
             const sanitized = sanitizeCaptures(parsed);
             const seededIds = new Set(seeded.map((s) => s.id));
             const extraLocal = sanitized.filter((c) => !seededIds.has(c.id));
-            const full = [...extraLocal, ...seeded];
-            try {
-              localStorage.setItem("memoiary_local_captures", JSON.stringify(full));
-            } catch {}
+            const full = [...extraLocal, ...(key.endsWith("_guest") ? seeded : [])];
             return full;
           }
         }
@@ -258,7 +263,8 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
       const sanitizedNext = sanitizeCaptures(next);
       try {
         if (typeof window !== "undefined") {
-          localStorage.setItem("memoiary_local_captures", JSON.stringify(sanitizedNext));
+          const key = getUserStorageKey(user);
+          localStorage.setItem(key, JSON.stringify(sanitizedNext));
         }
       } catch (e) {
         console.warn("Failed to save captures to localStorage:", e);
@@ -271,7 +277,8 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     try {
       if (typeof window !== "undefined") {
-        const stored = localStorage.getItem("memoiary_local_captures");
+        const key = getUserStorageKey(user);
+        const stored = localStorage.getItem(key);
         const seeded = sanitizeCaptures(getSeededCaptures());
         if (stored) {
           const parsed = JSON.parse(stored);
@@ -279,18 +286,21 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
             const sanitized = sanitizeCaptures(parsed);
             const seededIds = new Set(seeded.map((s) => s.id));
             const extraLocal = sanitized.filter((c) => !seededIds.has(c.id));
-            const full = [...extraLocal, ...seeded];
+            const full = [...extraLocal, ...(key.endsWith("_guest") ? seeded : [])];
             setCapturesState(full);
-            localStorage.setItem("memoiary_local_captures", JSON.stringify(full));
             return;
           }
         }
-        setCapturesState(seeded);
+        if (key.endsWith("_guest")) {
+          setCapturesState(seeded);
+        } else {
+          setCapturesState([]);
+        }
       }
     } catch (e) {
       console.warn("Failed to load captures from localStorage:", e);
     }
-  }, []);
+  }, [user]);
 
   const [clarifications, setClarifications] = useState<ClarificationItem[]>([]);
   const [insights, setInsights] = useState<JournalInsights | null>(null);
@@ -484,6 +494,8 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
       console.warn("Firestore memories offline fallback:", error?.message);
     });
 
+    const seededIds = new Set(getSeededCaptures().map((s) => s.id));
+    const userStorageKey = `memoiary_local_captures_${user.uid}`;
     const capturesRef = collection(db, "users", user.uid, "captures");
     const capturesQuery = query(capturesRef, orderBy("createdAt", "desc"));
     const unsubCaptures = onSnapshot(capturesQuery, async (snapshot) => {
@@ -493,12 +505,13 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
       });
       if (typeof window !== "undefined") {
         try {
-          const stored = localStorage.getItem("memoiary_local_captures");
+          const stored = localStorage.getItem(userStorageKey);
           if (stored) {
             const parsed: CaptureSession[] = JSON.parse(stored);
             const loadedIds = new Set(loaded.map((c) => c.id));
-            const extraLocal = parsed.filter((c) => !loadedIds.has(c.id));
-            setCapturesState([...extraLocal, ...loaded]);
+            // Filter out all demo seeded entries so authenticated feed contains strictly user's data
+            const userOnlyLocal = parsed.filter((c) => !loadedIds.has(c.id) && !seededIds.has(c.id));
+            setCapturesState([...userOnlyLocal, ...loaded]);
             return;
           }
         } catch (e) {
