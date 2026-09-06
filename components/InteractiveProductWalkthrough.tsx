@@ -69,17 +69,6 @@ export const WALKTHROUGH_STEPS: WalkthroughStep[] = [
   },
   {
     id: 4,
-    title: "Weekly Storyboard & Narrative Arc",
-    badge: "Narrative Synthesis Engine",
-    targetView: "life",
-    selector: "[data-tour='tab-week']",
-    icon: Layers,
-    description: "View your weekly story arc in a clean 2-column square collage grid with bold titles, summaries, and key companion tags.",
-    aiExplanation: "AI synthesizes your weekly emotional trajectory, creating concise titles, highlight summaries, and key people lists for each period.",
-    highlightNote: "Click this Weekly View pill button anytime to inspect your 7-day story arc collages!"
-  },
-  {
-    id: 5,
     title: "Quick Capture (+ Button)",
     badge: "Multimodal Voice & Text AI",
     targetView: "life",
@@ -90,7 +79,7 @@ export const WALKTHROUGH_STEPS: WalkthroughStep[] = [
     highlightNote: "Try clicking '+' to record a quick voice note or write a thought!"
   },
   {
-    id: 6,
+    id: 5,
     title: "Elements Hub (Events, People, Places & Wishlists)",
     badge: "Multimodal Entity & Intention Matrix",
     targetView: "entities",
@@ -101,7 +90,7 @@ export const WALKTHROUGH_STEPS: WalkthroughStep[] = [
     highlightNote: "Tap this Elements icon anytime to view your Events, People, Places, and Wishlists!"
   },
   {
-    id: 7,
+    id: 6,
     title: "AI Mind Map & Epistemic Graph",
     badge: "Force Physics Clustering",
     targetView: "collections",
@@ -112,7 +101,7 @@ export const WALKTHROUGH_STEPS: WalkthroughStep[] = [
     highlightNote: "Tap this Mind Map icon anytime to explore your interactive memory graph!"
   },
   {
-    id: 8,
+    id: 7,
     title: "AI Reflection Chatboard",
     badge: "Personal AI Guide",
     targetView: "reflect",
