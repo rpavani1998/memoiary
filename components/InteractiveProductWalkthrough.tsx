@@ -83,11 +83,11 @@ export const WALKTHROUGH_STEPS: WalkthroughStep[] = [
     title: "Elements Hub (Events, People, Places & Wishlists)",
     badge: "Multimodal Entity & Intention Matrix",
     targetView: "entities",
-    selector: "[data-tour='elements-hub']",
+    selector: "[data-tour='nav-elements']",
     icon: Layers,
     description: "Your central hub for all structured elements extracted from your story — featuring Events & Milestones Calendar, People & Places Network, and Wishlists & Action Intentions.",
     aiExplanation: "Gemini AI parses your journal text and audio in real-time, categorizing recurring companions, geo-locations, upcoming event milestones, and future commitments into interactive boards.",
-    highlightNote: "Use the top sub-tabs to switch between Events Calendar, People & Places, and Wishlist & Action Intentions!"
+    highlightNote: "Tap this Elements icon anytime to view your Events, People, Places, and Wishlists!"
   },
   {
     id: 6,
