@@ -70,6 +70,26 @@ export interface GraphEdge {
   weight: number;
 }
 
+// Topic Normalization Helper to cluster similar micro-tags into meaningful recurring threads
+function normalizeTopic(rawTopic: string): string {
+  const t = rawTopic.trim().toLowerCase();
+
+  if (t.includes("monsoon") || t.includes("rain")) return "Monsoon & Weather";
+  if (t.includes("chai") || t.includes("coffee")) return "Chai & Conversations";
+  if (t.includes("friendship") || t.includes("farewell") || t.includes("reunion") || t.includes("goodbye")) return "Friendship & Bonds";
+  if (t.includes("london") || t.includes("travel") || t.includes("flight") || t.includes("airport") || t.includes("packing")) return "Travel & Transitions";
+  if (t.includes("design") || t.includes("sketch") || t.includes("ui") || t.includes("prototype") || t.includes("craft")) return "Design & Creativity";
+  if (t.includes("code") || t.includes("graph") || t.includes("entity") || t.includes("software") || t.includes("refactoring") || t.includes("architecture")) return "Tech & Architecture";
+  if (t.includes("memory") || t.includes("philosophy") || t.includes("duration") || t.includes("identity") || t.includes("growth") || t.includes("time")) return "Memory & Reflections";
+  if (t.includes("nature") || t.includes("trek") || t.includes("sunset") || t.includes("forest")) return "Nature & Outdoor";
+
+  // Capitalize title case for generic topics
+  return rawTopic
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+}
+
 export function UnifiedCollectionsGraphView({
   captures = [],
   onSelectCapture,
@@ -92,14 +112,14 @@ export function UnifiedCollectionsGraphView({
   const [newTopicDesc, setNewTopicDesc] = useState("");
   const [topicToast, setTopicToast] = useState(false);
 
-  // Canvas Zoom & Pan state (default zoom = 1)
+  // Canvas Zoom & Pan state
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isPanningCanvas, setIsPanningCanvas] = useState(false);
   const panStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Physics Simulation Running State
+  // Physics Simulation Ref
   const animFrameRef = useRef<number | null>(null);
 
   // Load user custom topics from localStorage on mount
@@ -149,12 +169,13 @@ export function UnifiedCollectionsGraphView({
     }
   };
 
-  // ── 1. EXTRACT ALL ENTITIES & BUILD GRAPH DATA ──
+  // ── 1. EXTRACT ALL ENTITIES & CLUSTER INTO RECURRING THREADS ──
   const { baseNodes, edges, topicList } = useMemo(() => {
     const personMap = new Map<string, { count: number; lastDate: string; captures: CaptureSession[] }>();
     const placeMap = new Map<string, { count: number; lastDate: string; captures: CaptureSession[] }>();
     const topicMap = new Map<string, { count: number; lastDate: string; captures: CaptureSession[] }>();
 
+    // Ensure custom user topics are populated in topicMap
     customTopics.forEach((ct) => {
       topicMap.set(ct.name, { count: 0, lastDate: "User Defined", captures: [] });
     });
@@ -168,7 +189,9 @@ export function UnifiedCollectionsGraphView({
         const existing = personMap.get(p);
         if (existing) {
           existing.count += 1;
-          existing.captures.push(c);
+          if (!existing.captures.some((existingCap) => existingCap.id === c.id)) {
+            existing.captures.push(c);
+          }
         } else {
           personMap.set(p, { count: 1, lastDate: dateStr, captures: [c] });
         }
@@ -180,21 +203,26 @@ export function UnifiedCollectionsGraphView({
         const existing = placeMap.get(pl);
         if (existing) {
           existing.count += 1;
-          existing.captures.push(c);
+          if (!existing.captures.some((existingCap) => existingCap.id === c.id)) {
+            existing.captures.push(c);
+          }
         } else {
           placeMap.set(pl, { count: 1, lastDate: dateStr, captures: [c] });
         }
       });
 
-      // Topics
+      // Topics (Normalized to cluster similar micro-tags)
       (c.dimensions?.topics || []).forEach((t) => {
         if (!t || t.length < 2) return;
-        const existing = topicMap.get(t);
+        const norm = normalizeTopic(t);
+        const existing = topicMap.get(norm);
         if (existing) {
           existing.count += 1;
-          existing.captures.push(c);
+          if (!existing.captures.some((existingCap) => existingCap.id === c.id)) {
+            existing.captures.push(c);
+          }
         } else {
-          topicMap.set(t, { count: 1, lastDate: dateStr, captures: [c] });
+          topicMap.set(norm, { count: 1, lastDate: dateStr, captures: [c] });
         }
       });
     });
@@ -283,8 +311,8 @@ export function UnifiedCollectionsGraphView({
         y: centerY + Math.sin(angle) * radius,
         vx: 0,
         vy: 0,
-        size: Math.min(84, 62 + data.count * 4),
-        count: data.count,
+        size: Math.min(88, 64 + data.captures.length * 5),
+        count: data.captures.length,
         lastDate: data.lastDate,
         connectedNodeIds: ["cat_people"],
         parentId: "cat_people",
@@ -317,8 +345,8 @@ export function UnifiedCollectionsGraphView({
         y: centerY + Math.sin(angle) * radius,
         vx: 0,
         vy: 0,
-        size: Math.min(80, 58 + data.count * 3),
-        count: data.count,
+        size: Math.min(84, 60 + data.captures.length * 4),
+        count: data.captures.length,
         lastDate: data.lastDate,
         connectedNodeIds: ["cat_places"],
         parentId: "cat_places",
@@ -335,9 +363,13 @@ export function UnifiedCollectionsGraphView({
       plIdx++;
     });
 
-    // Build Topic Nodes
+    // Build Topic Nodes (Filtered to topics with >= 2 distinct captures or user custom defined topics)
     let tIdx = 0;
-    const topicArray = Array.from(topicMap.entries()).sort((a, b) => b[1].count - a[1].count).slice(0, 14);
+    const topicArray = Array.from(topicMap.entries())
+      .filter(([topicName, data]) => data.captures.length >= 2 || customTopics.some((ct) => ct.name.toLowerCase() === topicName.toLowerCase()))
+      .sort((a, b) => b[1].captures.length - a[1].captures.length)
+      .slice(0, 16);
+
     topicArray.forEach(([topicName, data]) => {
       const angle = (tIdx / Math.max(topicArray.length, 1)) * 2 * Math.PI + Math.PI / 3;
       const radius = 260 + (tIdx % 2) * 50;
@@ -351,8 +383,8 @@ export function UnifiedCollectionsGraphView({
         y: centerY + Math.sin(angle) * radius,
         vx: 0,
         vy: 0,
-        size: Math.min(76, 54 + data.count * 3),
-        count: data.count,
+        size: Math.min(82, 58 + data.captures.length * 4),
+        count: data.captures.length,
         lastDate: data.lastDate,
         connectedNodeIds: ["cat_topics"],
         parentId: "cat_topics",
@@ -372,7 +404,7 @@ export function UnifiedCollectionsGraphView({
     // Build Key Moment Nodes
     captures.slice(0, 8).forEach((c, mIdx) => {
       const angle = (mIdx / 8) * 2 * Math.PI + Math.PI / 6;
-      const radius = 280 + (mIdx % 2) * 45;
+      const radius = 290 + (mIdx % 2) * 45;
       const id = `moment_${c.id}`;
       const dateStr = c.createdAt ? new Date(c.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
 
@@ -407,13 +439,13 @@ export function UnifiedCollectionsGraphView({
       addEdge(parentEntityId, id, 1);
     });
 
-    // Infer Graph Co-occurrence Edges between entities
+    // Infer Graph Co-occurrence Edges between entities across captures
     captures.forEach((c) => {
       const cPeople = (c.dimensions?.people || []).map((p) => `person_${p.toLowerCase().replace(/\s+/g, "_")}`);
       const cPlaces = (c.dimensions?.places || []).map((pl) => `place_${pl.toLowerCase().replace(/\s+/g, "_")}`);
-      const cTopics = (c.dimensions?.topics || []).map((t) => `topic_${t.toLowerCase().replace(/\s+/g, "_")}`);
+      const cTopics = (c.dimensions?.topics || []).map((t) => `topic_${normalizeTopic(t).toLowerCase().replace(/\s+/g, "_")}`);
 
-      const activeEntityIds = [...cPeople, ...cPlaces, ...cTopics].filter((id) =>
+      const activeEntityIds = Array.from(new Set([...cPeople, ...cPlaces, ...cTopics])).filter((id) =>
         allNodes.some((n) => n.id === id)
       );
 
@@ -443,7 +475,7 @@ export function UnifiedCollectionsGraphView({
       edges: edgesList,
       topicList: Array.from(topicMap.entries()).map(([topic, d]) => ({
         topic,
-        count: d.count,
+        count: d.captures.length,
         sampleNote: d.captures[0]?.content?.substring(0, 65) || ""
       })).sort((a, b) => b.count - a.count)
     };
@@ -454,7 +486,7 @@ export function UnifiedCollectionsGraphView({
   const draggingNodeIdRef = useRef<string | null>(null);
   const dragNodeOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
-  // Initialize node positions smoothly
+  // Initialize node positions
   useEffect(() => {
     const initialPos: Record<string, { x: number; y: number; vx: number; vy: number }> = {};
     baseNodes.forEach((n) => {
@@ -472,7 +504,7 @@ export function UnifiedCollectionsGraphView({
 
       const centerX = 500;
       const centerY = 350;
-      const repelStrength = 45000;
+      const repelStrength = 48000;
       const springStrength = 0.035;
       const gravityStrength = 0.012;
       const damping = 0.80;
@@ -498,7 +530,7 @@ export function UnifiedCollectionsGraphView({
           let dist = Math.sqrt(distSq);
 
           // Hard Collision Prevention
-          const minDist = (nodeA.size + nodeB.size) / 2 + 45;
+          const minDist = (nodeA.size + nodeB.size) / 2 + 50;
           if (dist < minDist) {
             const overlap = minDist - dist;
             const nx = dx / dist;
@@ -542,7 +574,7 @@ export function UnifiedCollectionsGraphView({
         const dx = posB.x - posA.x;
         const dy = posB.y - posA.y;
         const dist = Math.sqrt(dx * dx + dy * dy) + 0.1;
-        const restLength = 220;
+        const restLength = 230;
         const delta = dist - restLength;
 
         const fx = (dx / dist) * delta * springStrength;
@@ -601,10 +633,10 @@ export function UnifiedCollectionsGraphView({
 
     // 4 Category Hubs positioned in 4 quadrants
     const catPositions = [
-      { id: "cat_people", x: centerX - 240, y: centerY - 160 },
-      { id: "cat_places", x: centerX + 240, y: centerY - 160 },
-      { id: "cat_topics", x: centerX - 240, y: centerY + 160 },
-      { id: "cat_moments", x: centerX + 240, y: centerY + 160 }
+      { id: "cat_people", x: centerX - 250, y: centerY - 170 },
+      { id: "cat_places", x: centerX + 250, y: centerY - 170 },
+      { id: "cat_topics", x: centerX - 250, y: centerY + 170 },
+      { id: "cat_moments", x: centerX + 250, y: centerY + 170 }
     ];
 
     catPositions.forEach((cat) => {
@@ -687,6 +719,14 @@ export function UnifiedCollectionsGraphView({
   // Active Focus Node & Connections
   const activeFocusId = selectedNodeId || hoveredNodeId;
   const selectedNode = useMemo(() => nodes.find((n) => n.id === selectedNodeId) || null, [nodes, selectedNodeId]);
+
+  // Unique De-duplicated Captures for Selected Node
+  const selectedNodeUniqueCaptures = useMemo(() => {
+    if (!selectedNode) return [];
+    const map = new Map<string, CaptureSession>();
+    selectedNode.captures.forEach((c) => map.set(c.id, c));
+    return Array.from(map.values());
+  }, [selectedNode]);
 
   const connectedToActive = useMemo(() => {
     if (!activeFocusId) return new Set<string>();
@@ -830,7 +870,7 @@ export function UnifiedCollectionsGraphView({
                 <Filter size={12} /> Filter:
               </span>
               {[
-                { type: "all", label: `All (${nodes.filter(n => n.type !== "root" && n.type !== "category").length})`, icon: Layers },
+                { type: "all", label: `All (${nodes.filter((n) => n.type !== "root" && n.type !== "category").length})`, icon: Layers },
                 { type: "person", label: "People", icon: Users },
                 { type: "place", label: "Places", icon: MapPin },
                 { type: "topic", label: "Topics", icon: Sparkles },
@@ -1140,17 +1180,17 @@ export function UnifiedCollectionsGraphView({
                           &ldquo;{node.captures[0]?.content}&rdquo;
                         </p>
 
-                        {node.captures.length > 1 && (
-                          <div className="mt-2 pt-1.5 border-t border-stone-100 flex items-center justify-between">
-                            <span className="text-[9px] font-mono text-[#665F56]">+{node.captures.length - 1} more entries</span>
-                            <button
-                              onClick={() => onSelectCapture?.(node.captures[0])}
-                              className="text-[10px] font-sans font-bold text-[#DE5239] hover:underline flex items-center gap-0.5 cursor-pointer"
-                            >
-                              Read Full <ArrowUpRight size={10} />
-                            </button>
-                          </div>
-                        )}
+                        <div className="mt-2 pt-1.5 border-t border-stone-100 flex items-center justify-between">
+                          <span className="text-[9px] font-mono text-[#665F56]">
+                            {node.captures.length > 1 ? `Shared across ${node.captures.length} distinct memories` : "Exclusive to 1 memory"}
+                          </span>
+                          <button
+                            onClick={() => onSelectCapture?.(node.captures[0])}
+                            className="text-[10px] font-sans font-bold text-[#DE5239] hover:underline flex items-center gap-0.5 cursor-pointer"
+                          >
+                            Read Full <ArrowUpRight size={10} />
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -1183,7 +1223,7 @@ export function UnifiedCollectionsGraphView({
                   )}
                   <div>
                     <span className="text-[10px] font-mono uppercase font-bold text-[#DE5239] tracking-wider block">
-                      {selectedNode.type} Entity · {selectedNode.count} Connected Captures
+                      {selectedNode.type} Entity · {selectedNodeUniqueCaptures.length} Unique Connected {selectedNodeUniqueCaptures.length === 1 ? "Memory" : "Memories"}
                     </span>
                     <h3 className="font-serif text-xl font-bold text-[#1C1917]">{selectedNode.label}</h3>
                   </div>
@@ -1220,13 +1260,13 @@ export function UnifiedCollectionsGraphView({
                 </div>
               )}
 
-              {/* Connected Captures List */}
+              {/* Unique Connected Captures List */}
               <div className="space-y-2 pt-2">
                 <span className="text-xs font-sans font-bold text-[#665F56] block">
-                  Journal Entries &amp; Memories mentioning &ldquo;{selectedNode.label}&rdquo;:
+                  Journal Entries &amp; Memories mentioning &ldquo;{selectedNode.label}&rdquo; ({selectedNodeUniqueCaptures.length}):
                 </span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-56 overflow-y-auto pr-1">
-                  {selectedNode.captures.map((c) => (
+                  {selectedNodeUniqueCaptures.map((c) => (
                     <div
                       key={c.id}
                       onClick={() => onSelectCapture?.(c)}
@@ -1406,7 +1446,7 @@ export function UnifiedCollectionsGraphView({
           {/* AI Extracted Topics Section */}
           <div className="space-y-3">
             <span className="text-xs font-mono uppercase font-bold text-[#665F56] tracking-wider block">
-              🤖 AI Extracted Topics ({topicList.length})
+              🤖 AI Extracted Recurring Thought Threads ({topicList.length})
             </span>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               {topicList.map((item, idx) => (
@@ -1417,7 +1457,7 @@ export function UnifiedCollectionsGraphView({
                   <div className="flex items-center justify-between">
                     <span className="font-serif font-bold text-base text-[#1C1917]">{item.topic}</span>
                     <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-[#F5E5DC] text-[#DE5239] border border-[#DE5239]/20">
-                      {item.count} {item.count === 1 ? "entry" : "entries"}
+                      {item.count} {item.count === 1 ? "memory" : "memories"}
                     </span>
                   </div>
                   <p className="text-xs font-sans text-[#665F56] italic line-clamp-2">
