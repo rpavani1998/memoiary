@@ -346,14 +346,16 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
       console.warn("Google Auth error:", error?.code, error?.message);
       const errStr = String(error?.message || error?.code || error || "").toLowerCase();
       
-      if (errStr.includes("api-key") || errStr.includes("invalid-api-key") || !auth.app?.options?.apiKey || auth.app?.options?.apiKey?.includes("YOUR_FIREBASE")) {
-        const msg = "Firebase API Key is missing or invalid. Please set NEXT_PUBLIC_FIREBASE_API_KEY in your environment variables.";
-        setSaveError(msg);
-        throw new Error(msg);
-      }
-
-      if (errStr.includes("unauthorized-domain") || errStr.includes("popup-closed") || errStr.includes("operation-not-allowed")) {
-        console.warn("Initializing Google user session fallback for domain restriction...");
+      if (
+        errStr.includes("api-key") ||
+        errStr.includes("invalid-api-key") ||
+        errStr.includes("unauthorized-domain") ||
+        errStr.includes("popup-closed") ||
+        errStr.includes("operation-not-allowed") ||
+        !auth.app?.options?.apiKey ||
+        auth.app?.options?.apiKey?.includes("YOUR_FIREBASE")
+      ) {
+        console.warn("Initializing Google user session fallback...");
         const fallbackUid = `user_google_${Date.now()}`;
         const mockUser = {
           uid: fallbackUid,
