@@ -51,6 +51,7 @@ export function TimelineViewSwitcher({
         <div className="grid grid-cols-3 gap-1.5 w-full">
           <button
             onClick={() => onModeChange("day")}
+            data-tour="tab-day"
             className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
               activeMode === "day"
                 ? "bg-[#1C1917] text-white shadow-xs"
@@ -63,6 +64,7 @@ export function TimelineViewSwitcher({
 
           <button
             onClick={() => onModeChange("week")}
+            data-tour="tab-week"
             className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
               activeMode === "week"
                 ? "bg-[#1C1917] text-white shadow-xs"
@@ -79,6 +81,7 @@ export function TimelineViewSwitcher({
 
           <button
             onClick={() => onModeChange("month")}
+            data-tour="tab-month"
             className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
               activeMode === "month"
                 ? "bg-[#1C1917] text-white shadow-xs"
