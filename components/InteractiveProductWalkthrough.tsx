@@ -47,6 +47,17 @@ export const WALKTHROUGH_STEPS: WalkthroughStep[] = [
   },
   {
     id: 2,
+    title: "Timeline View Modes (Day, Weekly & Monthly)",
+    badge: "Multi-Scale View Switcher",
+    targetView: "life",
+    selector: "[data-tour='timeline-switcher']",
+    icon: Calendar,
+    description: "Switch seamlessly between Day View (daily memory timeline), Weekly View (7-day story recaps), and Monthly View (30-day visual collage grid).",
+    aiExplanation: "Memoiary synthesizes your memories across multi-scale horizons, unlocking weekly story collages after 7 days logged and monthly visual grids after 30 days.",
+    highlightNote: "Click Day, Weekly, or Monthly pills to switch your memory timeline scale!"
+  },
+  {
+    id: 3,
     title: "Memory Time Capsule ('On This Day')",
     badge: "Historical Date Engine",
     targetView: "life",
@@ -57,7 +68,7 @@ export const WALKTHROUGH_STEPS: WalkthroughStep[] = [
     highlightNote: "Click any Time Capsule match to revisit that day's entry!"
   },
   {
-    id: 3,
+    id: 4,
     title: "Weekly Storyboard & Narrative Arc",
     badge: "Narrative Synthesis Engine",
     targetView: "life",
@@ -68,7 +79,7 @@ export const WALKTHROUGH_STEPS: WalkthroughStep[] = [
     highlightNote: "Click any highlight card to inspect the full journal detail."
   },
   {
-    id: 4,
+    id: 5,
     title: "Quick Capture (+ Button)",
     badge: "Multimodal Voice & Text AI",
     targetView: "life",
@@ -79,7 +90,7 @@ export const WALKTHROUGH_STEPS: WalkthroughStep[] = [
     highlightNote: "Try clicking '+' to record a quick voice note or write a thought!"
   },
   {
-    id: 5,
+    id: 6,
     title: "Elements Hub (Events, People, Places & Wishlists)",
     badge: "Multimodal Entity & Intention Matrix",
     targetView: "entities",
@@ -90,7 +101,7 @@ export const WALKTHROUGH_STEPS: WalkthroughStep[] = [
     highlightNote: "Tap this Elements icon anytime to view your Events, People, Places, and Wishlists!"
   },
   {
-    id: 6,
+    id: 7,
     title: "AI Mind Map & Epistemic Graph",
     badge: "Force Physics Clustering",
     targetView: "collections",
@@ -101,7 +112,7 @@ export const WALKTHROUGH_STEPS: WalkthroughStep[] = [
     highlightNote: "Tap this Mind Map icon anytime to explore your interactive memory graph!"
   },
   {
-    id: 7,
+    id: 8,
     title: "AI Reflection Chatboard",
     badge: "Personal AI Guide",
     targetView: "reflect",

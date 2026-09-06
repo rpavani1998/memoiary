@@ -47,7 +47,7 @@ export function TimelineViewSwitcher({
   return (
     <div className="my-4 font-sans space-y-3">
       {/* Top Main Mode Toggle Pills: DAY | WEEK | MONTH */}
-      <div className="flex items-center justify-between gap-2 p-1.5 bg-[#FAF7F0] border-[1.5px] border-[#1C1917] rounded-2xl shadow-[2px_3px_0px_#1C1917]">
+      <div data-tour="timeline-switcher" className="flex items-center justify-between gap-2 p-1.5 bg-[#FAF7F0] border-[1.5px] border-[#1C1917] rounded-2xl shadow-[2px_3px_0px_#1C1917]">
         <div className="grid grid-cols-3 gap-1.5 w-full">
           <button
             onClick={() => onModeChange("day")}
