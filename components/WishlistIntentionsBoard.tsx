@@ -7,9 +7,57 @@ export interface WishlistItem {
   id: string;
   text: string;
   category: "wishlist" | "intention";
+  subCategory?: "promise" | "culinary" | "travel" | "action" | "creative";
   sourceDate?: string;
   personMentioned?: string;
   completed: boolean;
+}
+
+function parseAndClassifySentences(text: string, dateStr: string, idx: number, person?: string): WishlistItem[] {
+  const results: WishlistItem[] = [];
+  const sentences = text.split(/[.!?\n]/).map((s) => s.trim()).filter((s) => s.length > 8);
+
+  sentences.forEach((sentence, sIdx) => {
+    // 1. Check for Action Intentions & Promises FIRST (Promises/commitments override general wishes)
+    const isPromise = /promise|promised|pledged|agreed to|swore|word to/i.test(sentence);
+    const isObligation = /need to|should|must|have to|supposed to|call|follow up|check in|remind me|schedule|bring|send|meet up|catch up/i.test(sentence);
+
+    if (isPromise || isObligation) {
+      results.push({
+        id: `cap-i-${idx}-${sIdx}`,
+        text: sentence,
+        category: "intention",
+        subCategory: isPromise ? "promise" : "action",
+        sourceDate: dateStr,
+        personMentioned: person,
+        completed: false,
+      });
+      return; // Deduplicate: do not add to wishlist if it's an explicit action intention/promise
+    }
+
+    // 2. Check for Wishlist & Dreams (Culinary, Travel, Aspirational)
+    const isWish = /want to|wish|love to|dream|hope to|someday|visit|learn|try|recipe|dish|cook|taste|bake|eat|sample|order|prepare|food|bistro|dine|dessert|bucket list|explore/i.test(sentence);
+    const isCulinary = /recipe|dish|cook|bake|taste|eat|food|bistro|dessert|chai|coffee|pasta|pizza|ramen|sourdough|tiramisu|haleem|biryani|pastry|cake|curry|tasting/i.test(sentence);
+    const isTravel = /visit|travel|fly|trip|vacation|hike|explore|trail|city|beach/i.test(sentence);
+
+    if (isWish || isCulinary || isTravel) {
+      let subCategory: "culinary" | "travel" | "creative" = "creative";
+      if (isCulinary) subCategory = "culinary";
+      else if (isTravel) subCategory = "travel";
+
+      results.push({
+        id: `cap-w-${idx}-${sIdx}`,
+        text: sentence,
+        category: "wishlist",
+        subCategory,
+        sourceDate: dateStr,
+        personMentioned: person,
+        completed: false,
+      });
+    }
+  });
+
+  return results;
 }
 
 export function WishlistIntentionsBoard({
@@ -33,6 +81,7 @@ export function WishlistIntentionsBoard({
           id: "def-1",
           text: "Try baking handmade sourdough bread on a quiet Sunday",
           category: "wishlist",
+          subCategory: "culinary",
           sourceDate: "Journal Idea",
           completed: false,
         },
@@ -40,6 +89,7 @@ export function WishlistIntentionsBoard({
           id: "def-2",
           text: "Explore a sunset trail hike at North Ridge",
           category: "wishlist",
+          subCategory: "travel",
           sourceDate: "Journal Idea",
           completed: false,
         },
@@ -47,6 +97,7 @@ export function WishlistIntentionsBoard({
           id: "def-3",
           text: "Catch up with Kabir over tea regarding future plans",
           category: "intention",
+          subCategory: "action",
           personMentioned: "Kabir",
           sourceDate: "Extracted Thought",
           completed: false,
@@ -55,6 +106,7 @@ export function WishlistIntentionsBoard({
           id: "def-4",
           text: "Review recent journal entries to reflect on personal growth",
           category: "intention",
+          subCategory: "action",
           sourceDate: "System Thought",
           completed: false,
         },
@@ -66,35 +118,37 @@ export function WishlistIntentionsBoard({
       const dateStr = c.createdAt
         ? new Date(c.createdAt?.seconds ? c.createdAt.seconds * 1000 : c.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })
         : "Recent";
+      const person = c.extractedDimensions?.people?.[0] || c.dimensions?.people?.[0] || undefined;
 
-      // Scan text for wishlist keywords (want to, wish to, love to, dream of, hope to, visit, buy, learn)
-      if (/want to|wish|love to|dream|hope to|someday|visit|learn|try/i.test(text)) {
-        const sentence = text.split(/[.!?]/).find((s: string) => /want to|wish|love to|dream|hope to|someday|visit|learn|try/i.test(s));
-        if (sentence && sentence.trim().length > 10) {
+      const aiWishes = c.dimensions?.wishes || c.extractedDimensions?.wishes;
+      const aiIntentions = c.dimensions?.intentions || c.extractedDimensions?.intentions;
+
+      if ((aiWishes && aiWishes.length > 0) || (aiIntentions && aiIntentions.length > 0)) {
+        (aiWishes || []).forEach((w: any, wIdx: number) => {
           items.push({
-            id: `cap-w-${idx}`,
-            text: sentence.trim(),
+            id: `ai-w-${idx}-${wIdx}`,
+            text: w.text,
             category: "wishlist",
+            subCategory: w.subCategory || "creative",
             sourceDate: dateStr,
-            completed: false,
-          });
-        }
-      }
-
-      // Scan text for subtle action intentions (promised, should, need to, promised, call, check in)
-      if (/promise|should|need to|supposed to|call|follow up|check in/i.test(text)) {
-        const sentence = text.split(/[.!?]/).find((s: string) => /promise|should|need to|supposed to|call|follow up|check in/i.test(s));
-        if (sentence && sentence.trim().length > 10) {
-          const person = c.extractedDimensions?.people?.[0] || undefined;
-          items.push({
-            id: `cap-i-${idx}`,
-            text: sentence.trim(),
-            category: "intention",
             personMentioned: person,
-            sourceDate: dateStr,
             completed: false,
           });
-        }
+        });
+        (aiIntentions || []).forEach((i: any, iIdx: number) => {
+          items.push({
+            id: `ai-i-${idx}-${iIdx}`,
+            text: i.text,
+            category: "intention",
+            subCategory: i.subCategory || "action",
+            sourceDate: dateStr,
+            personMentioned: i.personMentioned || person,
+            completed: false,
+          });
+        });
+      } else {
+        const classified = parseAndClassifySentences(text, dateStr, idx, person);
+        items.push(...classified);
       }
     });
 
@@ -104,6 +158,7 @@ export function WishlistIntentionsBoard({
         id: "def-fallback-1",
         text: "Visit a quiet library cafe to read & write",
         category: "wishlist",
+        subCategory: "travel",
         sourceDate: "Suggested Wish",
         completed: false,
       });
@@ -111,6 +166,7 @@ export function WishlistIntentionsBoard({
         id: "def-fallback-2",
         text: "Send a thoughtful note to a close friend",
         category: "intention",
+        subCategory: "action",
         sourceDate: "Subtle Action",
         completed: false,
       });
@@ -197,6 +253,10 @@ export function WishlistIntentionsBoard({
       <div className="space-y-2.5">
         {filteredItems.map((item) => {
           const isDone = !!completedIds[item.id];
+          const isCulinary = item.subCategory === "culinary" || /dish|recipe|cook|bake|taste|eat|food|bistro|dessert|chai|coffee|pasta|pizza|ramen|sourdough|tiramisu|haleem|biryani|pastry|cake|curry|tasting/i.test(item.text);
+          const isTravel = item.subCategory === "travel" || /visit|travel|fly|trip|vacation|hike|explore|trail|city|beach/i.test(item.text);
+          const isPromise = item.subCategory === "promise" || /promise|promised|pledged|agreed to/i.test(item.text);
+
           return (
             <div
               key={item.id}
@@ -228,16 +288,35 @@ export function WishlistIntentionsBoard({
                 >
                   {item.text}
                 </p>
-                <div className="flex items-center gap-2 mt-1 text-[11px] font-sans text-[#665F56]">
+                <div className="flex flex-wrap items-center gap-2 mt-1 text-[11px] font-sans text-[#665F56]">
                   {item.sourceDate && (
                     <span className="flex items-center gap-1 font-mono text-[10px] bg-[#F5E5DC] text-[#DE5239] px-2 py-0.5 rounded-md font-semibold border border-[#DE5239]/20">
                       <Tag size={10} />
                       {item.sourceDate}
                     </span>
                   )}
+                  {item.category === "intention" && (
+                    <span className={`font-semibold px-2 py-0.5 rounded-md text-[10px] ${
+                      isPromise 
+                        ? "text-[#7C3AED] bg-[#F3E8FF] border border-[#7C3AED]/30" 
+                        : "text-[#D97706] bg-[#FFFBEB] border border-[#D97706]/30"
+                    }`}>
+                      {isPromise ? "🤝 Promise / Commitment" : "⚡ Action Intention"}
+                    </span>
+                  )}
                   {item.personMentioned && (
-                    <span className="font-semibold text-[#D97706] bg-[#FFFBEB] border border-[#D97706]/30 px-2 py-0.5 rounded-md">
+                    <span className="font-semibold text-[#D97706] bg-[#FFFBEB] border border-[#D97706]/30 px-2 py-0.5 rounded-md text-[10px]">
                       👤 {item.personMentioned}
+                    </span>
+                  )}
+                  {item.category === "wishlist" && isCulinary && (
+                    <span className="font-semibold text-[#059669] bg-[#E2EBD8] border border-[#059669]/30 px-2 py-0.5 rounded-md text-[10px]">
+                      🍲 Culinary Wish
+                    </span>
+                  )}
+                  {item.category === "wishlist" && isTravel && !isCulinary && (
+                    <span className="font-semibold text-[#0284C7] bg-[#E0F2FE] border border-[#0284C7]/30 px-2 py-0.5 rounded-md text-[10px]">
+                      ✈️ Travel &amp; Adventure
                     </span>
                   )}
                 </div>

@@ -240,7 +240,10 @@ You must extract:
 6. PLACES: Locations mentioned or implied.
 7. TOPICS: Key themes/topics (2-5 words each).
 8. TIME CONTEXT: When the event happened (e.g., "yesterday evening", "this morning", "last week").
-9. RAW ANALYSIS: A brief analytical observation about the capture (what's interesting, what pattern it fits).
+9. WISHES: Array of explicit or implicit desires, recipes/dishes to try, travel goals, or bucket list aspirations. Categorize subCategory as "culinary" (food/recipes), "travel", or "creative".
+10. INTENTIONS: Array of explicit commitments, promises made to others, tasks, or follow-ups. Categorize subCategory as "promise" or "action", and specify personMentioned if applicable.
+11. EVENTS: Array of explicit events, birthdays, anniversaries, celebrations, or attended gatherings mentioned. Categorize category as "birthday", "milestone", "gathering", or "celebration".
+12. RAW ANALYSIS: A brief analytical observation about the capture (what's interesting, what pattern it fits).
 
 Return ONLY valid JSON matching this schema.`;
 
@@ -266,6 +269,43 @@ Return ONLY valid JSON matching this schema.`;
         places: { type: "array", items: { type: "string" } },
         topics: { type: "array", items: { type: "string" } },
         timeContext: { type: "string" },
+        wishes: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              text: { type: "string" },
+              subCategory: { type: "string", enum: ["culinary", "travel", "creative"] }
+            },
+            required: ["text", "subCategory"]
+          }
+        },
+        intentions: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              text: { type: "string" },
+              subCategory: { type: "string", enum: ["promise", "action"] },
+              personMentioned: { type: "string" }
+            },
+            required: ["text", "subCategory"]
+          }
+        },
+        events: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              title: { type: "string" },
+              date: { type: "string" },
+              category: { type: "string", enum: ["birthday", "milestone", "gathering", "celebration"] },
+              people: { type: "array", items: { type: "string" } },
+              location: { type: "string" }
+            },
+            required: ["title", "category"]
+          }
+        },
         rawAnalysis: { type: "string" }
       },
       required: ["summary", "mood", "tone", "emotions", "people", "places", "topics", "timeContext", "rawAnalysis"]
@@ -297,6 +337,9 @@ Return ONLY valid JSON matching this schema.`;
         places: Array.isArray(parsed.places) ? parsed.places : [],
         topics: Array.isArray(parsed.topics) ? parsed.topics : [],
         timeContext: parsed.timeContext || "recently",
+        wishes: Array.isArray(parsed.wishes) ? parsed.wishes : [],
+        intentions: Array.isArray(parsed.intentions) ? parsed.intentions : [],
+        events: Array.isArray(parsed.events) ? parsed.events : [],
         rawAnalysis: parsed.rawAnalysis || "",
         mediaInsights: mediaContext ? { sceneDescription: mediaContext } : undefined
       };

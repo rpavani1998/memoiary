@@ -12,22 +12,27 @@ import {
 import { CaptureSession } from "@/lib/memory-engine/types";
 import { ArtisticAvatar } from "./ArtisticAvatar";
 import { WishlistIntentionsBoard } from "./WishlistIntentionsBoard";
+import { EventCalendarBoard } from "./EventCalendarBoard";
+import { Calendar as CalendarIcon } from "lucide-react";
 
 interface EntitiesViewSectionProps {
   captures: CaptureSession[];
   onSelectPerson?: (personName: string) => void;
   onSelectCapture?: (capture: CaptureSession) => void;
+  onOpenCapture?: (prompt?: string) => void;
 }
 
 export function EntitiesViewSection({
   captures = [],
   onSelectPerson,
-  onSelectCapture
+  onSelectCapture,
+  onOpenCapture
 }: EntitiesViewSectionProps) {
-  // Exactly 2 tabs requested by user:
-  // "intentions": Wishlist & Action Intentions
+  // 3 Sub-Tabs in Elements Hub:
   // "people_places": People & Places
-  const [internalTab, setInternalTab] = useState<"people_places" | "intentions">("people_places");
+  // "events": Events & Milestones Calendar
+  // "intentions": Wishlist & Action Intentions
+  const [internalTab, setInternalTab] = useState<"people_places" | "events" | "intentions">("events");
 
   // 1. DYNAMIC PEOPLE
   const peopleList = useMemo(() => {
@@ -84,35 +89,56 @@ export function EntitiesViewSection({
           </h1>
         </div>
 
-        {/* 2 Internal Sub-Tabs Switcher */}
+        {/* 3 Internal Sub-Tabs Switcher */}
         <div className="flex bg-[#F5F1E8] border border-[#1C1917]/20 p-1 rounded-2xl gap-1 text-xs font-sans font-bold shadow-2xs">
           <button
+            onClick={() => setInternalTab("events")}
+            className={`px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer ${
+              internalTab === "events"
+                ? "bg-[#DE5239] text-white shadow-[1px_2px_0px_#1C1917]"
+                : "text-[#665F56] hover:text-[#1C1917]"
+            }`}
+          >
+            <CalendarIcon size={14} />
+            <span>Events &amp; Calendar</span>
+          </button>
+
+          <button
             onClick={() => setInternalTab("people_places")}
-            className={`px-4 py-2 rounded-xl flex items-center gap-2 transition-all cursor-pointer ${
+            className={`px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer ${
               internalTab === "people_places"
                 ? "bg-[#DE5239] text-white shadow-[1px_2px_0px_#1C1917]"
                 : "text-[#665F56] hover:text-[#1C1917]"
             }`}
           >
-            <Users size={15} />
+            <Users size={14} />
             <span>People &amp; Places</span>
           </button>
 
           <button
             onClick={() => setInternalTab("intentions")}
-            className={`px-4 py-2 rounded-xl flex items-center gap-2 transition-all cursor-pointer ${
+            className={`px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer ${
               internalTab === "intentions"
                 ? "bg-[#DE5239] text-white shadow-[1px_2px_0px_#1C1917]"
                 : "text-[#665F56] hover:text-[#1C1917]"
             }`}
           >
-            <Sparkles size={15} />
+            <Sparkles size={14} />
             <span>Wishlist &amp; Intentions</span>
           </button>
         </div>
       </div>
 
-      {/* ── TAB 1: WISHLIST & ACTION INTENTIONS ── */}
+      {/* ── TAB 1: EVENTS & MILESTONES CALENDAR ── */}
+      {internalTab === "events" && (
+        <EventCalendarBoard
+          captures={captures}
+          onSelectPerson={onSelectPerson}
+          onOpenCapture={onOpenCapture}
+        />
+      )}
+
+      {/* ── TAB 2: WISHLIST & ACTION INTENTIONS ── */}
       {internalTab === "intentions" && (
         <WishlistIntentionsBoard captures={captures} />
       )}

@@ -181,6 +181,15 @@ export interface CaptureDimensions {
   places: string[];
   topics: string[];
   timeContext: string;
+  wishes?: Array<{ text: string; subCategory: "culinary" | "travel" | "creative" }>;
+  intentions?: Array<{ text: string; subCategory: "promise" | "action"; personMentioned?: string }>;
+  events?: Array<{
+    title: string;
+    date: string;
+    category: "birthday" | "milestone" | "gathering" | "celebration";
+    people?: string[];
+    location?: string;
+  }>;
   mediaInsights?: {
     transcription?: string;
     sceneDescription?: string;

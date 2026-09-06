@@ -2744,6 +2744,7 @@ export function MemoiaryAppShell() {
               captures={captures}
               onSelectPerson={(name: string) => { setSelectedPersonName(name); go("person"); }}
               onSelectCapture={(c: any) => { setSelectedCapture(c); go("memory"); }}
+              onOpenCapture={handleOpenCapture}
             />
           </div>
         );

@@ -21,6 +21,28 @@ interface Props {
   scenes: StoryboardScene[];
 }
 
+function synthesizeDailyEmotionalArc(scenes: StoryboardScene[]): string {
+  if (!scenes || scenes.length === 0) return "";
+
+  const locations = Array.from(new Set(scenes.map((s) => s.location).filter(Boolean)));
+  const people = Array.from(new Set(scenes.flatMap((s) => s.people || []))).filter(Boolean);
+  const titles = scenes.map((s) => s.title).filter(Boolean);
+
+  if (titles.length >= 2) {
+    const firstTitle = titles[0].toLowerCase().replace(/\.$/, "");
+    const lastTitle = titles[titles.length - 1].toLowerCase().replace(/\.$/, "");
+    const peopleStr = people.length > 0 ? ` with ${people.slice(0, 2).join(" & ")}` : "";
+    const locStr = locations.length > 0 ? ` around ${locations[0]}` : "";
+    return `Your day wove from ${firstTitle} into ${lastTitle}${locStr}${peopleStr}, reflecting an evolving narrative rhythm.`;
+  }
+
+  if (titles.length === 1) {
+    return `A singular focused chapter: ${titles[0]}.`;
+  }
+
+  return "A quiet progression of daily moments captured into a single hand-drawn journal chapter.";
+}
+
 export function DailyStoryboard({ dateStr, scenes }: Props) {
   if (!scenes || scenes.length === 0) return null;
 
@@ -28,6 +50,8 @@ export function DailyStoryboard({ dateStr, scenes }: Props) {
   const todayPeople = Array.from(
     new Set(scenes.flatMap((s) => s.people || []))
   );
+
+  const dailySynthesisArc = synthesizeDailyEmotionalArc(scenes);
 
   return (
     <section className="my-6 border-[1.5px] border-[#1C1917] bg-[#FAF7F0] rounded-3xl p-5 sm:p-7 shadow-[4px_6px_0px_#1C1917] relative overflow-hidden font-sans">
@@ -45,7 +69,7 @@ export function DailyStoryboard({ dateStr, scenes }: Props) {
           </h3>
         </div>
         <span className="text-xs font-semibold text-[#665F56] font-sans bg-white border border-[#1C1917]/20 px-3.5 py-1.5 rounded-full w-fit shadow-xs">
-          Synthesized from {scenes.length} Daily Moments
+          Narrative Arc · {scenes.length} Key Moments Reconciled
         </span>
       </div>
 
@@ -76,15 +100,22 @@ export function DailyStoryboard({ dateStr, scenes }: Props) {
       <div className="mb-6 border-[1.5px] border-[#1C1917] bg-[#FAF7F0] rounded-2xl p-5 shadow-[3px_4px_0px_#1C1917] space-y-3 font-sans">
         <div className="flex items-center justify-between border-b border-[#1C1917]/15 pb-2">
           <span className="text-[10px] font-mono uppercase tracking-widest bg-[#D97706] text-white px-2.5 py-0.5 rounded-md font-bold shadow-xs">
-            GENERATED FROM DAILY ENTRIES
+            DAILY STORY NARRATIVE SYNTHESIS
           </span>
           <span className="text-xs font-mono font-bold text-[#665F56]">{dateStr}</span>
         </div>
-        <p className="font-serif text-lg sm:text-xl font-bold text-[#1C1917] leading-snug">
-          {scenes && scenes.length > 0
-            ? scenes.map((s) => s.title).filter(Boolean).join(" · ")
-            : "Daily Chapter Moments"}
-        </p>
+        <div className="space-y-1.5">
+          <p className="font-serif text-lg sm:text-xl font-bold text-[#1C1917] leading-snug">
+            {scenes && scenes.length > 0
+              ? scenes.map((s) => s.title).filter(Boolean).join(" · ")
+              : "Daily Chapter Moments"}
+          </p>
+          {dailySynthesisArc && (
+            <p className="font-serif text-xs italic text-[#665F56] border-t border-[#1C1917]/10 pt-2">
+              &ldquo;{dailySynthesisArc}&rdquo;
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Multi-Panel Scene Cards Breakdown with Avatars */}

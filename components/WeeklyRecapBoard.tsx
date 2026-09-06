@@ -141,6 +141,53 @@ const HISTORICAL_WEEK_PRESETS: Record<number, { title: string; rangeLabel: strin
   }
 };
 
+function synthesizeWeeklyNarrativeArc(captures: any[], fallbackInsight: string): string {
+  if (!captures || captures.length === 0) {
+    return fallbackInsight;
+  }
+
+  const count = captures.length;
+  const people = Array.from(new Set(captures.flatMap((c) => c.dimensions?.people || []))).filter(Boolean);
+  const moods = Array.from(new Set(captures.map((c) => c.dimensions?.mood).filter(Boolean)));
+  const topics = Array.from(new Set(captures.flatMap((c) => c.dimensions?.topics || []))).filter(Boolean);
+
+  const snippets = captures
+    .map((c) => c.dimensions?.summary || c.title || (c.content ? c.content.substring(0, 50) : ""))
+    .filter(Boolean);
+
+  const peopleStr = people.length > 0
+    ? (people.length === 1 ? people[0] : people.slice(0, -1).join(", ") + " and " + people[people.length - 1])
+    : "";
+
+  const moodStr = moods.length > 0
+    ? moods.slice(0, 3).join(", ").toLowerCase()
+    : "reflective and steady";
+
+  if (peopleStr && moods.length > 0) {
+    return `Your week brought a balance of ${moodStr} energy, shaped by creative focus and meaningful moments shared with ${peopleStr}.`;
+  }
+
+  if (peopleStr) {
+    return `Across ${count} moments this week, your narrative centered on creative progress, personal clarity, and quality time with ${peopleStr}.`;
+  }
+
+  if (snippets.length >= 2) {
+    const startSnippet = snippets[0].toLowerCase().replace(/\.$/, "");
+    const endSnippet = snippets[snippets.length - 1].toLowerCase().replace(/\.$/, "");
+    return `Your weekly arc unfolded across ${count} captured moments—moving from ${startSnippet} to ${endSnippet}, reflecting a ${moodStr} progression.`;
+  }
+
+  if (moods.length > 0) {
+    return `Your week reflected an emotional progression through ${moodStr} reflections as your daily moments unfolded.`;
+  }
+
+  if (topics.length > 0) {
+    return `Your week focused on ${topics.slice(0, 3).join(", ").toLowerCase()} and personal priorities.`;
+  }
+
+  return `Your week brought together ${count} captured moments into a coherent narrative of personal clarity and creative flow.`;
+}
+
 export function WeeklyRecapBoard({
   weekLabel = "This Week",
   captures = [],
@@ -216,10 +263,8 @@ export function WeeklyRecapBoard({
       : Array.from(new Set(preset.highlights.flatMap((h) => h.people || [])));
 
   const dynamicWeeklyInsight =
-    weekIndex === 0
-      ? "Your current week is taking shape. Moments captured between Sept 1st and Sept 7th will synthesize into a full weekly story as you capture memories."
-      : filteredCaptures.length > 0
-      ? `Synthesized ${filteredCaptures.length} memory entries captured during ${rangeLabel}.`
+    filteredCaptures.length > 0
+      ? synthesizeWeeklyNarrativeArc(filteredCaptures, preset.insight)
       : preset.insight;
 
   // Load reflection from localStorage on weekIndex change
