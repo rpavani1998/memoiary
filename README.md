@@ -106,6 +106,7 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Helper functions
     function isSignedIn() {
       return request.auth != null;
     }
@@ -118,52 +119,70 @@ service cloud.firestore {
       return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
+    // Payload validation: enforce string content bounds <= 50KB to prevent oversized document spam
+    function isValidPayload() {
+      return request.resource == null || 
+        (request.resource.data != null && 
+         (!('content' in request.resource.data) || (request.resource.data.content is string && request.resource.data.content.size() <= 50000)));
+    }
+
     // All memory collections belong strictly to the authenticated user's isolated document tree
     match /users/{userId} {
       allow read, write: if isOwner(userId);
 
       match /captures/{captureId} {
-        allow read, write: if isOwner(userId) && isValidId(captureId);
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidId(captureId) && isValidPayload();
       }
 
       match /episodes/{episodeId} {
-        allow read, write: if isOwner(userId) && isValidId(episodeId);
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidId(episodeId) && isValidPayload();
       }
 
       match /entities/{entityId} {
-        allow read, write: if isOwner(userId) && isValidId(entityId);
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidId(entityId) && isValidPayload();
       }
 
       match /relationships/{relationshipId} {
-        allow read, write: if isOwner(userId) && isValidId(relationshipId);
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidId(relationshipId);
       }
 
       match /emotions/{emotionId} {
-        allow read, write: if isOwner(userId) && isValidId(emotionId);
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidId(emotionId);
       }
 
       match /states/{stateId} {
-        allow read, write: if isOwner(userId) && isValidId(stateId);
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidId(stateId);
       }
 
       match /learnings/{learningId} {
-        allow read, write: if isOwner(userId) && isValidId(learningId);
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidId(learningId);
       }
 
       match /patterns/{patternId} {
-        allow read, write: if isOwner(userId) && isValidId(patternId);
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidId(patternId);
       }
 
       match /provenance/{provenanceId} {
-        allow read, write: if isOwner(userId) && isValidId(provenanceId);
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidId(provenanceId);
       }
 
       match /entries/{entryId} {
-        allow read, write: if isOwner(userId) && isValidId(entryId);
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidId(entryId) && isValidPayload();
       }
 
       match /memories/{memoryId} {
-        allow read, write: if isOwner(userId) && isValidId(memoryId);
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidId(memoryId) && isValidPayload();
       }
     }
   }
