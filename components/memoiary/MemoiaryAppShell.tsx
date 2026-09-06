@@ -1343,15 +1343,6 @@ function MemoryDetailSection({ go, capture }: { go: (view: View) => void; captur
         action={
           <div className="flex items-center gap-2">
             <button
-              onClick={() => reanalyzeCapture(capture.id)}
-              disabled={isAiProcessing}
-              title="Re-run AI Analysis"
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#FEF3C7] border-[1.5px] border-[#D97706] rounded-xl text-xs font-bold text-[#D97706] shadow-[1px_2px_0px_#D97706] hover:bg-[#FDE68A] cursor-pointer disabled:opacity-50 transition-all"
-            >
-              <Sparkles size={13} className={isAiProcessing ? "animate-spin text-[#D97706]" : "text-[#D97706]"} />
-              <span className="hidden sm:inline">{isAiProcessing ? "Analyzing…" : "Re-Analyze"}</span>
-            </button>
-            <button
               onClick={() => setIsEditing(!isEditing)}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-[#FAF7F0] border-[1.5px] border-[#1C1917] rounded-xl text-xs font-bold text-[#1C1917] shadow-[1px_2px_0px_#1C1917] hover:bg-[#F5E5DC] cursor-pointer transition-all"
             >
@@ -1604,14 +1595,6 @@ function MemoryDetailSection({ go, capture }: { go: (view: View) => void; captur
               </button>
 
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => reanalyzeCapture(capture.id)}
-                  disabled={isAiProcessing}
-                  className="flex items-center gap-1.5 px-4 py-2.5 bg-[#FEF3C7] border-[1.5px] border-[#D97706] rounded-2xl text-xs font-bold text-[#D97706] shadow-[2px_3px_0px_#D97706] hover:bg-[#FDE68A] cursor-pointer disabled:opacity-50 transition-all"
-                >
-                  <Sparkles size={14} className={isAiProcessing ? "animate-spin text-[#D97706]" : "text-[#D97706]"} />
-                  <span>{isAiProcessing ? "Analyzing…" : "Re-Analyze AI"}</span>
-                </button>
                 <button
                   onClick={() => setIsEditing(true)}
                   className="flex items-center gap-1.5 px-5 py-2.5 bg-[#DE5239] border-[1.5px] border-[#1C1917] rounded-2xl text-xs font-bold text-white shadow-[2px_3px_0px_#1C1917] hover:bg-[#c9452d] cursor-pointer transition-all"
