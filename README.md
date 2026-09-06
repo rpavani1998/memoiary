@@ -6,7 +6,7 @@
 
 > **"Your memories, beautifully connected."**
 
-**Memoiary** is a private, local-first autobiographical thinking space and memory engine powered by Next.js 15+, Google Cloud Run, Cloud Firestore, Firebase Authentication, and Gemini Multimodal AI.
+**Memoiary** is a private, encrypted autobiographical thinking space and memory engine powered by Next.js 15+, Google Cloud Run, Cloud Firestore, Firebase Authentication, and Gemini Multimodal AI.
 
 The application acts as a quiet, objective mirror adhering to the cardinal principle:  
 > **"The system remembers more than it says."**
