@@ -6,6 +6,8 @@ import { MemoryReconciler } from "@/lib/memory-engine/reconciliation";
 import { MemoryStore } from "@/lib/memory-engine/store";
 import { CaptureSession } from "@/lib/memory-engine/types";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(req: Request) {
   try {
     // Verify user token if available, but allow guest sessions gracefully

@@ -425,6 +425,8 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
 
   // Auth state & redirect handler
   useEffect(() => {
+    ensureClientFirebaseConfig().catch((err) => console.warn("Init firebase config err:", err));
+
     getRedirectResult(auth)
       .then((result) => {
         if (result?.user) {

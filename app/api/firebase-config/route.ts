@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   let localConfig: any = {};
   try {
@@ -14,7 +16,7 @@ export async function GET() {
       process.env.FIREBASE_API_KEY ||
       process.env.NEXT_PUBLIC_FIREBASE_API_KEY ||
       (localConfig.apiKey && localConfig.apiKey !== "YOUR_FIREBASE_API_KEY" ? localConfig.apiKey : null) ||
-      "",
+      "AIzaSyDPdnip1YIn3ZL-POrzRiSrSZ3h6Nd9KFQ",
     authDomain:
       process.env.FIREBASE_AUTH_DOMAIN ||
       process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ||
