@@ -18,7 +18,14 @@ import {
   Move,
   Plus,
   Tag,
-  CheckCircle
+  CheckCircle,
+  Brain,
+  GitFork,
+  FileText,
+  Eye,
+  EyeOff,
+  Play,
+  Compass
 } from "lucide-react";
 import { CaptureSession } from "@/lib/memory-engine/types";
 import { ArtisticAvatar } from "./ArtisticAvatar";
@@ -31,18 +38,22 @@ interface UnifiedCollectionsGraphViewProps {
 }
 
 export type GraphNodeType = "all" | "person" | "place" | "topic" | "moment";
+export type LayoutMode = "force" | "mindmap";
 
 export interface GraphNode {
   id: string;
   label: string;
-  type: "person" | "place" | "topic" | "moment";
+  type: "root" | "person" | "place" | "topic" | "moment";
   x: number;
   y: number;
+  vx: number;
+  vy: number;
   size: number;
   count: number;
   lastDate?: string;
   connectedNodeIds: string[];
   captures: CaptureSession[];
+  parentId?: string; // For mindmap hierarchy
   colorTheme: {
     bg: string;
     border: string;
@@ -66,18 +77,31 @@ export function UnifiedCollectionsGraphView({
   onSearchQuery
 }: UnifiedCollectionsGraphViewProps) {
   const [activeTab, setActiveTab] = useState<"graph" | "topics">("graph");
+  const [layoutMode, setLayoutMode] = useState<LayoutMode>("force");
   const [filterType, setFilterType] = useState<GraphNodeType>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
+  const [showInlineNotes, setShowInlineNotes] = useState(true);
 
-  // User Custom Topics State (persisted to localStorage)
+  // User Custom Topics State
   const [customTopics, setCustomTopics] = useState<Array<{ name: string; description: string; createdAt: string }>>([]);
   const [isAddTopicModalOpen, setIsAddTopicModalOpen] = useState(false);
   const [newTopicName, setNewTopicName] = useState("");
   const [newTopicDesc, setNewTopicDesc] = useState("");
   const [topicToast, setTopicToast] = useState(false);
+
+  // Canvas Zoom & Pan state
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isPanningCanvas, setIsPanningCanvas] = useState(false);
+  const panStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Physics Simulation Running State
+  const [isSimulating, setIsSimulating] = useState(false);
+  const animFrameRef = useRef<number | null>(null);
 
   // Load user custom topics from localStorage on mount
   useEffect(() => {
@@ -126,19 +150,7 @@ export function UnifiedCollectionsGraphView({
     }
   };
 
-  // Dynamic Node Positions State (allows individual node dragging!)
-  const [nodePositions, setNodePositions] = useState<Record<string, { x: number; y: number }>>({});
-  const draggingNodeIdRef = useRef<string | null>(null);
-  const dragNodeOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-
-  // Canvas Zoom & Pan state
-  const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [isPanningCanvas, setIsPanningCanvas] = useState(false);
-  const panStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  // 1. EXTRACT ALL ENTITIES & BUILD GRAPH NETWORK
+  // ── 1. EXTRACT ALL ENTITIES & BUILD GRAPH DATA ──
   const { baseNodes, edges, topicList } = useMemo(() => {
     const personMap = new Map<string, { count: number; lastDate: string; captures: CaptureSession[] }>();
     const placeMap = new Map<string, { count: number; lastDate: string; captures: CaptureSession[] }>();
@@ -207,16 +219,38 @@ export function UnifiedCollectionsGraphView({
       }
     };
 
-    // Center canvas origin
     const centerX = 500;
     const centerY = 340;
 
-    // Build Person Nodes (Inner Ring)
+    // ROOT NODE FOR MINDMAP MODE
+    allNodes.push({
+      id: "root_sanctuary",
+      label: "My Life Sanctuary",
+      type: "root",
+      x: centerX,
+      y: centerY,
+      vx: 0,
+      vy: 0,
+      size: 96,
+      count: captures.length,
+      lastDate: "Active Journal",
+      connectedNodeIds: [],
+      captures: captures.slice(0, 15),
+      colorTheme: {
+        bg: "bg-[#1C1917]",
+        border: "border-[#DE5239]",
+        text: "text-white",
+        badgeBg: "bg-[#DE5239] text-white",
+        accentHex: "#DE5239"
+      }
+    });
+
+    // Build Person Nodes
     let pIdx = 0;
     const personArray = Array.from(personMap.entries());
     personArray.forEach(([name, data]) => {
       const angle = (pIdx / Math.max(personArray.length, 1)) * 2 * Math.PI - Math.PI / 2;
-      const radius = 140 + (pIdx % 2) * 35;
+      const radius = 180 + (pIdx % 2) * 40;
       const id = `person_${name.toLowerCase().replace(/\s+/g, "_")}`;
 
       allNodes.push({
@@ -225,10 +259,13 @@ export function UnifiedCollectionsGraphView({
         type: "person",
         x: centerX + Math.cos(angle) * radius,
         y: centerY + Math.sin(angle) * radius,
+        vx: 0,
+        vy: 0,
         size: Math.min(90, 68 + data.count * 4),
         count: data.count,
         lastDate: data.lastDate,
-        connectedNodeIds: [],
+        connectedNodeIds: ["root_sanctuary"],
+        parentId: "root_sanctuary",
         captures: data.captures,
         colorTheme: {
           bg: "bg-[#F5E5DC]",
@@ -238,15 +275,16 @@ export function UnifiedCollectionsGraphView({
           accentHex: "#DE5239"
         }
       });
+      addEdge("root_sanctuary", id);
       pIdx++;
     });
 
-    // Build Place Nodes (Middle Ring)
+    // Build Place Nodes
     let plIdx = 0;
     const placeArray = Array.from(placeMap.entries());
     placeArray.forEach(([placeName, data]) => {
       const angle = (plIdx / Math.max(placeArray.length, 1)) * 2 * Math.PI + Math.PI / 4;
-      const radius = 270 + (plIdx % 3) * 30;
+      const radius = 290 + (plIdx % 3) * 35;
       const id = `place_${placeName.toLowerCase().replace(/\s+/g, "_")}`;
 
       allNodes.push({
@@ -254,11 +292,14 @@ export function UnifiedCollectionsGraphView({
         label: placeName,
         type: "place",
         x: centerX + Math.cos(angle) * radius,
-        y: centerY + Math.sin(angle) * (radius * 0.8),
+        y: centerY + Math.sin(angle) * (radius * 0.85),
+        vx: 0,
+        vy: 0,
         size: Math.min(85, 62 + data.count * 3),
         count: data.count,
         lastDate: data.lastDate,
-        connectedNodeIds: [],
+        connectedNodeIds: ["root_sanctuary"],
+        parentId: "root_sanctuary",
         captures: data.captures,
         colorTheme: {
           bg: "bg-[#E2EBD8]",
@@ -268,15 +309,16 @@ export function UnifiedCollectionsGraphView({
           accentHex: "#4D7C0F"
         }
       });
+      addEdge("root_sanctuary", id);
       plIdx++;
     });
 
-    // Build Topic Nodes (Outer Ring)
+    // Build Topic Nodes
     let tIdx = 0;
     const topicArray = Array.from(topicMap.entries()).sort((a, b) => b[1].count - a[1].count).slice(0, 16);
     topicArray.forEach(([topicName, data]) => {
       const angle = (tIdx / Math.max(topicArray.length, 1)) * 2 * Math.PI + Math.PI / 3;
-      const radius = 380 + (tIdx % 2) * 45;
+      const radius = 390 + (tIdx % 2) * 45;
       const id = `topic_${topicName.toLowerCase().replace(/\s+/g, "_")}`;
 
       allNodes.push({
@@ -285,10 +327,13 @@ export function UnifiedCollectionsGraphView({
         type: "topic",
         x: centerX + Math.cos(angle) * radius,
         y: centerY + Math.sin(angle) * (radius * 0.75),
+        vx: 0,
+        vy: 0,
         size: Math.min(80, 58 + data.count * 3),
         count: data.count,
         lastDate: data.lastDate,
-        connectedNodeIds: [],
+        connectedNodeIds: ["root_sanctuary"],
+        parentId: "root_sanctuary",
         captures: data.captures,
         colorTheme: {
           bg: "bg-[#FEF3C7]",
@@ -298,15 +343,24 @@ export function UnifiedCollectionsGraphView({
           accentHex: "#D97706"
         }
       });
+      addEdge("root_sanctuary", id);
       tIdx++;
     });
 
-    // Build Key Moment Nodes (Select Captures)
+    // Build Key Moment / Note Nodes
     captures.slice(0, 10).forEach((c, mIdx) => {
       const angle = (mIdx / 10) * 2 * Math.PI + Math.PI / 6;
-      const radius = 480 + (mIdx % 2) * 40;
+      const radius = 490 + (mIdx % 2) * 40;
       const id = `moment_${c.id}`;
       const dateStr = c.createdAt ? new Date(c.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
+
+      // Find first person or topic connected
+      let parentEntityId = "root_sanctuary";
+      if (c.dimensions?.people?.[0]) {
+        parentEntityId = `person_${c.dimensions.people[0].toLowerCase().replace(/\s+/g, "_")}`;
+      } else if (c.dimensions?.topics?.[0]) {
+        parentEntityId = `topic_${c.dimensions.topics[0].toLowerCase().replace(/\s+/g, "_")}`;
+      }
 
       allNodes.push({
         id,
@@ -314,10 +368,13 @@ export function UnifiedCollectionsGraphView({
         type: "moment",
         x: centerX + Math.cos(angle) * radius,
         y: centerY + Math.sin(angle) * (radius * 0.7),
+        vx: 0,
+        vy: 0,
         size: 64,
         count: 1,
         lastDate: dateStr,
-        connectedNodeIds: [],
+        connectedNodeIds: [parentEntityId],
+        parentId: parentEntityId,
         captures: [c],
         colorTheme: {
           bg: "bg-white",
@@ -327,9 +384,10 @@ export function UnifiedCollectionsGraphView({
           accentHex: "#1C1917"
         }
       });
+      addEdge(parentEntityId, id);
     });
 
-    // Infer Graph Edges based on co-occurrence in Captures
+    // Infer Graph Co-occurrence Edges
     captures.forEach((c) => {
       const cPeople = (c.dimensions?.people || []).map((p) => `person_${p.toLowerCase().replace(/\s+/g, "_")}`);
       const cPlaces = (c.dimensions?.places || []).map((pl) => `place_${pl.toLowerCase().replace(/\s+/g, "_")}`);
@@ -367,21 +425,183 @@ export function UnifiedCollectionsGraphView({
       topicList: Array.from(topicMap.entries()).map(([topic, d]) => ({
         topic,
         count: d.count,
-        sampleNote: d.captures[0]?.content?.substring(0, 60) || ""
+        sampleNote: d.captures[0]?.content?.substring(0, 65) || ""
       })).sort((a, b) => b.count - a.count)
     };
-  }, [captures]);
+  }, [captures, customTopics]);
 
-  // Sync initial node positions
+  // Dynamic Positions State
+  const [nodePositions, setNodePositions] = useState<Record<string, { x: number; y: number; vx: number; vy: number }>>({});
+  const draggingNodeIdRef = useRef<string | null>(null);
+  const dragNodeOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  // Initialize node positions
   useEffect(() => {
-    const initialPos: Record<string, { x: number; y: number }> = {};
+    const initialPos: Record<string, { x: number; y: number; vx: number; vy: number }> = {};
     baseNodes.forEach((n) => {
-      initialPos[n.id] = { x: n.x, y: n.y };
+      initialPos[n.id] = { x: n.x, y: n.y, vx: 0, vy: 0 };
     });
     setNodePositions(initialPos);
   }, [baseNodes]);
 
-  // Merge computed baseNodes with active dragged positions
+  // ── 2. FORCE-DIRECTED PHYSICS ENGINE ──
+  const stepPhysicsSimulation = useCallback(() => {
+    setNodePositions((prevPos) => {
+      const nextPos: Record<string, { x: number; y: number; vx: number; vy: number }> = { ...prevPos };
+      const nodeIds = Object.keys(nextPos);
+      if (nodeIds.length === 0) return prevPos;
+
+      const centerX = 500;
+      const centerY = 340;
+      const repelStrength = 18000;
+      const springStrength = 0.04;
+      const gravityStrength = 0.015;
+      const damping = 0.82;
+
+      // 1. Repulsion forces (Coulomb's Law between all pairs)
+      for (let i = 0; i < nodeIds.length; i++) {
+        const idA = nodeIds[i];
+        if (idA === "root_sanctuary") continue; // Fix root center
+        const posA = nextPos[idA];
+
+        for (let j = i + 1; j < nodeIds.length; j++) {
+          const idB = nodeIds[j];
+          if (idB === "root_sanctuary") continue;
+          const posB = nextPos[idB];
+
+          const dx = posB.x - posA.x;
+          const dy = posB.y - posA.y;
+          const distSq = dx * dx + dy * dy + 100;
+          const dist = Math.sqrt(distSq);
+
+          const force = repelStrength / distSq;
+          const fx = (dx / dist) * force;
+          const fy = (dy / dist) * force;
+
+          if (idA !== draggingNodeIdRef.current) {
+            posA.vx -= fx;
+            posA.vy -= fy;
+          }
+          if (idB !== draggingNodeIdRef.current) {
+            posB.vx += fx;
+            posB.vy += fy;
+          }
+        }
+      }
+
+      // 2. Spring attraction along Edges
+      edges.forEach((edge) => {
+        const posA = nextPos[edge.sourceId];
+        const posB = nextPos[edge.targetId];
+        if (!posA || !posB) return;
+
+        const dx = posB.x - posA.x;
+        const dy = posB.y - posA.y;
+        const dist = Math.sqrt(dx * dx + dy * dy) + 0.1;
+        const restLength = 160;
+        const delta = dist - restLength;
+
+        const fx = (dx / dist) * delta * springStrength * Math.min(2.5, edge.weight);
+        const fy = (dy / dist) * delta * springStrength * Math.min(2.5, edge.weight);
+
+        if (edge.sourceId !== "root_sanctuary" && edge.sourceId !== draggingNodeIdRef.current) {
+          posA.vx += fx;
+          posA.vy += fy;
+        }
+        if (edge.targetId !== "root_sanctuary" && edge.targetId !== draggingNodeIdRef.current) {
+          posB.vx -= fx;
+          posB.vy -= fy;
+        }
+      });
+
+      // 3. Center Gravity
+      nodeIds.forEach((id) => {
+        if (id === "root_sanctuary" || id === draggingNodeIdRef.current) return;
+        const pos = nextPos[id];
+        pos.vx += (centerX - pos.x) * gravityStrength;
+        pos.vy += (centerY - pos.y) * gravityStrength;
+
+        // Apply velocity & damping
+        pos.vx *= damping;
+        pos.vy *= damping;
+        pos.x += pos.vx;
+        pos.y += pos.vy;
+      });
+
+      return nextPos;
+    });
+  }, [edges]);
+
+  // Run Physics Loop on demand
+  const triggerPhysicsBurst = useCallback(() => {
+    setIsSimulating(true);
+    let count = 0;
+    const runStep = () => {
+      stepPhysicsSimulation();
+      count++;
+      if (count < 90) {
+        animFrameRef.current = requestAnimationFrame(runStep);
+      } else {
+        setIsSimulating(false);
+      }
+    };
+    if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+    animFrameRef.current = requestAnimationFrame(runStep);
+  }, [stepPhysicsSimulation]);
+
+  // ── 3. MIND MAP LAYOUT ENGINE ──
+  const applyMindMapLayout = useCallback(() => {
+    const nextPos: Record<string, { x: number; y: number; vx: number; vy: number }> = {};
+    const centerX = 500;
+    const centerY = 340;
+
+    // Root Node
+    nextPos["root_sanctuary"] = { x: centerX, y: centerY, vx: 0, vy: 0 };
+
+    // Group nodes into branches by type
+    const peopleNodes = baseNodes.filter((n) => n.type === "person");
+    const placeNodes = baseNodes.filter((n) => n.type === "place");
+    const topicNodes = baseNodes.filter((n) => n.type === "topic");
+    const momentNodes = baseNodes.filter((n) => n.type === "moment");
+
+    const categories = [
+      { name: "People", nodes: peopleNodes, angleRange: [ -Math.PI * 0.75, -Math.PI * 0.25 ], radius: 210 },
+      { name: "Places", nodes: placeNodes, angleRange: [ -Math.PI * 0.2, Math.PI * 0.35 ], radius: 230 },
+      { name: "Topics", nodes: topicNodes, angleRange: [ Math.PI * 0.4, Math.PI * 0.9 ], radius: 240 },
+      { name: "Moments", nodes: momentNodes, angleRange: [ Math.PI * 0.95, Math.PI * 1.35 ], radius: 260 }
+    ];
+
+    categories.forEach((cat) => {
+      const count = cat.nodes.length;
+      if (count === 0) return;
+      const [startAngle, endAngle] = cat.angleRange;
+      const step = (endAngle - startAngle) / Math.max(1, count - 1);
+
+      cat.nodes.forEach((n, idx) => {
+        const angle = count === 1 ? (startAngle + endAngle) / 2 : startAngle + idx * step;
+        const rad = cat.radius + (idx % 2) * 35;
+        nextPos[n.id] = {
+          x: centerX + Math.cos(angle) * rad,
+          y: centerY + Math.sin(angle) * rad,
+          vx: 0,
+          vy: 0
+        };
+      });
+    });
+
+    setNodePositions(nextPos);
+  }, [baseNodes]);
+
+  // Switch layout mode trigger
+  useEffect(() => {
+    if (layoutMode === "mindmap") {
+      applyMindMapLayout();
+    } else {
+      triggerPhysicsBurst();
+    }
+  }, [layoutMode, applyMindMapLayout, triggerPhysicsBurst]);
+
+  // Merge baseNodes with active positions
   const nodes = useMemo(() => {
     return baseNodes.map((n) => ({
       ...n,
@@ -390,14 +610,15 @@ export function UnifiedCollectionsGraphView({
     }));
   }, [baseNodes, nodePositions]);
 
-  // Filter nodes based on filterType & searchQuery
+  // Filter nodes based on filterType (or show all in mindmap mode)
   const filteredNodes = useMemo(() => {
     return nodes.filter((node) => {
-      const matchesType = filterType === "all" || node.type === filterType;
-      const matchesQuery = !searchQuery.trim() || node.label.toLowerCase().includes(searchQuery.toLowerCase().trim());
-      return matchesType && matchesQuery;
+      if (layoutMode === "mindmap" && node.type === "root") return true;
+      if (filterType !== "all" && node.type !== filterType && node.type !== "root") return false;
+      if (searchQuery.trim() && !node.label.toLowerCase().includes(searchQuery.toLowerCase().trim())) return false;
+      return true;
     });
-  }, [nodes, filterType, searchQuery]);
+  }, [nodes, filterType, searchQuery, layoutMode]);
 
   const filteredNodeIds = useMemo(() => new Set(filteredNodes.map((n) => n.id)), [filteredNodes]);
 
@@ -406,7 +627,7 @@ export function UnifiedCollectionsGraphView({
     return edges.filter((e) => filteredNodeIds.has(e.sourceId) && filteredNodeIds.has(e.targetId));
   }, [edges, filteredNodeIds]);
 
-  // Active Focused & Highlighted Nodes
+  // Active Focus Node & Connections
   const activeFocusId = selectedNodeId || hoveredNodeId;
   const selectedNode = useMemo(() => nodes.find((n) => n.id === selectedNodeId) || null, [nodes, selectedNodeId]);
 
@@ -416,9 +637,8 @@ export function UnifiedCollectionsGraphView({
     return new Set<string>([activeFocusId, ...(node?.connectedNodeIds || [])]);
   }, [activeFocusId, nodes]);
 
-  // ── MOUSE & TOUCH DRAG / PAN HANDLERS ──
+  // ── MOUSE & DRAG HANDLERS ──
   const handleCanvasMouseDown = (e: React.MouseEvent) => {
-    // If clicking canvas background, start canvas pan
     if (e.target instanceof SVGElement || (e.target as HTMLElement).id === "canvas-bg") {
       setIsPanningCanvas(true);
       panStartRef.current = { x: e.clientX - pan.x, y: e.clientY - pan.y };
@@ -428,8 +648,7 @@ export function UnifiedCollectionsGraphView({
   const handleNodeMouseDown = (e: React.MouseEvent, nodeId: string) => {
     e.stopPropagation();
     draggingNodeIdRef.current = nodeId;
-    const pos = nodePositions[nodeId] || { x: 500, y: 340 };
-    // Account for pan & zoom scale
+    const pos = nodePositions[nodeId] || { x: 500, y: 340, vx: 0, vy: 0 };
     const mouseX = (e.clientX - pan.x) / zoom;
     const mouseY = (e.clientY - pan.y) / zoom;
     dragNodeOffsetRef.current = { x: mouseX - pos.x, y: mouseY - pos.y };
@@ -445,7 +664,7 @@ export function UnifiedCollectionsGraphView({
 
       setNodePositions((prev) => ({
         ...prev,
-        [nodeId]: { x: newX, y: newY }
+        [nodeId]: { ...(prev[nodeId] || { vx: 0, vy: 0 }), x: newX, y: newY, vx: 0, vy: 0 }
       }));
       return;
     }
@@ -463,7 +682,7 @@ export function UnifiedCollectionsGraphView({
     setIsPanningCanvas(false);
   };
 
-  // Zoom Helpers
+  // Zoom Controls
   const zoomIn = () => setZoom((z) => Math.min(2.5, z + 0.2));
   const zoomOut = () => setZoom((z) => Math.max(0.3, z - 0.2));
   const resetCanvas = () => {
@@ -471,15 +690,13 @@ export function UnifiedCollectionsGraphView({
     setPan({ x: 0, y: 0 });
     setSelectedNodeId(null);
     setSearchQuery("");
-    // Reset node positions back to initial layout
-    const initialPos: Record<string, { x: number; y: number }> = {};
-    baseNodes.forEach((n) => {
-      initialPos[n.id] = { x: n.x, y: n.y };
-    });
-    setNodePositions(initialPos);
+    if (layoutMode === "mindmap") {
+      applyMindMapLayout();
+    } else {
+      triggerPhysicsBurst();
+    }
   };
 
-  // Wheel Zoom Listener
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
     const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
@@ -488,7 +705,7 @@ export function UnifiedCollectionsGraphView({
 
   return (
     <div className="w-full font-sans space-y-5 pb-32">
-      {/* ── HEADER & TAB SWITCHER ── */}
+      {/* ── HEADER & MAIN TAB SWITCHER ── */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#1C1917]/15 pb-4">
         <div>
           <span className="text-[11px] font-bold uppercase tracking-wider text-[#DE5239] flex items-center gap-1.5 font-sans">
@@ -507,7 +724,7 @@ export function UnifiedCollectionsGraphView({
                 : "text-[#665F56] hover:text-[#1C1917]"
             }`}
           >
-            <Share2 size={14} /> Interactive Graph Canvas
+            <Share2 size={14} /> Interactive Graph &amp; Mind Map
           </button>
           <button
             onClick={() => setActiveTab("topics")}
@@ -524,15 +741,39 @@ export function UnifiedCollectionsGraphView({
 
       {activeTab === "graph" && (
         <div className="space-y-4">
-          {/* ── TOOLBAR: ENTITY TYPE FILTERS + SEARCH & CANVAS CONTROLS ── */}
+          {/* ── TOOLBAR: LAYOUT SELECTOR + FILTERS + INLINE NOTES TOGGLE ── */}
           <div className="flex flex-wrap items-center justify-between gap-3 bg-[#FAF7F0] p-2.5 rounded-2xl border border-[#1C1917]/15 shadow-xs">
+            {/* Layout Mode Segment Selector */}
+            <div className="flex bg-white border border-[#1C1917]/20 p-0.5 rounded-xl shadow-2xs">
+              <button
+                onClick={() => setLayoutMode("force")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  layoutMode === "force"
+                    ? "bg-[#1C1917] text-white shadow-xs"
+                    : "text-[#665F56] hover:text-[#1C1917]"
+                }`}
+              >
+                <GitFork size={13} className="text-[#DE5239]" /> Physics Constellation
+              </button>
+              <button
+                onClick={() => setLayoutMode("mindmap")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  layoutMode === "mindmap"
+                    ? "bg-[#1C1917] text-white shadow-xs"
+                    : "text-[#665F56] hover:text-[#1C1917]"
+                }`}
+              >
+                <Brain size={13} className="text-[#D97706]" /> Radial Mind Map
+              </button>
+            </div>
+
             {/* Entity Filter Pills */}
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="text-[11px] font-mono uppercase font-bold text-[#665F56] mr-1 flex items-center gap-1">
                 <Filter size={12} /> Filter:
               </span>
               {[
-                { type: "all", label: `All (${nodes.length})`, icon: Layers },
+                { type: "all", label: `All (${nodes.length - 1})`, icon: Layers },
                 { type: "person", label: "People", icon: Users },
                 { type: "place", label: "Places", icon: MapPin },
                 { type: "topic", label: "Topics", icon: Sparkles },
@@ -546,7 +787,7 @@ export function UnifiedCollectionsGraphView({
                     onClick={() => setFilterType(f.type as GraphNodeType)}
                     className={`px-3 py-1.5 rounded-xl text-xs font-sans font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                       isActive
-                        ? "bg-[#1C1917] text-white shadow-[1px_2px_0px_#DE5239]"
+                        ? "bg-[#DE5239] text-white shadow-[1px_2px_0px_#1C1917]"
                         : "bg-white text-[#1C1917] border border-[#1C1917]/20 hover:bg-[#F5E5DC]"
                     }`}
                   >
@@ -557,8 +798,21 @@ export function UnifiedCollectionsGraphView({
               })}
             </div>
 
-            {/* Canvas Controls */}
+            {/* Inline Notes Toggle & Canvas Controls */}
             <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowInlineNotes(!showInlineNotes)}
+                title="Toggle Inline Note Cards on Canvas"
+                className={`px-3 py-1.5 rounded-xl text-xs font-sans font-bold flex items-center gap-1.5 border border-[#1C1917]/20 cursor-pointer transition-all ${
+                  showInlineNotes
+                    ? "bg-[#FEF3C7] text-[#78350F] border-[#D97706]"
+                    : "bg-white text-[#665F56] hover:bg-stone-50"
+                }`}
+              >
+                {showInlineNotes ? <Eye size={13} className="text-[#D97706]" /> : <EyeOff size={13} />}
+                <span>Inline Cards: {showInlineNotes ? "ON" : "OFF"}</span>
+              </button>
+
               {/* Entity Search Bar */}
               <div className="relative">
                 <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#665F56]" />
@@ -567,7 +821,7 @@ export function UnifiedCollectionsGraphView({
                   placeholder="Find entity..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-8 pr-3 py-1.5 text-xs font-sans bg-white border border-[#1C1917]/20 rounded-xl focus:outline-none focus:border-[#DE5239] w-36 sm:w-44"
+                  className="pl-8 pr-3 py-1.5 text-xs font-sans bg-white border border-[#1C1917]/20 rounded-xl focus:outline-none focus:border-[#DE5239] w-32 sm:w-40"
                 />
                 {searchQuery && (
                   <button onClick={() => setSearchQuery("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700">
@@ -576,23 +830,34 @@ export function UnifiedCollectionsGraphView({
                 )}
               </div>
 
-              {/* Canvas Zoom Buttons */}
+              {/* Physics Burst & Zoom Controls */}
               <div className="flex items-center bg-white border border-[#1C1917]/20 rounded-xl p-0.5 shadow-xs">
+                {layoutMode === "force" && (
+                  <button
+                    onClick={triggerPhysicsBurst}
+                    title="Auto-Arrange Graph Physics"
+                    className={`p-1.5 text-[#DE5239] hover:bg-[#F5E5DC] rounded-lg cursor-pointer ${
+                      isSimulating ? "animate-spin text-[#D97706]" : ""
+                    }`}
+                  >
+                    <Play size={14} />
+                  </button>
+                )}
                 <button onClick={zoomOut} title="Zoom Out" className="p-1.5 text-[#1C1917] hover:bg-[#F5E5DC] rounded-lg cursor-pointer">
                   <ZoomOut size={14} />
                 </button>
-                <span className="text-[10px] font-mono font-bold px-1.5 text-[#665F56]">{Math.round(zoom * 100)}%</span>
+                <span className="text-[10px] font-mono font-bold px-1 text-[#665F56]">{Math.round(zoom * 100)}%</span>
                 <button onClick={zoomIn} title="Zoom In" className="p-1.5 text-[#1C1917] hover:bg-[#F5E5DC] rounded-lg cursor-pointer">
                   <ZoomIn size={14} />
                 </button>
-                <button onClick={resetCanvas} title="Reset View & Node Positions" className="p-1.5 text-[#DE5239] hover:bg-[#F5E5DC] rounded-lg cursor-pointer border-l border-stone-200">
+                <button onClick={resetCanvas} title="Reset View" className="p-1.5 text-[#DE5239] hover:bg-[#F5E5DC] rounded-lg cursor-pointer border-l border-stone-200">
                   <RotateCcw size={14} />
                 </button>
               </div>
             </div>
           </div>
 
-          {/* ── HIGHLY VISIBLE & INTERACTIVE GRAPH CANVAS ── */}
+          {/* ── HIGHLY VISIBLE & INTERACTIVE GRAPH / MIND MAP CANVAS ── */}
           <div
             ref={containerRef}
             id="canvas-bg"
@@ -601,7 +866,7 @@ export function UnifiedCollectionsGraphView({
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
             onWheel={handleWheel}
-            className={`relative w-full h-[34rem] sm:h-[38rem] bg-[#FAF7F0] border-[1.5px] border-[#1C1917] rounded-3xl overflow-hidden shadow-[4px_6px_0px_#1C1917] select-none ${
+            className={`relative w-full h-[36rem] sm:h-[40rem] bg-[#FAF7F0] border-[1.5px] border-[#1C1917] rounded-3xl overflow-hidden shadow-[4px_6px_0px_#1C1917] select-none ${
               isPanningCanvas ? "cursor-grabbing" : "cursor-grab"
             }`}
           >
@@ -615,39 +880,48 @@ export function UnifiedCollectionsGraphView({
                 transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`
               }}
             >
-              {/* SVG HIGH-VISIBILITY INTERACTIVE LINK EDGES */}
-              <svg className="absolute inset-0 w-[2000px] h-[1600px] overflow-visible" style={{ left: -500, top: -400 }}>
+              {/* SVG HIGH-VISIBILITY CURVED INTERACTIVE LINK EDGES & LEADER LINES */}
+              <svg className="absolute inset-0 w-[2400px] h-[1800px] overflow-visible" style={{ left: -600, top: -450 }}>
                 {visibleEdges.map((edge) => {
                   const source = nodes.find((n) => n.id === edge.sourceId);
                   const target = nodes.find((n) => n.id === edge.targetId);
                   if (!source || !target) return null;
+
+                  // Hide root node edges unless in mindmap mode
+                  if (layoutMode === "force" && (source.type === "root" || target.type === "root")) return null;
 
                   const isConnectedToActive =
                     activeFocusId && (edge.sourceId === activeFocusId || edge.targetId === activeFocusId);
                   const isHoveredEdge = hoveredEdgeId === edge.id;
                   const isHighlighted = isConnectedToActive || isHoveredEdge;
 
-                  // High-visibility stroke styling
-                  const strokeColor = isHighlighted ? "#DE5239" : "#44403C";
+                  const strokeColor = isHighlighted ? "#DE5239" : source.type === "root" || target.type === "root" ? "#D97706" : "#44403C";
                   const strokeWidth = isHighlighted
-                    ? 3.5
+                    ? 3.8
                     : Math.max(1.8, Math.min(3.5, 1.2 + edge.weight * 0.6));
                   const strokeOpacity = activeFocusId
                     ? isHighlighted ? 1.0 : 0.12
-                    : isHoveredEdge ? 1.0 : 0.75; // 75% crisp default visibility!
+                    : isHoveredEdge ? 1.0 : 0.75;
 
-                  // Calculate edge midpoint for badge label
+                  // Curved Bezier calculation
                   const midX = (source.x + target.x) / 2;
                   const midY = (source.y + target.y) / 2;
+                  const dx = target.x - source.x;
+                  const dy = target.y - source.y;
+                  const norm = Math.sqrt(dx * dx + dy * dy) || 1;
+                  // Curvature offset
+                  const curvature = layoutMode === "mindmap" ? 0 : 25;
+                  const ctrlX = midX - (dy / norm) * curvature;
+                  const ctrlY = midY + (dx / norm) * curvature;
+
+                  const pathD = `M ${source.x} ${source.y} Q ${ctrlX} ${ctrlY} ${target.x} ${target.y}`;
 
                   return (
                     <g key={edge.id} className="transition-all duration-150">
-                      {/* Invisible thick hover target area for easy edge interaction */}
-                      <line
-                        x1={source.x}
-                        y1={source.y}
-                        x2={target.x}
-                        y2={target.y}
+                      {/* Invisible thick hover target area */}
+                      <path
+                        d={pathD}
+                        fill="none"
                         stroke="transparent"
                         strokeWidth={16}
                         className="cursor-pointer"
@@ -655,22 +929,20 @@ export function UnifiedCollectionsGraphView({
                         onMouseLeave={() => setHoveredEdgeId(null)}
                       />
 
-                      {/* Visible Crisp SVG Line */}
-                      <line
-                        x1={source.x}
-                        y1={source.y}
-                        x2={target.x}
-                        y2={target.y}
+                      {/* Visible Curved Bezier Line */}
+                      <path
+                        d={pathD}
+                        fill="none"
                         stroke={strokeColor}
                         strokeWidth={strokeWidth}
                         strokeOpacity={strokeOpacity}
-                        strokeDasharray={isHighlighted ? "none" : "6 4"}
+                        strokeDasharray={isHighlighted || source.type === "root" ? "none" : "6 4"}
                         style={{ transition: "stroke 0.2s, stroke-width 0.2s, stroke-opacity 0.2s" }}
                       />
 
                       {/* Edge Connection Weight Badge */}
                       {isHighlighted && (
-                        <g transform={`translate(${midX}, ${midY})`}>
+                        <g transform={`translate(${ctrlX}, ${ctrlY})`}>
                           <rect
                             x={-18}
                             y={-10}
@@ -699,8 +971,11 @@ export function UnifiedCollectionsGraphView({
                 })}
               </svg>
 
-              {/* DRAGGABLE & INTERACTIVE BUBBLE NODES */}
+              {/* INTERACTIVE GRAPH & MIND MAP BUBBLE NODES */}
               {filteredNodes.map((node) => {
+                // Don't render root in force mode unless selected
+                if (node.type === "root" && layoutMode === "force") return null;
+
                 const isSelected = selectedNodeId === node.id;
                 const isHovered = hoveredNodeId === node.id;
                 const isInFocusGroup = activeFocusId ? connectedToActive.has(node.id) : true;
@@ -709,69 +984,123 @@ export function UnifiedCollectionsGraphView({
                 const isPerson = node.type === "person";
                 const isPlace = node.type === "place";
                 const isTopic = node.type === "topic";
+                const isRoot = node.type === "root";
 
                 return (
-                  <div
-                    key={node.id}
-                    onMouseDown={(e) => handleNodeMouseDown(e, node.id)}
-                    onMouseEnter={() => setHoveredNodeId(node.id)}
-                    onMouseLeave={() => setHoveredNodeId(null)}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedNodeId(node.id);
-                      if (onSelectPerson && isPerson) {
-                        onSelectPerson(node.label);
-                      }
-                    }}
-                    className={`absolute rounded-full border-[2px] border-[#1C1917] flex flex-col items-center justify-center p-2 text-center cursor-grab active:cursor-grabbing transition-all duration-200 ${node.colorTheme.bg} ${opacityClass} ${
-                      isSelected
-                        ? "ring-4 ring-[#DE5239]/60 z-30 scale-115 shadow-[4px_6px_0px_#1C1917]"
-                        : isHovered
-                        ? "z-20 scale-110 shadow-[3px_5px_0px_#1C1917]"
-                        : "z-10 shadow-[2px_3px_0px_#1C1917]"
-                    }`}
-                    style={{
-                      left: `${node.x - node.size / 2}px`,
-                      top: `${node.y - node.size / 2}px`,
-                      width: `${node.size}px`,
-                      height: `${node.size}px`
-                    }}
-                  >
-                    {/* Node Header Icon / Avatar */}
-                    {isPerson ? (
-                      <ArtisticAvatar name={node.label} size="sm" className="w-7 h-7 rounded-full border border-[#1C1917] mb-0.5 shadow-xs" />
-                    ) : isPlace ? (
-                      <div className="w-5 h-5 rounded-full bg-[#4D7C0F] text-white flex items-center justify-center mb-0.5 text-[9px] font-bold shadow-xs">
-                        <MapPin size={10} />
-                      </div>
-                    ) : isTopic ? (
-                      <div className="w-5 h-5 rounded-full bg-[#D97706] text-white flex items-center justify-center mb-0.5 text-[9px] font-bold shadow-xs">
-                        <Sparkles size={10} />
-                      </div>
-                    ) : (
-                      <div className="w-5 h-5 rounded-full bg-[#1C1917] text-white flex items-center justify-center mb-0.5 text-[9px] font-bold shadow-xs">
-                        <BookOpen size={10} />
+                  <div key={node.id}>
+                    {/* BUBBLE NODE */}
+                    <div
+                      onMouseDown={(e) => handleNodeMouseDown(e, node.id)}
+                      onMouseEnter={() => setHoveredNodeId(node.id)}
+                      onMouseLeave={() => setHoveredNodeId(null)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedNodeId(node.id);
+                        if (onSelectPerson && isPerson) {
+                          onSelectPerson(node.label);
+                        }
+                      }}
+                      className={`absolute rounded-full border-[2.5px] border-[#1C1917] flex flex-col items-center justify-center p-2 text-center cursor-grab active:cursor-grabbing transition-all duration-200 ${node.colorTheme.bg} ${opacityClass} ${
+                        isSelected
+                          ? "ring-4 ring-[#DE5239]/60 z-30 scale-115 shadow-[4px_6px_0px_#1C1917]"
+                          : isHovered
+                          ? "z-20 scale-110 shadow-[3px_5px_0px_#1C1917]"
+                          : "z-10 shadow-[2px_3px_0px_#1C1917]"
+                      }`}
+                      style={{
+                        left: `${node.x - node.size / 2}px`,
+                        top: `${node.y - node.size / 2}px`,
+                        width: `${node.size}px`,
+                        height: `${node.size}px`
+                      }}
+                    >
+                      {/* Node Header Icon / Avatar */}
+                      {isRoot ? (
+                        <div className="w-8 h-8 rounded-full bg-[#DE5239] text-white flex items-center justify-center mb-0.5 text-xs font-bold shadow-xs animate-pulse">
+                          <Compass size={16} />
+                        </div>
+                      ) : isPerson ? (
+                        <ArtisticAvatar name={node.label} size="sm" className="w-7 h-7 rounded-full border border-[#1C1917] mb-0.5 shadow-xs" />
+                      ) : isPlace ? (
+                        <div className="w-5 h-5 rounded-full bg-[#4D7C0F] text-white flex items-center justify-center mb-0.5 text-[9px] font-bold shadow-xs">
+                          <MapPin size={10} />
+                        </div>
+                      ) : isTopic ? (
+                        <div className="w-5 h-5 rounded-full bg-[#D97706] text-white flex items-center justify-center mb-0.5 text-[9px] font-bold shadow-xs">
+                          <Sparkles size={10} />
+                        </div>
+                      ) : (
+                        <div className="w-5 h-5 rounded-full bg-[#1C1917] text-white flex items-center justify-center mb-0.5 text-[9px] font-bold shadow-xs">
+                          <BookOpen size={10} />
+                        </div>
+                      )}
+
+                      {/* Node Label */}
+                      <span className={`font-serif text-[11px] font-bold leading-tight line-clamp-1 ${node.colorTheme.text}`}>
+                        {node.label}
+                      </span>
+
+                      {/* Count Badge */}
+                      {!isRoot && (
+                        <span className={`mt-0.5 text-[9px] font-mono font-bold px-1.5 py-0.2 rounded-full border border-black/10 ${node.colorTheme.badgeBg}`}>
+                          {node.count} {node.count === 1 ? "entry" : "entries"}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* ── INLINE FLOATING NOTE CARDS ATTACHED TO CANVAS NODES ── */}
+                    {showInlineNotes && (isSelected || isHovered) && node.captures.length > 0 && (
+                      <div
+                        className="absolute z-40 w-64 bg-white border-[1.5px] border-[#1C1917] rounded-2xl p-3 shadow-[4px_6px_0px_#1C1917] pointer-events-auto transition-all animate-in fade-in zoom-in-95 duration-150"
+                        style={{
+                          left: `${node.x + node.size / 2 + 15}px`,
+                          top: `${node.y - 40}px`
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {/* Pointer Arrow */}
+                        <div className="absolute -left-2 top-6 w-3 h-3 bg-white border-l-[1.5px] border-b-[1.5px] border-[#1C1917] rotate-45" />
+
+                        <div className="flex items-center justify-between border-b border-[#1C1917]/15 pb-1.5 mb-1.5">
+                          <span className="text-[10px] font-mono uppercase font-bold text-[#DE5239] flex items-center gap-1">
+                            <FileText size={11} /> Attached Memory Note
+                          </span>
+                          <span className="text-[9px] font-mono text-[#665F56]">
+                            {node.captures[0]?.createdAt ? new Date(node.captures[0].createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : ""}
+                          </span>
+                        </div>
+
+                        <h4 className="font-serif text-xs font-bold text-[#1C1917] line-clamp-1 mb-1">
+                          {node.captures[0]?.dimensions?.title || node.captures[0]?.content.substring(0, 30)}
+                        </h4>
+                        <p className="text-[11px] font-sans text-[#665F56] italic line-clamp-2 leading-snug">
+                          &ldquo;{node.captures[0]?.content}&rdquo;
+                        </p>
+
+                        {node.captures.length > 1 && (
+                          <div className="mt-2 pt-1.5 border-t border-stone-100 flex items-center justify-between">
+                            <span className="text-[9px] font-mono text-[#665F56]">+{node.captures.length - 1} more entries</span>
+                            <button
+                              onClick={() => onSelectCapture?.(node.captures[0])}
+                              className="text-[10px] font-sans font-bold text-[#DE5239] hover:underline flex items-center gap-0.5 cursor-pointer"
+                            >
+                              Read Full <ArrowUpRight size={10} />
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )}
-
-                    {/* Node Label */}
-                    <span className={`font-serif text-[11px] font-bold leading-tight line-clamp-1 ${node.colorTheme.text}`}>
-                      {node.label}
-                    </span>
-
-                    {/* Count Badge */}
-                    <span className={`mt-0.5 text-[9px] font-mono font-bold px-1.5 py-0.2 rounded-full border border-black/10 ${node.colorTheme.badgeBg}`}>
-                      {node.count} {node.count === 1 ? "entry" : "entries"}
-                    </span>
                   </div>
                 );
               })}
             </div>
 
-            {/* Canvas Guide & Controls */}
+            {/* Canvas Guide & Controls Legend */}
             <div className="absolute bottom-3 left-3 pointer-events-none bg-white/90 backdrop-blur-xs px-3.5 py-2 rounded-xl border border-[#1C1917]/20 text-[10px] font-mono text-[#1C1917] flex items-center gap-2 shadow-xs">
               <Move size={13} className="text-[#DE5239]" />
-              <span><strong>Drag any node</strong> to rearrange · Scroll wheel to zoom · Click bubble for memory details</span>
+              <span>
+                <strong>{layoutMode === "mindmap" ? "Radial Mind Map View" : "Physics Constellation View"}</strong> · Drag nodes to arrange · Scroll to zoom
+              </span>
             </div>
           </div>
 
@@ -812,7 +1141,7 @@ export function UnifiedCollectionsGraphView({
                   <div className="flex flex-wrap gap-1.5">
                     {selectedNode.connectedNodeIds.map((cId) => {
                       const connNode = nodes.find((n) => n.id === cId);
-                      if (!connNode) return null;
+                      if (!connNode || connNode.type === "root") return null;
                       return (
                         <button
                           key={cId}
@@ -977,7 +1306,7 @@ export function UnifiedCollectionsGraphView({
                           <button
                             onClick={() => handleRemoveCustomTopic(t.name)}
                             title="Remove Topic"
-                            className="opacity-0 group-hover:opacity-100 text-stone-400 hover:text-red-600 p-1 transition-opacity"
+                            className="opacity-0 group-hover:opacity-100 text-stone-400 hover:text-red-600 p-1 transition-opacity cursor-pointer"
                           >
                             <X size={14} />
                           </button>
@@ -990,9 +1319,20 @@ export function UnifiedCollectionsGraphView({
                         </p>
                       )}
 
-                      <span className="text-[9px] font-mono text-[#D97706] font-bold block pt-1">
-                        ✓ Active AI Categorization Rule
-                      </span>
+                      <div className="pt-1 flex items-center justify-between">
+                        <span className="text-[9px] font-mono text-[#D97706] font-bold block">
+                          ✓ Active AI Categorization Rule
+                        </span>
+                        <button
+                          onClick={() => {
+                            setSearchQuery(t.name);
+                            setActiveTab("graph");
+                          }}
+                          className="text-[10px] font-sans font-bold text-[#1C1917] hover:underline flex items-center gap-0.5 cursor-pointer"
+                        >
+                          Focus in Graph <ArrowUpRight size={10} />
+                        </button>
+                      </div>
                     </div>
                   );
                 })}
@@ -1019,7 +1359,17 @@ export function UnifiedCollectionsGraphView({
                   </div>
                   <p className="text-xs font-sans text-[#665F56] italic line-clamp-2">
                     &ldquo;{item.sampleNote}&rdquo;
-                  </p>
+                  </p>                  <div className="pt-1 flex justify-end">
+                    <button
+                      onClick={() => {
+                        setSearchQuery(item.topic);
+                        setActiveTab("graph");
+                      }}
+                      className="text-[10px] font-sans font-bold text-[#DE5239] hover:underline flex items-center gap-0.5 cursor-pointer"
+                    >
+                      Focus in Graph <ArrowUpRight size={10} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
