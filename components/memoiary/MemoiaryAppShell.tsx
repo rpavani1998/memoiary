@@ -1707,7 +1707,7 @@ function ProfileViewSection({ go, onOpenLogin }: { go: (view: View) => void; onO
               You are exploring sample memories
             </h3>
             <p className="text-xs text-stone-600 leading-relaxed font-sans">
-              The memories currently shown (Maya's rooftop chai, Kabir's design ideas, Ananya's art) are pre-populated sample entries demonstrating Memoiary's memory graph.
+              The memories currently shown (Maya&apos;s rooftop chai, Kabir&apos;s design ideas, Ananya&apos;s art) are pre-populated sample entries demonstrating Memoiary&apos;s memory graph.
             </p>
             {onOpenLogin && (
               <button
