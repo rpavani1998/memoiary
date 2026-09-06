@@ -1103,7 +1103,7 @@ function SearchViewSection({
   initialQuery?: string;
   onQueryChange?: (q: string) => void;
 }) {
-  const { user } = useJournal();
+  const { user, captures, isDemoMode } = useJournal();
   const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
@@ -1114,26 +1114,111 @@ function SearchViewSection({
   }, [initialQuery]);
 
   const suggestions = [
+    "That cafe you went to with Sarah...",
     "When did I first think about starting something?",
     "People I've been thinking about",
     "Moments that made me smile",
   ];
 
   const handleSearch = async (searchTerm = query) => {
-    if (!searchTerm.trim() || !user) return;
+    const trimmed = searchTerm.trim();
+    if (!trimmed) return;
     setSearching(true);
     setSearchMessage("");
+
     try {
-      const idToken = typeof user.getIdToken === "function" ? await user.getIdToken() : "demo_guest_token";
-      const res = await fetch("/api/v1/search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
-        body: JSON.stringify({ query: searchTerm.trim() })
+      // 1. Attempt Server-Side AI Search if user is authenticated and not in demo mode
+      if (user && !isDemoMode) {
+        const idToken = typeof user.getIdToken === "function" ? await user.getIdToken() : "";
+        if (idToken) {
+          const res = await fetch("/api/v1/search", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
+            body: JSON.stringify({ query: trimmed })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.results && data.results.length > 0) {
+              setResults(data.results);
+              if (data.message) setSearchMessage(data.message);
+              setSearching(false);
+              return;
+            }
+          }
+        }
+      }
+
+      // 2. Smart Client-Side & Demo Mode Hybrid Search across active captures
+      const lowerQ = trimmed.toLowerCase();
+      const keywords = lowerQ
+        .split(/\s+/)
+        .map((w) => w.replace(/[^a-z0-9]/gi, ""))
+        .filter((w) => w.length > 2 && !["the", "and", "was", "for", "with", "went", "this", "that", "about", "have", "you"].includes(w));
+
+      const scored = captures.map((c: any) => {
+        let score = 0;
+        const reasons: string[] = [];
+        const contentLower = (c.content || "").toLowerCase();
+        const titleLower = (c.title || c.dimensions?.title || "").toLowerCase();
+        const summaryLower = (c.dimensions?.summary || "").toLowerCase();
+        const peopleList = (c.dimensions?.people || []).map((p: string) => p.toLowerCase());
+        const placesList = (c.dimensions?.places || []).map((pl: string) => pl.toLowerCase());
+        const topicsList = (c.dimensions?.topics || []).map((t: string) => t.toLowerCase());
+
+        // Full phrase or query match
+        if (contentLower.includes(lowerQ) || titleLower.includes(lowerQ) || summaryLower.includes(lowerQ)) {
+          score += 0.8;
+          reasons.push("Direct phrase match");
+        }
+
+        // Keywords matching people, places, topics & content
+        keywords.forEach((kw) => {
+          if (peopleList.some((p: string) => p.includes(kw))) {
+            score += 0.4;
+            reasons.push(`Tag: ${kw}`);
+          }
+          if (placesList.some((pl: string) => pl.includes(kw))) {
+            score += 0.4;
+            reasons.push(`Location: ${kw}`);
+          }
+          if (topicsList.some((t: string) => t.includes(kw))) {
+            score += 0.3;
+            reasons.push(`Topic: ${kw}`);
+          }
+          if (titleLower.includes(kw) || summaryLower.includes(kw)) {
+            score += 0.3;
+            reasons.push(`Title/summary match`);
+          } else if (contentLower.includes(kw)) {
+            score += 0.2;
+            reasons.push(`Mentioned: ${kw}`);
+          }
+        });
+
+        // Synonym handling for "cafe" / "coffee"
+        if (lowerQ.includes("cafe") || lowerQ.includes("coffee")) {
+          if (
+            contentLower.includes("coffee") ||
+            contentLower.includes("cafe") ||
+            placesList.some((p: string) => p.includes("coffee") || p.includes("roastery") || p.includes("tattva") || p.includes("third wave"))
+          ) {
+            score += 0.25;
+          }
+        }
+
+        return {
+          capture: c,
+          relevance: Math.min(1, score),
+          reason: Array.from(new Set(reasons)).join(" · ") || "Matched search term"
+        };
       });
-      if (res.ok) {
-        const data = await res.json();
-        setResults(data.results || []);
-        if (data.message) setSearchMessage(data.message);
+
+      const matched = scored
+        .filter((s: any) => s.relevance > 0.2)
+        .sort((a: any, b: any) => b.relevance - a.relevance);
+
+      setResults(matched);
+      if (matched.length === 0) {
+        setSearchMessage(`No memories found matching "${trimmed}"`);
       }
     } catch {
       setSearchMessage("Search failed. Try again.");
