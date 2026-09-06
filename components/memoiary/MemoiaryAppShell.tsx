@@ -2527,21 +2527,28 @@ export function MemoiaryAppShell() {
   }, [view]);
 
   const go = (v: View) => {
+    if (isDemoMode && ["reflect", "explore"].includes(v)) {
+      setShowLoginModal(true);
+      return;
+    }
     setView(v);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleOpenCapture = (promptOrMode?: string | CaptureMode) => {
-    if (typeof promptOrMode === "string" && ["menu", "write", "voice", "photo", "video"].includes(promptOrMode)) {
-      setCaptureMode(promptOrMode as CaptureMode);
-      setCapturePrompt("");
-    } else if (typeof promptOrMode === "string") {
-      setCaptureMode("write");
-      setCapturePrompt(promptOrMode);
-    } else {
-      setCaptureMode("menu");
-      setCapturePrompt("");
+    const isPrompt = typeof promptOrMode === "string" && !["menu", "write", "voice", "photo", "video"].includes(promptOrMode);
+    const mode: CaptureMode = isPrompt ? "write" : ((promptOrMode || "menu") as CaptureMode);
+
+    if (isDemoMode) {
+      setPendingCaptureMode(mode);
+      if (isPrompt) setCapturePrompt(promptOrMode as string);
+      setShowLoginModal(true);
+      return;
     }
+
+    if (isPrompt) setCapturePrompt(promptOrMode as string);
+    else setCapturePrompt("");
+    setCaptureMode(mode);
   };
 
   const handleAuthSuccess = () => {
