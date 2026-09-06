@@ -3,6 +3,7 @@
 import React, { useMemo } from "react";
 import { Sparkles, Calendar, ArrowRight, History, Clock } from "lucide-react";
 import { ArtisticAvatar } from "./ArtisticAvatar";
+import { useJournal } from "@/lib/context/JournalContext";
 
 interface MemoryTimeCapsuleBannerProps {
   captures: any[];
@@ -92,6 +93,18 @@ export function MemoryTimeCapsuleBanner({
         dateFormatted: cd.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
         capture: pastMonthEntry,
       };
+    }
+
+    let user: any = null;
+    try {
+      const journalContext = useJournal();
+      user = journalContext?.user;
+    } catch {}
+
+    const isDemoMode = !user || user.uid?.startsWith("guest_user_") || user.uid?.startsWith("user_guest_") || user.uid?.startsWith("user_google_");
+
+    if (!isDemoMode) {
+      return null;
     }
 
     return {
