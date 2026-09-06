@@ -1,103 +1,94 @@
-# Memoiary — Autobiographical Memory Engine & Journal Reflection
+# Memoiary — Autobiographical Memory Engine & Personal Reflection Sanctuary
 
-A private autobiographical thinking space and memory engine powered by Next.js 15+, Google Cloud Run, Cloud Firestore, Firebase Authentication, and Gemini fallback ladders (`gemini-3.6-flash` → `gemini-3.1-pro-preview` → `gemini-3.1-flash-lite` → `gemini-flash-latest`). 
+**Memoiary** is a private, local-first autobiographical thinking space and memory engine powered by Next.js 15+, Google Cloud Run, Cloud Firestore, Firebase Authentication, and Gemini Multimodal AI.
 
-The system acts as a quiet, objective mirror adhering to the cardinal principle: **The system remembers more than it says**.
-
----
-
-## 🏆 Hackathon Submission & Cloud Run Verification
-
-- **Repository**: [github.com/rpavani1998/memoiary](https://github.com/rpavani1998/memoiary)
-- **Mandatory Cloud Run Verification Label**: `dev-tutorial=cloud-run-ai-challenge`
+The application acts as a quiet, objective mirror adhering to the cardinal principle:  
+> **"The system remembers more than it says."**
 
 ---
 
-## 🚀 Google Cloud Run Deployment Guide
+## 🎨 Aesthetic & Design Philosophy
 
-### Prerequisites
-- [Google Cloud Project](https://console.cloud.google.com/) with billing enabled.
-- [Google Cloud SDK (`gcloud`)](https://cloud.google.com/sdk) installed or [Google Cloud Shell](https://shell.cloud.google.com).
-- Gemini API Key from [Google AI Studio](https://aistudio.google.com/).
-
----
-
-### Option A: Deployment via `gcloud` CLI / Google Cloud Shell (Recommended)
-
-1. **Authenticate and set active project**:
-   ```bash
-   gcloud auth login
-   gcloud config set project YOUR_GCP_PROJECT_ID
-   ```
-
-2. **Deploy directly to Google Cloud Run from source with the mandatory verification label**:
-   ```bash
-   gcloud run deploy memoiary \
-     --source . \
-     --region us-central1 \
-     --allow-unauthenticated \
-     --labels dev-tutorial=cloud-run-ai-challenge \
-     --set-env-vars "GEMINI_API_KEY=your_gemini_api_key_here,NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_key"
-   ```
-
-3. **Output**: Cloud Run will build the container image and provide your public HTTPS endpoint:
-   ```text
-   Service [memoiary] revision [memoiary-00001-abc] has been deployed and is serving 100% of traffic.
-   Service URL: https://memoiary-xxxxxx-uc.a.run.app
-   ```
+Memoiary is built with a signature visual identity:
+- **Pencil & Graphite Linework**: All daily storyboards, narrative collages, and character visual identities are rendered in expressive hand-drawn sketch linework.
+- **Parchment Stock & Terracotta Accents**: Textured `#FAF7F0` parchment stock palette paired with warm `#DE5239` terracotta highlights, warm gold `#D97706` mood badges, and tactile border outlines (`border-[1.5px] border-[#1C1917]`).
+- **Tactile UI Controls**: Physical button shadows (`shadow-[2px_3px_0px_#1C1917]`), smooth micro-interactions, and sans/serif typography pairings.
 
 ---
 
-### Option B: Deployment via Google Cloud Console Web UI
+## 🏛 Architecture & Data Flow
 
-1. Navigate to the **[Google Cloud Run Console](https://console.cloud.google.com/run)**.
-2. Click **Create Service**.
-3. Select **Deploy one revision from a source repository** (or connect your GitHub repo `rpavani1998/memoiary`).
-4. Under **Authentication**, select **Allow unauthenticated invocations**.
-5. Expand **Container, Volumes, Networking, Security**:
-   - Scroll to **Labels**.
-   - Click **Add Label**:
-     - **Key**: `dev-tutorial`
-     - **Value**: `cloud-run-ai-challenge`
-   - Scroll to **Environment Variables**:
-     - Add `GEMINI_API_KEY` = `your_gemini_api_key`
-     - Add `NEXT_PUBLIC_FIREBASE_API_KEY` = `your_firebase_api_key`
-6. Click **Create**.
-7. Once deployment finishes, copy the generated public Service URL (`https://memoiary-xxxxxx-uc.a.run.app`).
-
----
-
-### Secret Manager Integration (Optional for Production Secrets)
-
-To store secrets in **Google Cloud Secret Manager** instead of plain environment variables:
-
-```bash
-# Create secret in Secret Manager
-gcloud secrets create GEMINI_API_KEY --replication-policy="automatic"
-echo -n "YOUR_GEMINI_API_KEY" | gcloud secrets versions add GEMINI_API_KEY --data-file=-
-
-# Grant accessor permission to the Cloud Run service account
-PROJECT_NUMBER=$(gcloud projects describe YOUR_GCP_PROJECT_ID --format="value(projectNumber)")
-gcloud secrets add-iam-policy-binding GEMINI_API_KEY \
-  --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
-  --role="roles/secretmanager.secretAccessor"
-
-# Deploy referencing the secret
-gcloud run deploy memoiary \
-  --source . \
-  --region us-central1 \
-  --allow-unauthenticated \
-  --labels dev-tutorial=cloud-run-ai-challenge \
-  --set-secrets GEMINI_API_KEY=GEMINI_API_KEY:latest
+```mermaid
+flowchart TD
+    A["Raw Multimodal Ingestion (Voice Audio / Text / Photo)"] --> B["Gemini Multimodal AI Engine"]
+    B --> C["Dimension Extractor (People, Places, Mood, Topics)"]
+    B --> D["Sentence Classifier (Wishlists & Action Intentions)"]
+    B --> E["Event Milestone Extractor (Birthdays, Sendoffs)"]
+    
+    C --> F["Journal Sanctuary Feed (Day / Week / Month Views)"]
+    C --> G["Epistemic Mind Map (Force-Physics Node Graph)"]
+    D --> H["Elements Hub (Wishlists & Action Intentions)"]
+    E --> I["Events & Milestones Calendar"]
+    
+    F --> J["Hybrid Search Engine (⌘K Natural Language)"]
+    G --> J
+    H --> J
+    I --> J
+    
+    J --> K["AI Reflection Chatboard (Contextual Memory Q&A)"]
+    K --> L["Save Chat Reflection back to Sanctuary Feed"]
 ```
 
 ---
 
-## 🔒 Cloud Firestore Security Rules
+## ✨ Key Product Features
 
-Memoiary enforces strict, owner-bound privacy isolation in Cloud Firestore. All user data (`captures`, `episodes`, `entities`, `relationships`, `emotions`, `states`, `learnings`, `patterns`, `provenance`, `entries`, `memories`) is isolated under `/users/{userId}/...` and protected by owner authentication checks and document ID validation.
+### 📖 1. Journal Sanctuary Timeline & Multi-Scale Views
+- **Day View**: Granular chronological feed of text entries, transcribed voice audio notes, and photo memories.
+- **Weekly Storyboard Arc**: 7-day visual recap collages with synthesized titles, summaries, and companion tags.
+- **Monthly Collage Grid**: 30-day visual memory grid capturing broader emotional trajectories.
+- **Memory Time Capsule ('On This Day')**: Historical date engine that automatically surfaces nostalgic reflections recorded on the exact date 1 month, 2 months, 3 months, or 1 year ago.
 
-### Complete `firestore.rules`:
+### 🎙️ 2. Multimodal AI Quick Capture (`+` Button)
+- Real-time voice note audio recorder with zero-delay transcription.
+- Photo and video memory upload.
+- Automated Gemini dimension extraction: extracts tagged companions, geo-places, emotional valence, and key topics without requiring manual user tags.
+
+### 🗓️ 3. Elements Hub
+- **Events & Milestones Calendar**: Auto-detects upcoming birthdays, farewell gatherings, trips, and social milestones directly from journal entries with smart countdowns.
+- **People & Places Network**: Maintains a directory of friends, family, and logged locations with shared moment counters and avatar cards.
+- **Wishlists & Action Intentions**: Sentence-level regex classification filters out past completed events, separating aspirational desires (*recipes to try, places to visit*) from active commitments (*promises made, calls to make*).
+
+### 🧠 4. Epistemic Mind Map & Graph Engine
+- Interactive force-physics canvas clustering entity mentions across your journal.
+- Draggable nodes branching out into **People**, **Places**, **Topics**, and **Key Memories**.
+
+### 🔍 5. Hybrid AI Search Engine (`⌘K`)
+- Natural language query processing (e.g. *"That cafe I went to with Sarah..."* or *"Moments that made me smile"*).
+- Combines Gemini API semantic search with intelligent client-side keyword and entity tag matching across companions, locations, and content.
+- Returns matched memory cards alongside human-readable explanation snippets (e.g., *"Tag: Sarah · Location: Roastery Coffee House"*).
+
+### 💬 6. AI Reflection Chatboard
+- Conversational journal assistant that queries your encrypted memory context to provide empathetic, context-aware answers.
+- One-click **Save Chat Reflection** button persists key AI conversations directly into your timeline feed.
+
+### 🧭 7. Interactive Guided Product Tour
+- Non-intrusive, 7-step guided spotlight tour targeting compact navigation icons, date capsules, and view switchers without screen blur overlays.
+
+---
+
+## 🔒 Security & Privacy Architecture
+
+Memoiary is built from the ground up to protect personal memories:
+
+### 1. Local-First UID Scoping
+All database collections, local storage keys (`memoiary_local_captures_${uid}`), and saved AI chat threads are strictly scoped to the user's unique ID (`user.uid`).
+
+### 2. Zero Data Bleed Between Demo & User Accounts
+Sample demo data (Maya, Kabir, Ananya sample entries) and authenticated user accounts are 100% isolated. Authenticated user data is never mixed with demo data.
+
+### 3. Cloud Firestore Security Rules (`firestore.rules`)
+Owner-bound access control guarantees that users can only read or write their own documents:
 
 ```javascript
 rules_version = '2';
@@ -109,7 +100,6 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // Helper functions
     function isSignedIn() {
       return request.auth != null;
     }
@@ -174,10 +164,37 @@ service cloud.firestore {
 }
 ```
 
-### Deploying Rules via Firebase CLI:
-```bash
-firebase deploy --only firestore:rules
-```
+---
+
+## 🚀 Google Cloud Run & Infrastructure Setup
+
+### Prerequisites
+- [Google Cloud Project](https://console.cloud.google.com/) with Cloud Run & Firestore enabled.
+- [Google Cloud SDK (`gcloud`)](https://cloud.google.com/sdk) installed.
+- Gemini API Key from [Google AI Studio](https://aistudio.google.com/).
+
+### Deployment via `gcloud` CLI
+
+1. **Authenticate and set active GCP project**:
+   ```bash
+   gcloud auth login
+   gcloud config set project YOUR_GCP_PROJECT_ID
+   ```
+
+2. **Deploy directly to Google Cloud Run from source**:
+   ```bash
+   gcloud run deploy memoiary \
+     --source . \
+     --region us-central1 \
+     --allow-unauthenticated \
+     --labels dev-tutorial=cloud-run-ai-challenge \
+     --set-env-vars "GEMINI_API_KEY=your_gemini_api_key_here,NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_key"
+   ```
+
+3. **Deploy Firestore Security Rules**:
+   ```bash
+   firebase deploy --only firestore:rules
+   ```
 
 ---
 
@@ -194,8 +211,8 @@ firebase deploy --only firestore:rules
    npm install
    ```
 
-3. **Configure environment variables**:
-   Create a `.env.local` file in the root directory:
+3. **Configure local environment variables**:
+   Create `.env.local` in the root directory:
    ```env
    GEMINI_API_KEY="your_gemini_api_key_here"
    NEXT_PUBLIC_FIREBASE_API_KEY="your_firebase_api_key"
@@ -203,36 +220,25 @@ firebase deploy --only firestore:rules
    NEXT_PUBLIC_FIREBASE_PROJECT_ID="your_firebase_project_id"
    ```
 
-4. **Run development server**:
+4. **Launch development server**:
    ```bash
    npm run dev
    ```
    Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-5. **Test memory extraction pipeline**:
-   ```bash
-   npx tsx scripts/test-pipeline.ts
-   ```
-
 ---
 
-## 🏛 Technical Architecture & Key Features
+## 🧰 Technology Stack
 
-- **Frontend**: Next.js 15+ App Router, Tailwind CSS, `motion` micro-interactions, serif typography, terracotta theme (`#DE5239`).
-- **Multimodal AI Engine**:
-  - Structured extraction of mood, intensity, entities (People, Places, Topics), and activities.
-  - Silent memory retrieval across entire life timeline.
-  - Intimate, reflective prose voice tuned to the user's journal persona.
-- **Gemini Fallback Ladder**:
-  - `gemini-3.6-flash` → `gemini-3.1-pro-preview` → `gemini-3.1-flash-lite` → `gemini-flash-latest`
-- **Memory Engine Core** (`/lib/memory-engine`):
-  - **Extractor**: Structured entity & episode resolution.
-  - **Retriever**: Hybrid graph and temporal memory context retrieval.
-  - **Person Graph**: Trait tracking & visual identity cards (`PERSON_VISUAL_REGISTRY`).
-  - **Reflection Chatboard**: Interactive thread history, saved threads, and voice-to-text input.
+- **Framework**: Next.js 15+ (App Router, Server Actions, API Routes)
+- **Styling & Aesthetics**: Tailwind CSS, Pencil & Graphite sketch design system, Google Fonts (Inter / Serif)
+- **Database & Auth**: Google Cloud Firestore, Firebase Authentication
+- **AI Cognitive Layer**: `@google/genai` TypeScript SDK, Gemini Multimodal API
+- **Deployment & Hosting**: Google Cloud Run, Cloud Build
+- **Icons**: Lucide React Icons
 
 ---
 
 ## 📄 License
 
-MIT License — free to use and extend.
+MIT License — free to use, customize, and extend.
