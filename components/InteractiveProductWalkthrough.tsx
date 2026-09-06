@@ -80,42 +80,17 @@ export const WALKTHROUGH_STEPS: WalkthroughStep[] = [
   },
   {
     id: 5,
-    title: "Elements: Events & Milestones Calendar",
-    badge: "Event Extractor Engine",
+    title: "Elements Hub (Events, People, Places & Wishlists)",
+    badge: "Multimodal Entity & Intention Matrix",
     targetView: "entities",
-    subTabSelector: "[data-tour='tab-events']",
-    selector: "[data-tour='elements-events']",
-    icon: Calendar,
-    description: "Auto-detects upcoming birthdays, farewell gatherings, trips, and social milestones directly from your journal entries with smart countdowns.",
-    aiExplanation: "Gemini extracts dates, recurring event triggers, and tagged companions, mapping them to an interactive calendar board with custom event creation.",
-    highlightNote: "Click 'Add Custom Event' or tap any date to inspect milestones!"
+    selector: "[data-tour='elements-hub']",
+    icon: Layers,
+    description: "Your central hub for all structured elements extracted from your story — featuring Events & Milestones Calendar, People & Places Network, and Wishlists & Action Intentions.",
+    aiExplanation: "Gemini AI parses your journal text and audio in real-time, categorizing recurring companions, geo-locations, upcoming event milestones, and future commitments into interactive boards.",
+    highlightNote: "Use the top sub-tabs to switch between Events Calendar, People & Places, and Wishlist & Action Intentions!"
   },
   {
     id: 6,
-    title: "Elements: People & Places Network",
-    badge: "Entity Linking Matrix",
-    targetView: "entities",
-    subTabSelector: "[data-tour='tab-people-places']",
-    selector: "[data-tour='people-places-board']",
-    icon: Users,
-    description: "Your personal directory of friends, family, and places logged. Shows how many shared moments you've captured with each companion and location.",
-    aiExplanation: "Aggregates named entities and geo-places across all journal entries into dynamic companion profiles and location cards.",
-    highlightNote: "Click on any person's avatar to view all journal entries involving them!"
-  },
-  {
-    id: 7,
-    title: "Elements: Wishlists & Action Intentions",
-    badge: "Sentence Classifier",
-    targetView: "entities",
-    subTabSelector: "[data-tour='tab-intentions']",
-    selector: "[data-tour='wishlist-board']",
-    icon: HeartHandshake,
-    description: "Separates your aspirational desires (recipes to try, places to visit) from active action commitments (promises made, calls to make).",
-    aiExplanation: "Sentence-level classification filters out completed past events, extracting active future intentions with direct links back to source entries.",
-    highlightNote: "Click 'Open Entry' on any wishlist or intention item to jump to the source journal entry!"
-  },
-  {
-    id: 8,
     title: "AI Mind Map & Epistemic Graph",
     badge: "Force Physics Clustering",
     targetView: "collections",
@@ -126,7 +101,7 @@ export const WALKTHROUGH_STEPS: WalkthroughStep[] = [
     highlightNote: "Drag any node on the graph to explore connections!"
   },
   {
-    id: 9,
+    id: 7,
     title: "AI Reflection Chatboard",
     badge: "Personal AI Guide",
     targetView: "reflect",
@@ -137,7 +112,7 @@ export const WALKTHROUGH_STEPS: WalkthroughStep[] = [
     highlightNote: "Click 'Save Chat Reflection' to persist key AI conversations directly to your timeline."
   },
   {
-    id: 10,
+    id: 8,
     title: "Privacy & User Account Isolation",
     badge: "Encrypted Storage Scoping",
     targetView: "profile",

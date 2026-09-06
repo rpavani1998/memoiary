@@ -77,7 +77,7 @@ export function EntitiesViewSection({
   }, [captures]);
 
   return (
-    <div className="w-full font-sans space-y-6 pb-32">
+    <div data-tour="elements-hub" className="w-full font-sans space-y-6 pb-32">
       {/* Elements Hub Header with 2 Internal Tabs */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#1C1917]/15 pb-4">
         <div>
