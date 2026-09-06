@@ -2,11 +2,11 @@
   <img src="public/logo.png" alt="Memoiary — Your Memories, Beautifully Connected" width="340" />
 </p>
 
-# Memoiary — Autobiographical Memory Engine & Personal Reflection Sanctuary
+# Memoiary — Personal Journaling App & Autobiographical Memory Engine
 
 > **"Your memories, beautifully connected."**
 
-**Memoiary** is a private, encrypted autobiographical thinking space and memory engine powered by Next.js 15+, Google Cloud Run, Cloud Firestore, Firebase Authentication, and Gemini Multimodal AI.
+**Memoiary** is an intelligent personal journaling app and private autobiographical memory engine powered by Next.js 15+, Google Cloud Run, Cloud Firestore, Firebase Authentication, and Gemini Multimodal AI.
 
 The application acts as a quiet, objective mirror adhering to the cardinal principle:  
 > **"The system remembers more than it says."**
