@@ -7,5 +7,5 @@ coverage/
 *.tsbuildinfo
 .env*
 !.env.example
-
-
+.antigravity/
+firebase-applet-config.json
