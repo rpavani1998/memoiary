@@ -23,7 +23,7 @@ import {
   getDoc,
   increment
 } from "firebase/firestore";
-import { auth, db } from "@/lib/firebase";
+import { auth, db, ensureClientFirebaseConfig } from "@/lib/firebase";
 import { sanitizePayload } from "@/lib/memory-engine/store";
 import { CaptureSession, CaptureDimensions, EpistemicSource } from "@/lib/memory-engine/types";
 import { getSeededCaptures } from "@/lib/memory-engine/seeded-data";
@@ -319,6 +319,7 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async () => {
     try {
+      await ensureClientFirebaseConfig();
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: "select_account" });
       try {
@@ -343,13 +344,16 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
       setSaveError(null);
     } catch (error: any) {
       console.warn("Google Auth error:", error?.code, error?.message);
-      if (
-        error?.code === "auth/unauthorized-domain" ||
-        error?.code === "auth/popup-closed-by-user" ||
-        error?.code === "auth/operation-not-allowed" ||
-        error?.code === "auth/internal-error"
-      ) {
-        console.warn("Initializing Google user session fallback...");
+      const errStr = String(error?.message || error?.code || error || "").toLowerCase();
+      
+      if (errStr.includes("api-key") || errStr.includes("invalid-api-key") || !auth.app?.options?.apiKey || auth.app?.options?.apiKey?.includes("YOUR_FIREBASE")) {
+        const msg = "Firebase API Key is missing or invalid. Please set NEXT_PUBLIC_FIREBASE_API_KEY in your environment variables.";
+        setSaveError(msg);
+        throw new Error(msg);
+      }
+
+      if (errStr.includes("unauthorized-domain") || errStr.includes("popup-closed") || errStr.includes("operation-not-allowed")) {
+        console.warn("Initializing Google user session fallback for domain restriction...");
         const fallbackUid = `user_google_${Date.now()}`;
         const mockUser = {
           uid: fallbackUid,
@@ -363,8 +367,9 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
         setSaveError(null);
         return;
       }
+
       setSaveError(error?.message || "Google Sign-In failed.");
-      throw new Error(error?.message || "Google Sign-In failed.");
+      throw error;
     }
   };
 

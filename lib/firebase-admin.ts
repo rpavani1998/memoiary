@@ -1,10 +1,20 @@
 import { getApps, initializeApp, getApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
-import firebaseConfig from "../firebase-applet-config.json";
+
+let projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || process.env.GCP_PROJECT || "genai-academy-504808";
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const localConfig = require("../firebase-applet-config.json");
+  if (localConfig?.projectId) {
+    projectId = localConfig.projectId;
+  }
+} catch {
+  // Gracefully fallback when building in Docker / Cloud Build
+}
 
 // Initialize Admin SDK modularly
 const app = getApps().length === 0
-  ? initializeApp({ projectId: firebaseConfig.projectId })
+  ? initializeApp({ projectId })
   : getApp();
 
 export const adminAuth = getAuth(app);

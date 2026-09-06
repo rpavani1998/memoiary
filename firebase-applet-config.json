@@ -1,0 +1,9 @@
+{
+  "projectId": "genai-academy-504808",
+  "appId": "1:122874706722:web:a21a70136cc871f251c37b",
+  "apiKey": "YOUR_FIREBASE_API_KEY",
+  "authDomain": "genai-academy-504808.firebaseapp.com",
+  "firestoreDatabaseId": "ai-studio-7870bce0-985b-40b5-8d10-e069e644a452",
+  "storageBucket": "genai-academy-504808.firebasestorage.app",
+  "messagingSenderId": "122874706722"
+}

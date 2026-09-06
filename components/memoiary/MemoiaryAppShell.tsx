@@ -147,7 +147,7 @@ function AuthLoginModal({
       onClose();
     } catch (err: any) {
       console.error("Google Sign-In Error:", err);
-      setLocalError(err?.message || "Sign in failed. Please check popup permissions or try Guest mode.");
+      setLocalError(err?.message || "Sign in failed. Please check your Firebase API Key configuration.");
     } finally {
       setSigningIn(false);
     }

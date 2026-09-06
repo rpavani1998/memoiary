@@ -9,7 +9,6 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
-  turbopack: {},
   images: {
     remotePatterns: [
       {
@@ -20,7 +19,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  transpilePackages: ['motion'],
   webpack: (config, {dev}) => {
     if (dev && process.env.DISABLE_HMR === 'true') {
       config.watchOptions = {
