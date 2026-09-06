@@ -420,12 +420,13 @@ function LifeHome({
           />
         )}
 
-        {/* Memory Time Capsule / Revisiting Past Memories Banner */}
-        <MemoryTimeCapsuleBanner captures={captures} onSelectCapture={onSelectCapture} />
-
         {/* DAY MODE VIEW: Clean single timeline feed of your captures */}
         {timelineMode === "day" && (
-          <div className="space-y-4 relative before:absolute before:left-9 sm:before:left-12 before:top-4 before:bottom-4 before:w-0.5 before:bg-[#1C1917]/15">
+          <>
+            {/* Memory Time Capsule / Revisiting Past Memories Banner (Day mode only) */}
+            <MemoryTimeCapsuleBanner captures={captures} onSelectCapture={onSelectCapture} />
+
+            <div className="space-y-4 relative before:absolute before:left-9 sm:before:left-12 before:top-4 before:bottom-4 before:w-0.5 before:bg-[#1C1917]/15">
 
             {/* Real captures from Firestore or Mock cards */}
             {recentCaptures.length > 0 ? (
@@ -634,6 +635,7 @@ function LifeHome({
               </button>
             </div>
           </div>
+          </>
         )}
       </main>
     </div>
