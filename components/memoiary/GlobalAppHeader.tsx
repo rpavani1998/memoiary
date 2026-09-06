@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Flame, Search, UserRound, X } from "lucide-react";
+import { ArrowLeft, Flame, Search, UserRound, X, Sparkles } from "lucide-react";
 import { Brand, IconButton } from "./Brand";
 
 export type View =
@@ -33,6 +33,7 @@ export function GlobalAppHeader({
   user,
   isDemoMode,
   onOpenLogin,
+  onStartTour,
   onBack,
   searchQuery = "",
   onSearchQueryChange,
@@ -43,6 +44,7 @@ export function GlobalAppHeader({
   user: any;
   isDemoMode?: boolean;
   onOpenLogin?: () => void;
+  onStartTour?: () => void;
   onBack?: () => void;
   searchQuery?: string;
   onSearchQueryChange?: (q: string) => void;
@@ -106,14 +108,28 @@ export function GlobalAppHeader({
             <span className="font-mono font-bold text-[10px] uppercase bg-[#F7E198] text-[#5C4200] px-2 py-0.5 rounded-md tracking-wider">
               Demo Mode
             </span>
-            <span className="truncate">Viewing sample data (Maya, Kabir, Ananya)</span>
+            <span className="truncate hidden xs:inline">Viewing sample data (Maya, Kabir, Ananya)</span>
           </div>
-          <button
-            onClick={onOpenLogin}
-            className="px-2.5 py-0.5 bg-[#DE5239] hover:bg-[#C6422A] text-white rounded-lg font-bold text-[11px] cursor-pointer shrink-0 transition-transform active:scale-95 shadow-2xs"
-          >
-            Sign In with Google →
-          </button>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {onStartTour && (
+              <button
+                onClick={onStartTour}
+                className="px-2.5 py-0.5 bg-[#4D7C0F] hover:bg-[#3F660C] text-white rounded-lg font-bold text-[11px] cursor-pointer flex items-center gap-1 transition-transform active:scale-95 shadow-2xs"
+                title="Start interactive product walkthrough with demo data"
+              >
+                <Sparkles size={12} />
+                <span>Guided Feature Tour</span>
+              </button>
+            )}
+
+            <button
+              onClick={onOpenLogin}
+              className="px-2.5 py-0.5 bg-[#DE5239] hover:bg-[#C6422A] text-white rounded-lg font-bold text-[11px] cursor-pointer shrink-0 transition-transform active:scale-95 shadow-2xs"
+            >
+              Sign In with Google →
+            </button>
+          </div>
         </div>
       )}
 
@@ -174,8 +190,19 @@ export function GlobalAppHeader({
           </div>
         </form>
 
-        {/* Right: Streak & Profile / Sign In */}
+        {/* Right: Streak, Guided Tour & Profile / Sign In */}
         <div className="flex items-center gap-2 shrink-0">
+          {onStartTour && !isDemoMode && (
+            <button
+              onClick={onStartTour}
+              className="hidden sm:flex items-center gap-1 px-2.5 py-1 border border-[#DE5239]/40 bg-[#DE5239]/10 hover:bg-[#DE5239]/20 text-[#DE5239] text-xs font-sans font-bold rounded-full cursor-pointer transition-all shadow-2xs"
+              title="Start interactive product walkthrough"
+            >
+              <Sparkles size={13} />
+              <span>Tour</span>
+            </button>
+          )}
+
           {streakCount > 0 && !isDemoMode && (
             <div className="hidden xs:flex items-center gap-1 bg-[#F5E5DC] border border-[#DE5239]/20 px-2.5 py-1 rounded-full text-xs font-mono font-bold text-[#DE5239]">
               <Flame size={14} className="fill-[#DE5239]" />

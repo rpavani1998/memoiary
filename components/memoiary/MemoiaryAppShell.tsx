@@ -55,6 +55,7 @@ import { ReflectionChatboard } from "@/components/ReflectionChatboard";
 import { EntitiesViewSection } from "@/components/EntitiesViewSection";
 import { WishlistIntentionsBoard } from "@/components/WishlistIntentionsBoard";
 import { MemoryTimeCapsuleBanner } from "@/components/MemoryTimeCapsuleBanner";
+import { InteractiveProductWalkthrough } from "@/components/InteractiveProductWalkthrough";
 import { Brand, IconButton } from "./Brand";
 import { GlobalAppHeader, PageHeader } from "./GlobalAppHeader";
 import { DailySanctuaryHero } from "./DailySanctuaryHero";
@@ -2674,6 +2675,7 @@ export function MemoiaryAppShell() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSplash, setIsSplash] = useState(true);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [isTourOpen, setIsTourOpen] = useState(false);
   const [captureMode, setCaptureMode] = useState<CaptureMode>(null);
   const [capturePrompt, setCapturePrompt] = useState<string>("");
   const [pendingCaptureMode, setPendingCaptureMode] = useState<CaptureMode>(null);
@@ -2819,6 +2821,7 @@ export function MemoiaryAppShell() {
           user={user}
           isDemoMode={isDemoMode}
           onOpenLogin={() => setShowLoginModal(true)}
+          onStartTour={() => setIsTourOpen(true)}
           searchQuery={searchQuery}
           onSearchQueryChange={setSearchQuery}
           onBack={["person", "place", "search", "thought", "story", "memory"].includes(view) ? () => go("life") : undefined}
@@ -2840,6 +2843,14 @@ export function MemoiaryAppShell() {
         isOpen={showLoginModal}
         onClose={() => setShowLoginModal(false)}
         onSuccess={handleAuthSuccess}
+      />
+      <InteractiveProductWalkthrough
+        isOpen={isTourOpen}
+        onClose={() => setIsTourOpen(false)}
+        onNavigateView={(targetView) => {
+          setView(targetView);
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }}
       />
       {saved && <SavedMomentToast />}
     </div>
