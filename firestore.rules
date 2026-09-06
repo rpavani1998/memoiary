@@ -16,6 +16,14 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.admin == true;
+    }
+
+    function isOwnerOrAdmin(userId) {
+      return isOwner(userId) || isAdmin();
+    }
+
     function isValidId(id) {
       return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
@@ -29,7 +37,7 @@ service cloud.firestore {
 
     // All memory collections belong strictly to the authenticated user's isolated document tree
     match /users/{userId} {
-      allow read, write: if isOwner(userId);
+      allow read, write: if isOwnerOrAdmin(userId);
 
       match /captures/{captureId} {
         allow read, delete: if isOwner(userId);
