@@ -83,21 +83,15 @@ export function getPersonVisualIdentity(name: string): PersonVisualIdentity {
     return PERSON_VISUAL_REGISTRY[normalizedKey];
   }
 
-  // Deterministic fallback generator for new people captured by user
+  // Deterministic fallback generator reusing registry palette entries
+  const registryEntries = Object.values(PERSON_VISUAL_REGISTRY);
   const charCodeSum = name.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const colorOptions = [
-    { bg: "#F5E5DC", border: "#DE5239" },
-    { bg: "#E2EBD8", border: "#4D7C0F" },
-    { bg: "#EAE5F5", border: "#6D28D9" },
-    { bg: "#FDF2D0", border: "#D97706" },
-    { bg: "#E0F2FE", border: "#0284C7" }
-  ];
-  const chosenColor = colorOptions[charCodeSum % colorOptions.length];
+  const chosen = registryEntries[charCodeSum % registryEntries.length];
 
   return {
     name,
-    avatarBg: chosenColor.bg,
-    avatarBorder: chosenColor.border,
+    avatarBg: chosen.avatarBg,
+    avatarBorder: chosen.avatarBorder,
     baseDescriptor: `Person named ${name} with warm friendly facial features`,
     evolvedTraits: ["Natural hand-drawn style"],
     version: 1,
